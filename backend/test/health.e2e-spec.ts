@@ -4,6 +4,7 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { ReadinessIndicator } from '../src/health/readiness.indicator';
+import { PrismaService } from '../src/database/prisma.service';
 
 describe('Health endpoints', () => {
   let app: INestApplication;
@@ -11,6 +12,8 @@ describe('Health endpoints', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(PrismaService)
+      .useValue({ isReady: jest.fn() })
       .overrideProvider(ReadinessIndicator)
       .useValue(readiness)
       .compile();

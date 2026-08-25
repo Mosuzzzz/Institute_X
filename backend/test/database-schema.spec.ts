@@ -27,9 +27,7 @@ describe('database schema contract', () => {
   });
 
   it('defines exactly the four mutually exclusive user roles from the SRS', () => {
-    const userRole = Prisma.dmmf.datamodel.enums.find(
-      (item) => item.name === 'UserRole',
-    );
+    const userRole = Prisma.dmmf.datamodel.enums.find((item) => item.name === 'UserRole');
 
     expect(userRole?.values.map((item) => item.name)).toEqual([
       'STUDENT',
@@ -53,16 +51,10 @@ describe('database schema contract', () => {
   });
 
   it('persists quiz timing, randomized order, answers, and enrollments', () => {
-    const quiz = Prisma.dmmf.datamodel.models.find(
-      (model) => model.name === 'Quiz',
-    );
+    const quiz = Prisma.dmmf.datamodel.models.find((model) => model.name === 'Quiz');
 
     expect(quiz?.fields.map((field) => field.name)).toEqual(
-      expect.arrayContaining([
-        'durationSeconds',
-        'randomizeQuestions',
-        'randomizeOptions',
-      ]),
+      expect.arrayContaining(['durationSeconds', 'randomizeQuestions', 'randomizeOptions']),
     );
     expect(modelNames).toEqual(
       expect.arrayContaining([

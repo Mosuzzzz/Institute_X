@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
 
 /**
  * Dependency checks are added here as infrastructure adapters are introduced.
@@ -6,7 +7,9 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ReadinessIndicator {
+  constructor(private readonly prisma: PrismaService) {}
+
   async check(): Promise<boolean> {
-    return Promise.resolve(true);
+    return this.prisma.isReady();
   }
 }

@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  APPROVER
+  OWNER
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TeacherPermissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVOKED
+}
+
+enum CourseVersionStatus {
+  DRAFT
+  SUBMITTED
+  REJECTED
+  PUBLISHED
+  SUPERSEDED
+}
+
+enum ContentType {
+  TEXT
+  VIDEO
+  AUDIO
+  IMAGE
+  DOCUMENT
+}
+
+enum AssetStatus {
+  PENDING
+  READY
+  FAILED
+  DELETED
+}
+
+enum QuizType {
+  PRE_TEST
+  POST_TEST
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+}
+
+enum QuizResult {
+  COMPLETED
+  PASS
+  NOT_PASS
+}
+
+enum ReviewDecision {
+  APPROVED
+  REJECTED
+}
+
+model Major {
+  id             String               @id @default(uuid()) @map("major_id") @db.Uuid
+  code           String               @unique @map("major_code") @db.VarChar(50)
+  name           String               @unique @map("major_name") @db.VarChar(255)
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  users          User[]
+  allowedCourses CourseAllowedMajor[]
+
+  @@map("majors")
+}
+
+model User {
+  id                 String                     @id @default(uuid()) @map("user_id") @db.Uuid
+  ssoSubject         String                     @unique @map("sso_subject") @db.VarChar(255)
+  universityEmail    String                     @unique @map("university_email") @db.VarChar(320)
+  fullName           String                     @map("full_name") @db.VarChar(255)
+  role               UserRole
+  accountStatus      AccountStatus              @map("account_status")
+  majorId            String?                    @map("major_id") @db.Uuid
+  createdAt          DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
+  major              Major?                     @relation(fields: [majorId], references: [id])
+  permissionRequests TeacherPermissionRequest[] @relation("PermissionRequester")
+  permissionReviews  TeacherPermissionRequest[] @relation("PermissionReviewer")
+  courses            Course[]
+  versionReviews     CourseVersionReview[]      @relation("VersionReviewer")
+  enrollments        CourseEnrollment[]
+  quizAttempts       QuizAttempt[]
+  courseAccessEvents CourseAccessEvent[]
+
+  @@map("users")
+}
+
+model TeacherPermissionRequest {
+  id             String                  @id @default(uuid()) @map("request_id") @db.Uuid
+  teacherId      String                  @map("teacher_id") @db.Uuid
+  status         TeacherPermissionStatus @default(PENDING)
+  requestMessage String?                 @map("request_message")
+  reviewedById   String?                 @map("reviewed_by") @db.Uuid
+  reviewComment  String?                 @map("review_comment")
+  requestedAt    DateTime                @default(now()) @map("requested_at") @db.Timestamptz
+  reviewedAt     DateTime?               @map("reviewed_at") @db.Timestamptz
+  teacher        User                    @relation("PermissionRequester", fields: [teacherId], references: [id])
+  reviewedBy     User?                   @relation("PermissionReviewer", fields: [reviewedById], references: [id])
+
+  @@index([teacherId, status])
+  @@map("teacher_permission_requests")
+}
+
+model Course {
+  id            String               @id @default(uuid()) @map("course_id") @db.Uuid
+  teacherId     String               @map("teacher_id") @db.Uuid
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  archivedAt    DateTime?            @map("archived_at") @db.Timestamptz
+  teacher       User                 @relation(fields: [teacherId], references: [id])
+  allowedMajors CourseAllowedMajor[]
+  versions      CourseVersion[]
+  enrollments   CourseEnrollment[]
+  accessEvents  CourseAccessEvent[]
+
+  @@index([teacherId])
+  @@map("courses")
+}
+
+model CourseAllowedMajor {
+  courseId String @map("course_id") @db.Uuid
+  majorId  String @map("major_id") @db.Uuid
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  major    Major  @relation(fields: [majorId], references: [id])
+
+  @@id([courseId, majorId])
+  @@map("course_allowed_majors")
+}
+
+model CourseVersion {
+  id            String                @id @default(uuid()) @map("version_id") @db.Uuid
+  courseId      String                @map("course_id") @db.Uuid
+  versionNumber Int                   @map("version_number")
+  title         String                @db.VarChar(255)
+  description   String?
+  status        CourseVersionStatus   @default(DRAFT)
+  submittedAt   DateTime?             @map("submitted_at") @db.Timestamptz
+  publishedAt   DateTime?             @map("published_at") @db.Timestamptz
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  course        Course                @relation(fields: [courseId], references: [id])
+  reviews       CourseVersionReview[]
+  contentItems  ContentItem[]
+  quizzes       Quiz[]
+
+  @@unique([courseId, versionNumber])
+  @@index([courseId, status])
+  @@map("course_versions")
+}
+
+model CourseVersionReview {
+  id               String          @id @default(uuid()) @map("review_id") @db.Uuid
+  versionId        String          @map("version_id") @db.Uuid
+  submissionNumber Int             @map("submission_number")
+  submittedAt      DateTime        @map("submitted_at") @db.Timestamptz
+  reviewedById     String?         @map("reviewed_by") @db.Uuid
+  decision         ReviewDecision?
+  reviewComment    String?         @map("review_comment")
+  reviewedAt       DateTime?       @map("reviewed_at") @db.Timestamptz
+  version          CourseVersion   @relation(fields: [versionId], references: [id])
+  reviewedBy       User?           @relation("VersionReviewer", fields: [reviewedById], references: [id])
+
+  @@unique([versionId, submissionNumber])
+  @@map("course_version_reviews")
+}
+
+model ContentItem {
+  id          String        @id @default(uuid()) @map("content_item_id") @db.Uuid
+  versionId   String        @map("version_id") @db.Uuid
+  contentType ContentType   @map("content_type")
+  title       String?       @db.VarChar(255)
+  textBody    String?       @map("text_body")
+  position    Int
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  version     CourseVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  mediaAsset  MediaAsset?
+
+  @@unique([versionId, position])
+  @@map("content_items")
+}
+
+model MediaAsset {
+  id            String      @id @default(uuid()) @map("asset_id") @db.Uuid
+  contentItemId String      @unique @map("content_item_id") @db.Uuid
+  fileName      String      @map("file_name") @db.VarChar(255)
+  mimeType      String      @map("mime_type") @db.VarChar(255)
+  storageKey    String      @unique @map("storage_key") @db.VarChar(1024)
+  sizeBytes     BigInt      @map("size_bytes")
+  status        AssetStatus @default(PENDING)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@map("media_assets")
+}
+
+model Quiz {
+  id                 String        @id @default(uuid()) @map("quiz_id") @db.Uuid
+  versionId          String        @map("version_id") @db.Uuid
+  quizType           QuizType      @map("quiz_type")
+  title              String        @db.VarChar(255)
+  durationSeconds    Int?          @map("duration_seconds")
+  randomizeQuestions Boolean       @default(true) @map("randomize_questions")
+  randomizeOptions   Boolean       @default(true) @map("randomize_options")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  version            CourseVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  questions          Question[]
+  attempts           QuizAttempt[]
+
+  @@unique([versionId, quizType])
+  @@map("quizzes")
+}
+
+model Question {
+  id               String                @id @default(uuid()) @map("question_id") @db.Uuid
+  quizId           String                @map("quiz_id") @db.Uuid
+  questionText     String                @map("question_text")
+  questionType     QuestionType          @default(MULTIPLE_CHOICE) @map("question_type")
+  points           Decimal               @db.Decimal(10, 2)
+  position         Int
+  quiz             Quiz                  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options          QuestionOption[]
+  attemptQuestions QuizAttemptQuestion[]
+  attemptOptions   QuizAttemptOption[]
+  attemptAnswers   QuizAttemptAnswer[]
+
+  @@unique([quizId, position])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id              String              @id @default(uuid()) @map("option_id") @db.Uuid
+  questionId      String              @map("question_id") @db.Uuid
+  optionText      String              @map("option_text")
+  isCorrect       Boolean             @map("is_correct")
+  position        Int
+  question        Question            @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptOptions  QuizAttemptOption[]
+  selectedAnswers QuizAttemptAnswer[]
+
+  @@unique([questionId, position])
+  @@map("question_options")
+}
+
+model CourseEnrollment {
+  id         String   @id @default(uuid()) @map("enrollment_id") @db.Uuid
+  courseId   String   @map("course_id") @db.Uuid
+  studentId  String   @map("student_id") @db.Uuid
+  enrolledAt DateTime @default(now()) @map("enrolled_at") @db.Timestamptz
+  course     Course   @relation(fields: [courseId], references: [id])
+  student    User     @relation(fields: [studentId], references: [id])
+
+  @@unique([courseId, studentId])
+  @@index([studentId, enrolledAt])
+  @@map("course_enrollments")
+}
+
+model QuizAttempt {
+  id                 String                @id @default(uuid()) @map("attempt_id") @db.Uuid
+  quizId             String                @map("quiz_id") @db.Uuid
+  studentId          String                @map("student_id") @db.Uuid
+  score              Decimal?              @db.Decimal(5, 2)
+  result             QuizResult?
+  startedAt          DateTime              @default(now()) @map("started_at") @db.Timestamptz
+  expiresAt          DateTime?             @map("expires_at") @db.Timestamptz
+  submittedAt        DateTime?             @map("submitted_at") @db.Timestamptz
+  quiz               Quiz                  @relation(fields: [quizId], references: [id])
+  student            User                  @relation(fields: [studentId], references: [id])
+  presentedQuestions QuizAttemptQuestion[]
+  presentedOptions   QuizAttemptOption[]
+  answers            QuizAttemptAnswer[]
+
+  @@index([quizId, studentId, submittedAt])
+  @@map("quiz_attempts")
+}
+
+model QuizAttemptQuestion {
+  attemptId       String      @map("attempt_id") @db.Uuid
+  questionId      String      @map("question_id") @db.Uuid
+  displayPosition Int         @map("display_position")
+  attempt         QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        Question    @relation(fields: [questionId], references: [id])
+
+  @@id([attemptId, questionId])
+  @@unique([attemptId, displayPosition])
+  @@map("quiz_attempt_questions")
+}
+
+model QuizAttemptOption {
+  attemptId       String         @map("attempt_id") @db.Uuid
+  questionId      String         @map("question_id") @db.Uuid
+  optionId        String         @map("option_id") @db.Uuid
+  displayPosition Int            @map("display_position")
+  attempt         QuizAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        Question       @relation(fields: [questionId], references: [id])
+  option          QuestionOption @relation(fields: [optionId], references: [id])
+
+  @@id([attemptId, questionId, optionId])
+  @@unique([attemptId, questionId, displayPosition])
+  @@map("quiz_attempt_options")
+}
+
+model QuizAttemptAnswer {
+  attemptId        String         @map("attempt_id") @db.Uuid
+  questionId       String         @map("question_id") @db.Uuid
+  selectedOptionId String         @map("selected_option_id") @db.Uuid
+  isCorrect        Boolean        @map("is_correct")
+  pointsAwarded    Decimal        @map("points_awarded") @db.Decimal(10, 2)
+  answeredAt       DateTime       @default(now()) @map("answered_at") @db.Timestamptz
+  attempt          QuizAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question       @relation(fields: [questionId], references: [id])
+  selectedOption   QuestionOption @relation(fields: [selectedOptionId], references: [id])
+
+  @@id([attemptId, questionId])
+  @@map("quiz_attempt_answers")
+}
+
+model CourseAccessEvent {
+  id         String   @id @default(uuid()) @map("event_id") @db.Uuid
+  studentId  String   @map("student_id") @db.Uuid
+  courseId   String   @map("course_id") @db.Uuid
+  accessedAt DateTime @default(now()) @map("accessed_at") @db.Timestamptz
+  student    User     @relation(fields: [studentId], references: [id])
+  course     Course   @relation(fields: [courseId], references: [id])
+
+  @@index([courseId, accessedAt])
+  @@index([studentId, accessedAt])
+  @@map("course_access_events")
+}
