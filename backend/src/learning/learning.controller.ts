@@ -1,0 +1,43 @@
+import { Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
+import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { CourseAccessService } from './course-access.service';
+
+@ApiTags('student-learning')
+@ApiBearerAuth()
+@Controller('courses')
+@UseGuards(OidcAuthGuard, RolesGuard)
+export class LearningController {
+  constructor(private readonly access: CourseAccessService) {}
+
+  @Get()
+  @Roles(UserRole.STUDENT)
+  @ApiOkResponse({ description: 'Published Course catalog eligible for the Student Major' })
+  list(@CurrentUser() user: CurrentUserValue): ReturnType<CourseAccessService['listEligibleCourses']> {
+    return this.access.listEligibleCourses({ ...user, majorId: user.majorId ?? null });
+  }
+
+  @Post(':courseId/enter')
+  @Roles(UserRole.STUDENT)
+  @ApiCreatedResponse({ description: 'Course entered and enrollment ensured' })
+  enter(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+  ): ReturnType<CourseAccessService['enterCourse']> {
+    return this.access.enterCourse({ ...user, majorId: user.majorId ?? null }, courseId);
+  }
+
+  @Get(':courseId/content')
+  @Roles(UserRole.STUDENT)
+  @ApiOkResponse({ description: 'Ordered content from the unlocked published Course Version' })
+  content(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+  ): ReturnType<CourseAccessService['getPublishedContent']> {
+    return this.access.getPublishedContent({ ...user, majorId: user.majorId ?? null }, courseId);
+  }
+}

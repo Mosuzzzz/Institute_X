@@ -1,0 +1,21 @@
+export interface SignedStorageUrl {
+  url: string;
+  expiresAt: Date;
+}
+
+export interface StoredObjectMetadata {
+  sizeBytes: number;
+  mimeType: string;
+}
+
+export abstract class ObjectStorage {
+  abstract createUploadUrl(
+    storageKey: string,
+    mimeType: string,
+    sizeBytes: number,
+  ): Promise<SignedStorageUrl>;
+
+  abstract createViewUrl(storageKey: string): Promise<SignedStorageUrl>;
+
+  abstract headObject(storageKey: string): Promise<StoredObjectMetadata>;
+}

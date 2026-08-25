@@ -12,7 +12,7 @@ describe('CoursesService', () => {
     teacherPermissionRequest: { findFirst: jest.fn() },
     major: { count: jest.fn() },
     course: { create: jest.fn(), findUnique: jest.fn() },
-    courseVersion: { findUnique: jest.fn(), update: jest.fn() },
+    courseVersion: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
   };
   const prisma = {
     ...db,
@@ -116,6 +116,13 @@ describe('CoursesService', () => {
   });
 
   describe('updateDraft', () => {
+    it('rejects an empty update', async () => {
+      await expect(
+        service.updateDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id', {}),
+      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      expect(db.courseVersion.findUnique).not.toHaveBeenCalled();
+    });
+
     it('allows the owning Teacher to edit Draft metadata', async () => {
       db.courseVersion.findUnique.mockResolvedValue({
         id: 'version-id',
@@ -173,6 +180,80 @@ describe('CoursesService', () => {
           title: 'Missing',
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('createRevision', () => {
+    it('creates the next Draft from published metadata without changing the published Version', async () => {
+      db.course.findUnique.mockResolvedValue({
+        teacherId: 'teacher-id',
+        versions: [
+          {
+            id: 'published-id',
+            versionNumber: 2,
+            title: 'Published title',
+            description: 'Published description',
+            status: CourseVersionStatus.PUBLISHED,
+          },
+          {
+            id: 'old-id',
+            versionNumber: 1,
+            title: 'Old title',
+            description: null,
+            status: CourseVersionStatus.SUPERSEDED,
+          },
+        ],
+      });
+      db.courseVersion.create.mockResolvedValue({
+        id: 'draft-id',
+        versionNumber: 3,
+        status: CourseVersionStatus.DRAFT,
+      });
+
+      await service.createRevision(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'course-id',
+      );
+
+      expect(db.courseVersion.create).toHaveBeenCalledWith({
+        data: {
+          courseId: 'course-id',
+          versionNumber: 3,
+          title: 'Published title',
+          description: 'Published description',
+          status: CourseVersionStatus.DRAFT,
+        },
+      });
+      expect(db.courseVersion.update).not.toHaveBeenCalled();
+    });
+
+    it('prevents multiple active revisions', async () => {
+      db.course.findUnique.mockResolvedValue({
+        teacherId: 'teacher-id',
+        versions: [
+          {
+            versionNumber: 3,
+            status: CourseVersionStatus.SUBMITTED,
+          },
+          {
+            versionNumber: 2,
+            status: CourseVersionStatus.PUBLISHED,
+          },
+        ],
+      });
+
+      await expect(
+        service.createRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(db.courseVersion.create).not.toHaveBeenCalled();
+    });
+
+    it('denies revision creation by another Teacher', async () => {
+      db.course.findUnique.mockResolvedValue({ teacherId: 'owner-id', versions: [] });
+
+      await expect(
+        service.createRevision({ id: 'other-id', role: UserRole.TEACHER }, 'course-id'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 });

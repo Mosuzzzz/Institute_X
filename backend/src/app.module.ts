@@ -6,6 +6,13 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { TeacherPermissionsModule } from './teacher-permissions/teacher-permissions.module';
 import { CoursesModule } from './courses/courses.module';
+import { ContentModule } from './content/content.module';
+import { CourseVersionsModule } from './course-versions/course-versions.module';
+import { QuizzesModule } from './quizzes/quizzes.module';
+import { LearningModule } from './learning/learning.module';
+import { AssessmentsModule } from './assessments/assessments.module';
+import { MediaModule } from './media/media.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -18,6 +25,13 @@ import { CoursesModule } from './courses/courses.module';
     AuthModule,
     TeacherPermissionsModule,
     CoursesModule,
+    ContentModule,
+    CourseVersionsModule,
+    QuizzesModule,
+    LearningModule,
+    AssessmentsModule,
+    MediaModule,
+    AnalyticsModule,
     HealthModule,
   ],
 })

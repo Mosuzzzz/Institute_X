@@ -89,6 +89,9 @@ export class CoursesService {
     input: UpdateDraftInput,
   ): Promise<CourseVersion> {
     this.requireTeacher(actor);
+    if (input.title === undefined && input.description === undefined) {
+      throw new UnprocessableEntityException('At least one Course field is required');
+    }
     const version = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
       include: { course: { select: { teacherId: true } } },
@@ -119,6 +122,63 @@ export class CoursesService {
       where: { id: versionId },
       data,
     });
+  }
+
+  async createRevision(actor: CourseActor, courseId: string): Promise<CourseVersion> {
+    this.requireTeacher(actor);
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        teacherId: true,
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          select: {
+            versionNumber: true,
+            title: true,
+            description: true,
+            status: true,
+          },
+        },
+      },
+    });
+    if (!course) {
+      throw new NotFoundException('Course was not found');
+    }
+    if (course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may create a revision');
+    }
+
+    const activeStatuses: CourseVersionStatus[] = [
+      CourseVersionStatus.DRAFT,
+      CourseVersionStatus.SUBMITTED,
+      CourseVersionStatus.REJECTED,
+    ];
+    if (course.versions.some((version) => activeStatuses.includes(version.status))) {
+      throw new ConflictException('An active Course revision already exists');
+    }
+    const published = course.versions.find(
+      (version) => version.status === CourseVersionStatus.PUBLISHED,
+    );
+    if (!published) {
+      throw new ConflictException('A published Version is required before creating a revision');
+    }
+
+    try {
+      return await this.prisma.courseVersion.create({
+        data: {
+          courseId,
+          versionNumber: (course.versions[0]?.versionNumber ?? 0) + 1,
+          title: published.title,
+          description: published.description,
+          status: CourseVersionStatus.DRAFT,
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('A Course revision was created concurrently');
+      }
+      throw error;
+    }
   }
 
   private validateMajorIds(majorIds: string[]): void {
