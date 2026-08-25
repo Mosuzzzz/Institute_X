@@ -7,10 +7,10 @@ describe('MockSsoTokenVerifier', () => {
   const config = {
     getOrThrow: jest.fn((key: string) => {
       if (key === 'MOCK_SSO_ME_URL') return 'http://localhost:8080/api/sso/me';
+      if (key === 'MOCK_SSO_VERIFY_URL') return 'http://localhost:8080/api/sso/verify';
       throw new Error(`Unexpected config: ${key}`);
     }),
     get: jest.fn((key: string, fallback?: unknown) => {
-      if (key === 'MOCK_SSO_DEFAULT_MAJOR_CODE') return 'CS';
       if (key === 'MOCK_SSO_STAFF_ROLE') return UserRole.APPROVER;
       return fallback;
     }),
@@ -26,15 +26,18 @@ describe('MockSsoTokenVerifier', () => {
 
   afterEach(() => fetchSpy.mockRestore());
 
-  it('maps a current Student and supplies the configured development Major', async () => {
-    fetchSpy.mockResolvedValue(
+  it('maps a current Student directly from the authenticated /me profile', async () => {
+    fetchSpy.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
           success: true,
           user: {
             user_id: '6600000001',
+            username: '6600000001',
             name: 'Test Student',
             email: '6600000001@university.ac.th',
+            major_code: 'CS',
+            year_level: 3,
           },
           status: {
             is_active: true,
@@ -49,6 +52,7 @@ describe('MockSsoTokenVerifier', () => {
 
     await expect(verifier.verify('mock-token')).resolves.toEqual({
       subject: '6600000001',
+      username: '6600000001',
       universityEmail: '6600000001@university.ac.th',
       fullName: 'Test Student',
       role: UserRole.STUDENT,
@@ -59,6 +63,7 @@ describe('MockSsoTokenVerifier', () => {
       'http://localhost:8080/api/sso/me',
       expect.objectContaining({ headers: { Authorization: 'Bearer mock-token' } }),
     );
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it('maps lecturer personnel to TEACHER', async () => {
@@ -76,6 +81,46 @@ describe('MockSsoTokenVerifier', () => {
     await expect(verifier.verify('lecturer-token')).resolves.toEqual(
       expect.objectContaining({ role: UserRole.TEACHER, majorCode: undefined }),
     );
+  });
+
+  it('uses the legacy /verify profile only when /me omits the Student Major', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(
+        responseFor({
+          user_id: '6600000001',
+          name: 'Test Student',
+          email: '6600000001@university.ac.th',
+          is_current_student: true,
+          is_educational_personnel: false,
+          personnel_type: null,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            valid: true,
+            user: {
+              user_id: '6600000001',
+              name: 'Test Student',
+              email: '6600000001@university.ac.th',
+              major_code: 'CS',
+            },
+            status: {
+              is_active: true,
+              is_current_student: true,
+              is_educational_personnel: false,
+              personnel_type: null,
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+
+    await expect(verifier.verify('mock-token')).resolves.toEqual(
+      expect.objectContaining({ majorCode: 'CS' }),
+    );
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it('maps staff personnel to the configured application role', async () => {

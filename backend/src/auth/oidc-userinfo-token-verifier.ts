@@ -35,6 +35,10 @@ export class OidcUserInfoTokenVerifier implements OidcTokenVerifier {
 
   private toIdentity(claims: Claims): SsoIdentity {
     const subject = this.requiredString(claims.sub);
+    const username =
+      typeof claims.preferred_username === 'string' && claims.preferred_username.trim()
+        ? claims.preferred_username.trim()
+        : subject;
     const universityEmail = this.requiredString(claims.email).toLowerCase();
     const fullName = this.requiredString(claims.name);
     const allowedEmailDomain = this.config
@@ -59,6 +63,7 @@ export class OidcUserInfoTokenVerifier implements OidcTokenVerifier {
 
     return {
       subject,
+      username,
       universityEmail,
       fullName,
       role: role as UserRole,

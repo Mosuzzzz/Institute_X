@@ -37,6 +37,7 @@ describeDatabase('PostgreSQL integration', () => {
         {
           id: teacherId,
           ssoSubject: `teacher-${marker}`,
+          username: `teacher-${marker}`,
           universityEmail: `teacher-${marker}@institute.example`,
           fullName: 'Integration Teacher',
           role: UserRole.TEACHER,
@@ -45,6 +46,7 @@ describeDatabase('PostgreSQL integration', () => {
         {
           id: studentId,
           ssoSubject: `student-${marker}`,
+          username: `student-${marker}`,
           universityEmail: `student-${marker}@institute.example`,
           fullName: 'Integration Student',
           role: UserRole.STUDENT,
@@ -54,6 +56,7 @@ describeDatabase('PostgreSQL integration', () => {
         {
           id: approverId,
           ssoSubject: `approver-${marker}`,
+          username: `approver-${marker}`,
           universityEmail: `approver-${marker}@institute.example`,
           fullName: 'Integration Approver',
           role: UserRole.APPROVER,

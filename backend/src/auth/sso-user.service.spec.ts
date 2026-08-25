@@ -17,6 +17,7 @@ describe('SsoUserService', () => {
   it('creates or updates an active SSO user by stable subject', async () => {
     const identity = {
       subject: 'sso-123',
+      username: '6600000001',
       universityEmail: 'student@institute.example',
       fullName: 'Student One',
       role: UserRole.STUDENT,
@@ -32,10 +33,12 @@ describe('SsoUserService', () => {
       where: { ssoSubject: 'sso-123' },
       create: expect.objectContaining({
         ssoSubject: 'sso-123',
+        username: '6600000001',
         universityEmail: 'student@institute.example',
         majorId: 'major-id',
       }),
       update: expect.objectContaining({
+        username: '6600000001',
         universityEmail: 'student@institute.example',
         majorId: 'major-id',
       }),

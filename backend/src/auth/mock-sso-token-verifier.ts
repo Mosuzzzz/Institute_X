@@ -6,8 +6,10 @@ import { SsoIdentity } from './sso-identity';
 
 interface MockSsoResponse {
   success: boolean;
+  valid?: boolean;
   user?: {
     user_id?: unknown;
+    username?: unknown;
     name?: unknown;
     email?: unknown;
     major_code?: unknown;
@@ -44,7 +46,47 @@ export class MockSsoTokenVerifier implements OidcTokenVerifier {
     } catch {
       throw new UnauthorizedException('Mock University SSO response is invalid');
     }
-    return this.toIdentity(payload);
+    const identity = this.toIdentity(payload);
+    if (
+      identity.role !== UserRole.STUDENT ||
+      identity.accountStatus !== AccountStatus.ACTIVE ||
+      identity.majorCode
+    ) {
+      return identity;
+    }
+
+    const verifiedPayload = await this.fetchStudentProfile(identity.subject);
+    const verifiedIdentity = this.toIdentity(verifiedPayload);
+    if (
+      verifiedPayload.valid !== true ||
+      verifiedIdentity.subject !== identity.subject ||
+      verifiedIdentity.universityEmail !== identity.universityEmail
+    ) {
+      throw new UnauthorizedException('Mock University SSO identity mismatch');
+    }
+    return verifiedIdentity;
+  }
+
+  private async fetchStudentProfile(subject: string): Promise<MockSsoResponse> {
+    let response: Response;
+    try {
+      response = await fetch(this.config.getOrThrow<string>('MOCK_SSO_VERIFY_URL'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: subject }),
+        signal: AbortSignal.timeout(5_000),
+      });
+    } catch {
+      throw new UnauthorizedException('Mock University SSO is unavailable');
+    }
+    if (!response.ok) {
+      throw new UnauthorizedException('Mock University SSO profile was rejected');
+    }
+    try {
+      return (await response.json()) as MockSsoResponse;
+    } catch {
+      throw new UnauthorizedException('Mock University SSO response is invalid');
+    }
   }
 
   private toIdentity(payload: MockSsoResponse): SsoIdentity {
@@ -61,6 +103,7 @@ export class MockSsoTokenVerifier implements OidcTokenVerifier {
       throw new UnauthorizedException('Mock University SSO response is invalid');
     }
     const subject = this.requiredString(user.user_id);
+    const username = this.optionalString(user.username) ?? subject;
     const universityEmail = this.requiredString(user.email).toLowerCase();
     const fullName = this.requiredString(user.name);
     const allowedDomain = this.config
@@ -73,15 +116,14 @@ export class MockSsoTokenVerifier implements OidcTokenVerifier {
     }
 
     const role = this.resolveRole(status);
-    const configuredMajorCode =
-      this.config.get<string>('MOCK_SSO_DEFAULT_MAJOR_CODE')?.trim() || undefined;
     const majorCode =
       role === UserRole.STUDENT
-        ? (this.optionalString(user.major_code) ?? configuredMajorCode)
+        ? this.optionalString(user.major_code)
         : undefined;
 
     return {
       subject,
+      username,
       universityEmail,
       fullName,
       role,

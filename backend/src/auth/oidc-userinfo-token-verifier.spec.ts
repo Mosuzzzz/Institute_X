@@ -45,6 +45,7 @@ describe('OidcUserInfoTokenVerifier', () => {
 
     await expect(verifier.verify('access-token')).resolves.toEqual({
       subject: 'subject-1',
+      username: 'subject-1',
       universityEmail: 'student@institute.example',
       fullName: 'Student One',
       role: UserRole.STUDENT,

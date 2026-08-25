@@ -83,6 +83,7 @@ model Major {
 model User {
   id                 String                     @id @default(uuid()) @map("user_id") @db.Uuid
   ssoSubject         String                     @unique @map("sso_subject") @db.VarChar(255)
+  username           String                     @unique @db.VarChar(255)
   universityEmail    String                     @unique @map("university_email") @db.VarChar(320)
   fullName           String                     @map("full_name") @db.VarChar(255)
   role               UserRole

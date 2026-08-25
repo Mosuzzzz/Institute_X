@@ -19,6 +19,7 @@ export class SsoUserService {
 
     const majorId = await this.resolveMajorId(identity);
     const userData = {
+      username: identity.username?.trim() || identity.subject.trim(),
       universityEmail: identity.universityEmail.trim().toLowerCase(),
       fullName: identity.fullName.trim(),
       role: identity.role,

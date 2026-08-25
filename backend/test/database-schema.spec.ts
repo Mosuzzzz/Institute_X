@@ -52,6 +52,14 @@ describe('database schema contract', () => {
     );
   });
 
+  it('stores the institutional username separately from the display name', () => {
+    const user = Prisma.dmmf.datamodel.models.find((model) => model.name === 'User');
+
+    expect(user?.fields.map((field) => field.name)).toEqual(
+      expect.arrayContaining(['username', 'fullName']),
+    );
+  });
+
   it('persists quiz timing, randomized order, answers, and enrollments', () => {
     const quiz = Prisma.dmmf.datamodel.models.find((model) => model.name === 'Quiz');
 
@@ -80,5 +88,26 @@ describe('database schema contract', () => {
     expect(migration).toContain("WHERE status IN ('DRAFT', 'SUBMITTED', 'REJECTED')");
     expect(migration).toContain('course_versions_one_published_per_course');
     expect(migration).toContain("WHERE status = 'PUBLISHED'");
+  });
+
+  it('seeds the Mock SSO Computer Science Major idempotently', () => {
+    const migration = readFileSync(
+      resolve(__dirname, '../prisma/migrations/202608250003_seed_cs_major/migration.sql'),
+      'utf8',
+    );
+
+    expect(migration).toContain("'CS'");
+    expect(migration).toContain('ON CONFLICT ("major_code")');
+  });
+
+  it('backfills usernames safely for existing SSO users', () => {
+    const migration = readFileSync(
+      resolve(__dirname, '../prisma/migrations/202608250004_add_user_username/migration.sql'),
+      'utf8',
+    );
+
+    expect(migration).toContain('SET "username" = "sso_subject"');
+    expect(migration).toContain('SET NOT NULL');
+    expect(migration).toContain('CREATE UNIQUE INDEX');
   });
 });
