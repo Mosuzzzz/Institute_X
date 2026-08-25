@@ -5,6 +5,7 @@ import { validateEnvironment } from './config/environment.validation';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { TeacherPermissionsModule } from './teacher-permissions/teacher-permissions.module';
+import { CoursesModule } from './courses/courses.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TeacherPermissionsModule } from './teacher-permissions/teacher-permissi
     DatabaseModule,
     AuthModule,
     TeacherPermissionsModule,
+    CoursesModule,
     HealthModule,
   ],
 })
