@@ -1,4 +1,9 @@
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import { S3ObjectStorage } from './s3-object-storage';
 
 jest.mock('@aws-sdk/s3-request-presigner', () => ({
@@ -65,5 +70,15 @@ describe('S3ObjectStorage', () => {
       mimeType: 'video/mp4',
     });
     expect(client.send).toHaveBeenCalledWith(expect.any(HeadObjectCommand));
+  });
+
+  it('deletes an object from the private bucket', async () => {
+    client.send.mockResolvedValue({});
+
+    await storage.deleteObject('courses/key');
+
+    expect(client.send).toHaveBeenCalledWith(expect.any(DeleteObjectCommand));
+    const command = client.send.mock.calls[0][0] as DeleteObjectCommand;
+    expect(command.input).toEqual({ Bucket: 'institute-x-private', Key: 'courses/key' });
   });
 });

@@ -8,7 +8,6 @@ import {
 import {
   AccountStatus,
   CourseVersionStatus,
-  Prisma,
   QuizResult,
   QuizType,
   UserRole,
@@ -40,7 +39,7 @@ interface StartedPostTest {
 
 interface PostTestResultRecord {
   id: string;
-  score: Prisma.Decimal | null;
+  score: number | null;
   result: QuizResult | null;
   startedAt: Date;
   submittedAt: Date | null;
@@ -231,12 +230,21 @@ export class PostTestService {
 
   async getResults(student: StudentActor, quizId: string): Promise<PostTestResultRecord[]> {
     this.requireActiveStudent(student);
-    return this.prisma.quizAttempt.findMany({
+    const attempts = await this.prisma.quizAttempt.findMany({
       where: {
         quizId,
         studentId: student.id,
         submittedAt: { not: null },
-        quiz: { quizType: QuizType.POST_TEST },
+        quiz: {
+          quizType: QuizType.POST_TEST,
+          version: {
+            status: CourseVersionStatus.PUBLISHED,
+            course: {
+              allowedMajors: { some: { majorId: student.majorId! } },
+              enrollments: { some: { studentId: student.id } },
+            },
+          },
+        },
       },
       select: {
         id: true,
@@ -247,6 +255,10 @@ export class PostTestService {
       },
       orderBy: { submittedAt: 'desc' },
     });
+    return attempts.map((attempt) => ({
+      ...attempt,
+      score: attempt.score === null ? null : Number(attempt.score),
+    }));
   }
 
   private requireActiveStudent(student: StudentActor): void {

@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -55,6 +56,12 @@ export class S3ObjectStorage extends ObjectStorage {
       sizeBytes: result.ContentLength,
       mimeType: result.ContentType.split(';', 1)[0].trim().toLowerCase(),
     };
+  }
+
+  async deleteObject(storageKey: string): Promise<void> {
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.config.bucket, Key: storageKey }),
+    );
   }
 
   private async sign(command: PutObjectCommand | GetObjectCommand): Promise<SignedStorageUrl> {

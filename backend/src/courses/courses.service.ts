@@ -34,9 +34,39 @@ type CreatedCourse = Prisma.CourseGetPayload<{
   include: { allowedMajors: true; versions: true };
 }>;
 
+type OwnedCourse = Prisma.CourseGetPayload<{
+  include: {
+    allowedMajors: {
+      include: { major: { select: { id: true; code: true; name: true } } };
+    };
+    versions: {
+      include: { reviews: true };
+    };
+  };
+}>;
+
 @Injectable()
 export class CoursesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async listOwned(actor: CourseActor): Promise<OwnedCourse[]> {
+    this.requireTeacher(actor);
+    return this.prisma.course.findMany({
+      where: { teacherId: actor.id },
+      include: {
+        allowedMajors: {
+          include: { major: { select: { id: true, code: true, name: true } } },
+        },
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          include: {
+            reviews: { orderBy: { submissionNumber: 'desc' }, take: 1 },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   async createCourse(actor: CourseActor, input: CreateCourseInput): Promise<CreatedCourse> {
     this.requireTeacher(actor);

@@ -21,9 +21,38 @@ export interface PermissionActor {
 type ReviewDecision =
   typeof TeacherPermissionStatus.APPROVED | typeof TeacherPermissionStatus.REJECTED;
 
+type PendingPermission = Prisma.TeacherPermissionRequestGetPayload<{
+  include: {
+    teacher: {
+      select: { id: true; fullName: true; universityEmail: true };
+    };
+  };
+}>;
+
 @Injectable()
 export class TeacherPermissionsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getMyLatest(actor: PermissionActor): Promise<TeacherPermissionRequest | null> {
+    this.requireRole(actor, UserRole.TEACHER);
+    return this.prisma.teacherPermissionRequest.findFirst({
+      where: { teacherId: actor.id },
+      orderBy: { requestedAt: 'desc' },
+    });
+  }
+
+  async listPending(actor: PermissionActor): Promise<PendingPermission[]> {
+    this.requireRole(actor, UserRole.APPROVER);
+    return this.prisma.teacherPermissionRequest.findMany({
+      where: { status: TeacherPermissionStatus.PENDING },
+      include: {
+        teacher: {
+          select: { id: true, fullName: true, universityEmail: true },
+        },
+      },
+      orderBy: { requestedAt: 'asc' },
+    });
+  }
 
   async requestPermission(
     actor: PermissionActor,

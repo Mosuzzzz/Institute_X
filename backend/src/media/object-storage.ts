@@ -18,4 +18,6 @@ export abstract class ObjectStorage {
   abstract createViewUrl(storageKey: string): Promise<SignedStorageUrl>;
 
   abstract headObject(storageKey: string): Promise<StoredObjectMetadata>;
+
+  abstract deleteObject(storageKey: string): Promise<void>;
 }

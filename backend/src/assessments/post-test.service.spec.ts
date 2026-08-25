@@ -1,5 +1,12 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-import { AccountStatus, CourseVersionStatus, QuizResult, QuizType, UserRole } from '@prisma/client';
+import {
+  AccountStatus,
+  CourseVersionStatus,
+  Prisma,
+  QuizResult,
+  QuizType,
+  UserRole,
+} from '@prisma/client';
 import { PostTestService } from './post-test.service';
 
 describe('PostTestService', () => {
@@ -176,8 +183,20 @@ describe('PostTestService', () => {
 
   it('returns only the Student own submitted score history', async () => {
     prisma.quizAttempt.findMany.mockResolvedValue([
-      { id: 'attempt-1', score: 80, result: QuizResult.PASS },
-      { id: 'attempt-2', score: 50, result: QuizResult.NOT_PASS },
+      {
+        id: 'attempt-1',
+        score: new Prisma.Decimal('80.5'),
+        result: QuizResult.PASS,
+        startedAt: new Date('2026-08-25T00:00:00.000Z'),
+        submittedAt: new Date('2026-08-25T00:10:00.000Z'),
+      },
+      {
+        id: 'attempt-2',
+        score: new Prisma.Decimal('50'),
+        result: QuizResult.NOT_PASS,
+        startedAt: new Date('2026-08-24T00:00:00.000Z'),
+        submittedAt: new Date('2026-08-24T00:10:00.000Z'),
+      },
     ]);
 
     const result = await service.getResults(student, 'post-test-id');
@@ -188,9 +207,20 @@ describe('PostTestService', () => {
           quizId: 'post-test-id',
           studentId: 'student-id',
           submittedAt: { not: null },
+          quiz: {
+            quizType: QuizType.POST_TEST,
+            version: {
+              status: CourseVersionStatus.PUBLISHED,
+              course: {
+                allowedMajors: { some: { majorId: 'major-it' } },
+                enrollments: { some: { studentId: 'student-id' } },
+              },
+            },
+          },
         }),
       }),
     );
     expect(result).toHaveLength(2);
+    expect(result.map((attempt) => attempt.score)).toEqual([80.5, 50]);
   });
 });

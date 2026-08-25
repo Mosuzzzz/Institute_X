@@ -1,4 +1,6 @@
 import { Prisma } from '@prisma/client';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 describe('database schema contract', () => {
   const modelNames = Prisma.dmmf.datamodel.models.map((model) => model.name);
@@ -64,5 +66,19 @@ describe('database schema contract', () => {
         'QuizAttemptAnswer',
       ]),
     );
+  });
+
+  it('enforces singleton workflow states with PostgreSQL partial unique indexes', () => {
+    const migration = readFileSync(
+      resolve(__dirname, '../prisma/migrations/202608250002_workflow_invariants/migration.sql'),
+      'utf8',
+    );
+
+    expect(migration).toContain('teacher_permission_requests_one_pending_per_teacher');
+    expect(migration).toContain("WHERE status = 'PENDING'");
+    expect(migration).toContain('course_versions_one_active_revision_per_course');
+    expect(migration).toContain("WHERE status IN ('DRAFT', 'SUBMITTED', 'REJECTED')");
+    expect(migration).toContain('course_versions_one_published_per_course');
+    expect(migration).toContain("WHERE status = 'PUBLISHED'");
   });
 });

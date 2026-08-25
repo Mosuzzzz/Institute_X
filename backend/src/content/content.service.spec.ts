@@ -5,7 +5,12 @@ import { ContentService } from './content.service';
 describe('ContentService', () => {
   const prisma = {
     courseVersion: { findUnique: jest.fn() },
-    contentItem: { create: jest.fn() },
+    contentItem: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
   };
   let service: ContentService;
 
@@ -64,5 +69,61 @@ describe('ContentService', () => {
         position: 1,
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('updates owned Draft text and display position', async () => {
+    prisma.contentItem.findUnique.mockResolvedValue({
+      id: 'content-id',
+      contentType: ContentType.TEXT,
+      version: {
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+      },
+    });
+    prisma.contentItem.update.mockResolvedValue({ id: 'content-id' });
+
+    await service.updateText({ id: 'teacher-id', role: UserRole.TEACHER }, 'content-id', {
+      title: 'Updated lesson',
+      textBody: 'Updated body',
+      position: 2,
+    });
+
+    expect(prisma.contentItem.update).toHaveBeenCalledWith({
+      where: { id: 'content-id' },
+      data: { title: 'Updated lesson', textBody: 'Updated body', position: 2 },
+    });
+  });
+
+  it('does not update text in a published Version', async () => {
+    prisma.contentItem.findUnique.mockResolvedValue({
+      id: 'content-id',
+      contentType: ContentType.TEXT,
+      version: {
+        status: CourseVersionStatus.PUBLISHED,
+        course: { teacherId: 'teacher-id' },
+      },
+    });
+
+    await expect(
+      service.updateText({ id: 'teacher-id', role: UserRole.TEACHER }, 'content-id', {
+        textBody: 'Forbidden update',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('deletes owned Draft text content', async () => {
+    prisma.contentItem.findUnique.mockResolvedValue({
+      id: 'content-id',
+      contentType: ContentType.TEXT,
+      version: {
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+      },
+    });
+    prisma.contentItem.delete.mockResolvedValue({ id: 'content-id' });
+
+    await service.deleteText({ id: 'teacher-id', role: UserRole.TEACHER }, 'content-id');
+
+    expect(prisma.contentItem.delete).toHaveBeenCalledWith({ where: { id: 'content-id' } });
   });
 });

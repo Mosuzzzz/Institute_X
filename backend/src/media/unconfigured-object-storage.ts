@@ -14,4 +14,8 @@ export class UnconfiguredObjectStorage extends ObjectStorage {
   headObject(): Promise<StoredObjectMetadata> {
     throw new ServiceUnavailableException('Object storage is not configured');
   }
+
+  deleteObject(): Promise<void> {
+    throw new ServiceUnavailableException('Object storage is not configured');
+  }
 }

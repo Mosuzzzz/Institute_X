@@ -178,4 +178,51 @@ describe('TeacherPermissionsService', () => {
       });
     });
   });
+
+  describe('queries', () => {
+    it('returns the latest permission state to its Teacher', async () => {
+      requests.findFirst.mockResolvedValue({
+        id: 'request-id',
+        status: TeacherPermissionStatus.REJECTED,
+        reviewComment: 'More information required',
+      });
+
+      await expect(
+        service.getMyLatest({ id: 'teacher-id', role: UserRole.TEACHER }),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          id: 'request-id',
+          status: TeacherPermissionStatus.REJECTED,
+        }),
+      );
+      expect(requests.findFirst).toHaveBeenCalledWith({
+        where: { teacherId: 'teacher-id' },
+        orderBy: { requestedAt: 'desc' },
+      });
+    });
+
+    it('lists pending requests for an Approver in oldest-first order', async () => {
+      requests.findMany.mockResolvedValue([{ id: 'request-id' }]);
+
+      await expect(
+        service.listPending({ id: 'approver-id', role: UserRole.APPROVER }),
+      ).resolves.toEqual([{ id: 'request-id' }]);
+      expect(requests.findMany).toHaveBeenCalledWith({
+        where: { status: TeacherPermissionStatus.PENDING },
+        include: {
+          teacher: {
+            select: { id: true, fullName: true, universityEmail: true },
+          },
+        },
+        orderBy: { requestedAt: 'asc' },
+      });
+    });
+
+    it('denies the pending queue to a Teacher', async () => {
+      await expect(
+        service.listPending({ id: 'teacher-id', role: UserRole.TEACHER }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(requests.findMany).not.toHaveBeenCalled();
+    });
+  });
 });

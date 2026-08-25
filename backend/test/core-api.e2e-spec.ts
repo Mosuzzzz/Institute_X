@@ -23,6 +23,7 @@ describe('Core REST API', () => {
     createCourse: jest.fn(),
     updateDraft: jest.fn(),
     createRevision: jest.fn(),
+    listOwned: jest.fn(),
   };
   const permissions = { requestPermission: jest.fn() };
 
@@ -134,6 +135,16 @@ describe('Core REST API', () => {
       expect.objectContaining({ id: 'teacher-id', role: UserRole.TEACHER }),
       '11111111-1111-4111-8111-111111111111',
     );
+  });
+
+  it('GET /api/courses/mine returns the Teacher authoring workspace', async () => {
+    courses.listOwned.mockResolvedValue([{ id: 'course-id', versions: [] }]);
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/courses/mine')
+      .set('x-test-role', UserRole.TEACHER)
+      .expect(200)
+      .expect([{ id: 'course-id', versions: [] }]);
   });
 
   it('POST /api/courses denies the wrong role', async () => {

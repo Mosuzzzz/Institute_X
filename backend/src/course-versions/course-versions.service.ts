@@ -5,7 +5,15 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { CourseVersionStatus, QuizType, ReviewDecision, UserRole } from '@prisma/client';
+import {
+  AssetStatus,
+  ContentType,
+  CourseVersionStatus,
+  Prisma,
+  QuizType,
+  ReviewDecision,
+  UserRole,
+} from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 
 interface VersionActor {
@@ -13,9 +21,51 @@ interface VersionActor {
   role: UserRole;
 }
 
+type SubmittedVersion = Prisma.CourseVersionGetPayload<{
+  include: {
+    course: {
+      include: {
+        teacher: { select: { id: true; fullName: true; universityEmail: true } };
+        allowedMajors: { include: { major: true } };
+      };
+    };
+    contentItems: {
+      include: {
+        mediaAsset: { select: { id: true; fileName: true; mimeType: true; status: true } };
+      };
+    };
+    quizzes: { include: { questions: { include: { options: true } } } };
+    reviews: true;
+  };
+}>;
+
 @Injectable()
 export class CourseVersionsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async listSubmitted(actor: VersionActor): Promise<SubmittedVersion[]> {
+    this.requireRole(actor, UserRole.APPROVER);
+    return this.prisma.courseVersion.findMany({
+      where: { status: CourseVersionStatus.SUBMITTED },
+      include: {
+        course: {
+          include: {
+            teacher: { select: { id: true, fullName: true, universityEmail: true } },
+            allowedMajors: { include: { major: true } },
+          },
+        },
+        contentItems: {
+          orderBy: { position: 'asc' },
+          include: {
+            mediaAsset: { select: { id: true, fileName: true, mimeType: true, status: true } },
+          },
+        },
+        quizzes: { include: { questions: { include: { options: true } } } },
+        reviews: { where: { decision: null }, take: 1 },
+      },
+      orderBy: { submittedAt: 'asc' },
+    });
+  }
 
   async submit(actor: VersionActor, versionId: string): Promise<void> {
     this.requireRole(actor, UserRole.TEACHER);
@@ -23,7 +73,13 @@ export class CourseVersionsService {
       where: { id: versionId },
       include: {
         course: { include: { allowedMajors: true } },
-        contentItems: { select: { id: true } },
+        contentItems: {
+          select: {
+            id: true,
+            contentType: true,
+            mediaAsset: { select: { status: true } },
+          },
+        },
         quizzes: {
           include: { questions: { include: { options: true } } },
         },
@@ -157,7 +213,10 @@ export class CourseVersionsService {
 
   private validateSubmission(version: {
     course: { allowedMajors: unknown[] };
-    contentItems: unknown[];
+    contentItems: Array<{
+      contentType: ContentType;
+      mediaAsset: { status: AssetStatus } | null;
+    }>;
     quizzes: Array<{
       quizType: QuizType;
       questions: Array<{ options: Array<{ isCorrect: boolean }> }>;
@@ -169,18 +228,31 @@ export class CourseVersionsService {
     if (version.contentItems.length === 0) {
       throw new UnprocessableEntityException('Learning content is required');
     }
+    if (
+      version.contentItems.some(
+        (item) =>
+          item.contentType !== ContentType.TEXT && item.mediaAsset?.status !== AssetStatus.READY,
+      )
+    ) {
+      throw new UnprocessableEntityException('Every media asset must be READY before submission');
+    }
     const preTest = version.quizzes.find((quiz) => quiz.quizType === QuizType.PRE_TEST);
     if (!preTest || preTest.questions.length === 0) {
       throw new UnprocessableEntityException('A Pre-Test with questions is required');
     }
-    for (const question of preTest.questions) {
-      if (
-        question.options.length < 2 ||
-        question.options.filter((option) => option.isCorrect).length !== 1
-      ) {
-        throw new UnprocessableEntityException(
-          'Every question requires at least two options and exactly one correct option',
-        );
+    for (const quiz of version.quizzes) {
+      if (quiz.questions.length === 0) {
+        throw new UnprocessableEntityException(`${quiz.quizType} requires at least one question`);
+      }
+      for (const question of quiz.questions) {
+        if (
+          question.options.length < 2 ||
+          question.options.filter((option) => option.isCorrect).length !== 1
+        ) {
+          throw new UnprocessableEntityException(
+            'Every question requires at least two options and exactly one correct option',
+          );
+        }
       }
     }
   }

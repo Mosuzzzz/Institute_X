@@ -11,7 +11,7 @@ describe('CoursesService', () => {
   const db = {
     teacherPermissionRequest: { findFirst: jest.fn() },
     major: { count: jest.fn() },
-    course: { create: jest.fn(), findUnique: jest.fn() },
+    course: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
     courseVersion: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
   };
   const prisma = {
@@ -254,6 +254,38 @@ describe('CoursesService', () => {
       await expect(
         service.createRevision({ id: 'other-id', role: UserRole.TEACHER }, 'course-id'),
       ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('listOwned', () => {
+    it('returns only the authenticated Teacher Courses with Version states', async () => {
+      db.course.findMany.mockResolvedValue([{ id: 'course-id', versions: [] }]);
+
+      await expect(
+        service.listOwned({ id: 'teacher-id', role: UserRole.TEACHER }),
+      ).resolves.toEqual([{ id: 'course-id', versions: [] }]);
+      expect(db.course.findMany).toHaveBeenCalledWith({
+        where: { teacherId: 'teacher-id' },
+        include: {
+          allowedMajors: {
+            include: { major: { select: { id: true, code: true, name: true } } },
+          },
+          versions: {
+            orderBy: { versionNumber: 'desc' },
+            include: {
+              reviews: { orderBy: { submissionNumber: 'desc' }, take: 1 },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('denies the Teacher Course list to non-Teachers', async () => {
+      await expect(
+        service.listOwned({ id: 'owner-id', role: UserRole.OWNER }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(db.course.findMany).not.toHaveBeenCalled();
     });
   });
 });

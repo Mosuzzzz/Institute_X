@@ -1,5 +1,14 @@
-import { Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
 import { OidcAuthGuard } from '../auth/oidc-auth.guard';
@@ -13,6 +22,17 @@ import { MediaService } from './media.service';
 @UseGuards(OidcAuthGuard, RolesGuard)
 export class MediaController {
   constructor(private readonly media: MediaService) {}
+
+  @Delete(':assetId')
+  @HttpCode(204)
+  @Roles(UserRole.TEACHER)
+  @ApiNoContentResponse({ description: 'Owned Draft media object and Content Item deleted' })
+  delete(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('assetId', new ParseUUIDPipe({ version: '4' })) assetId: string,
+  ): ReturnType<MediaService['deleteDraftAsset']> {
+    return this.media.deleteDraftAsset(user, assetId);
+  }
 
   @Get(':assetId/view-url')
   @Roles(UserRole.STUDENT)

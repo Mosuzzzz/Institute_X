@@ -182,6 +182,32 @@ export class MediaService {
     });
   }
 
+  async deleteDraftAsset(actor: TeacherActor, assetId: string): Promise<void> {
+    if (actor.role !== UserRole.TEACHER) {
+      throw new ForbiddenException('TEACHER role is required');
+    }
+    const asset = await this.prisma.mediaAsset.findUnique({
+      where: { id: assetId },
+      include: {
+        contentItem: {
+          include: { version: { include: { course: true } } },
+        },
+      },
+    });
+    if (!asset) {
+      throw new NotFoundException('Media asset was not found');
+    }
+    if (asset.contentItem.version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may delete this asset');
+    }
+    if (asset.contentItem.version.status !== CourseVersionStatus.DRAFT) {
+      throw new ConflictException('Only Draft media may be deleted');
+    }
+
+    await this.storage.deleteObject(asset.storageKey);
+    await this.prisma.contentItem.delete({ where: { id: asset.contentItemId } });
+  }
+
   async createStudentViewUrl(student: StudentActor, assetId: string): Promise<SignedStorageUrl> {
     if (student.role !== UserRole.STUDENT || student.accountStatus !== AccountStatus.ACTIVE) {
       throw new ForbiddenException('Active STUDENT access is required');

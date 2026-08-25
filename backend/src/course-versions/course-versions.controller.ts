@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -8,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
 import { OidcAuthGuard } from '../auth/oidc-auth.guard';
@@ -23,6 +24,15 @@ import { ReviewVersionDto } from './dto/review-version.dto';
 @UseGuards(OidcAuthGuard, RolesGuard)
 export class CourseVersionsController {
   constructor(private readonly versions: CourseVersionsService) {}
+
+  @Get('pending-review')
+  @Roles(UserRole.APPROVER)
+  @ApiOkResponse({ description: 'Oldest-first submitted Course Version review queue' })
+  pending(
+    @CurrentUser() user: CurrentUserValue,
+  ): ReturnType<CourseVersionsService['listSubmitted']> {
+    return this.versions.listSubmitted(user);
+  }
 
   @Post(':versionId/submit')
   @HttpCode(204)

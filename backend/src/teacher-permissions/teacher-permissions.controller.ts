@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -8,7 +9,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
 import { OidcAuthGuard } from '../auth/oidc-auth.guard';
@@ -24,6 +31,24 @@ import { TeacherPermissionsService } from './teacher-permissions.service';
 @UseGuards(OidcAuthGuard, RolesGuard)
 export class TeacherPermissionsController {
   constructor(private readonly permissions: TeacherPermissionsService) {}
+
+  @Get('me')
+  @Roles(UserRole.TEACHER)
+  @ApiOkResponse({ description: 'Latest permission state for the authenticated Teacher' })
+  mine(
+    @CurrentUser() user: CurrentUserValue,
+  ): ReturnType<TeacherPermissionsService['getMyLatest']> {
+    return this.permissions.getMyLatest(user);
+  }
+
+  @Get('pending')
+  @Roles(UserRole.APPROVER)
+  @ApiOkResponse({ description: 'Oldest-first pending Teacher permission review queue' })
+  pending(
+    @CurrentUser() user: CurrentUserValue,
+  ): ReturnType<TeacherPermissionsService['listPending']> {
+    return this.permissions.listPending(user);
+  }
 
   @Post()
   @Roles(UserRole.TEACHER)

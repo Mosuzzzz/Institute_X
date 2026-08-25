@@ -23,6 +23,7 @@ describe('Management REST API', () => {
     initializeUpload: jest.fn(),
     completeUpload: jest.fn(),
     createStudentViewUrl: jest.fn(),
+    deleteDraftAsset: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -133,5 +134,14 @@ describe('Management REST API', () => {
       .set('x-test-role', UserRole.TEACHER)
       .expect(200)
       .expect({ id: 'asset-id', status: 'READY' });
+  });
+
+  it('DELETE /media/:id removes an owned Draft asset', async () => {
+    media.deleteDraftAsset.mockResolvedValue(undefined);
+
+    await request(app.getHttpServer() as Server)
+      .delete('/api/media/11111111-1111-4111-8111-111111111111')
+      .set('x-test-role', UserRole.TEACHER)
+      .expect(204);
   });
 });

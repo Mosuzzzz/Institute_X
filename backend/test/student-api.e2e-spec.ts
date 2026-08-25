@@ -28,7 +28,7 @@ describe('Student REST API', () => {
     getPublishedContent: jest.fn(),
     listEligibleCourses: jest.fn(),
   };
-  const preTest = { start: jest.fn(), submit: jest.fn() };
+  const preTest = { start: jest.fn(), submit: jest.fn(), getResult: jest.fn() };
   const postTest = { start: jest.fn(), submit: jest.fn(), getResults: jest.fn() };
   const media = { createStudentViewUrl: jest.fn() };
 
@@ -168,6 +168,20 @@ describe('Student REST API', () => {
       })
       .expect(200)
       .expect({ score: 100, result: QuizResult.COMPLETED });
+  });
+
+  it('GET /pre-tests/:id/result returns the stored Student score', async () => {
+    preTest.getResult.mockResolvedValue({
+      id: 'attempt-id',
+      score: 100,
+      result: QuizResult.COMPLETED,
+    });
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/pre-tests/11111111-1111-4111-8111-111111111111/result')
+      .set('x-test-role', UserRole.STUDENT)
+      .expect(200)
+      .expect({ id: 'attempt-id', score: 100, result: QuizResult.COMPLETED });
   });
 
   it('rejects malformed assessment answers before the service', async () => {

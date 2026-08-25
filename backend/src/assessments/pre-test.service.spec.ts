@@ -111,6 +111,18 @@ describe('PreTestService', () => {
     await expect(service.start(student, 'quiz-id')).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('prevents a second attempt even when the first attempt is still open', async () => {
+    prisma.quiz.findUnique.mockResolvedValue(quiz);
+    db.quizAttempt.findFirst.mockResolvedValue({ id: 'open-attempt', submittedAt: null });
+
+    await expect(service.start(student, 'quiz-id')).rejects.toBeInstanceOf(ConflictException);
+    expect(db.quizAttempt.findFirst).toHaveBeenCalledWith({
+      where: { quizId: 'quiz-id', studentId: 'student-id' },
+      select: { id: true },
+    });
+    expect(db.quizAttempt.create).not.toHaveBeenCalled();
+  });
+
   it('requires enrollment in the published Course', async () => {
     prisma.quiz.findUnique.mockResolvedValue({
       ...quiz,
@@ -206,5 +218,47 @@ describe('PreTestService', () => {
         { questionId: 'question-2', optionId: 'option-2b' },
       ]),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('returns the Student stored Pre-Test score without answer keys', async () => {
+    db.quizAttempt.findFirst.mockResolvedValue({
+      id: 'attempt-id',
+      score: 50,
+      result: QuizResult.COMPLETED,
+      startedAt: new Date('2026-08-25T00:00:00.000Z'),
+      submittedAt: new Date('2026-08-25T00:10:00.000Z'),
+    });
+
+    await expect(service.getResult(student, 'quiz-id')).resolves.toEqual({
+      id: 'attempt-id',
+      score: 50,
+      result: QuizResult.COMPLETED,
+      startedAt: new Date('2026-08-25T00:00:00.000Z'),
+      submittedAt: new Date('2026-08-25T00:10:00.000Z'),
+    });
+    expect(db.quizAttempt.findFirst).toHaveBeenCalledWith({
+      where: {
+        quizId: 'quiz-id',
+        studentId: 'student-id',
+        submittedAt: { not: null },
+        quiz: {
+          quizType: QuizType.PRE_TEST,
+          version: {
+            status: CourseVersionStatus.PUBLISHED,
+            course: {
+              allowedMajors: { some: { majorId: 'major-it' } },
+              enrollments: { some: { studentId: 'student-id' } },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        score: true,
+        result: true,
+        startedAt: true,
+        submittedAt: true,
+      },
+    });
   });
 });

@@ -1,5 +1,11 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
 import { OidcAuthGuard } from '../auth/oidc-auth.guard';
@@ -14,6 +20,13 @@ import { CreateCourseDto } from './dto/create-course.dto';
 @UseGuards(OidcAuthGuard, RolesGuard)
 export class CoursesController {
   constructor(private readonly courses: CoursesService) {}
+
+  @Get('mine')
+  @Roles(UserRole.TEACHER)
+  @ApiOkResponse({ description: 'Authenticated Teacher Courses and latest Version states' })
+  mine(@CurrentUser() user: CurrentUserValue): ReturnType<CoursesService['listOwned']> {
+    return this.courses.listOwned(user);
+  }
 
   @Post()
   @Roles(UserRole.TEACHER)

@@ -50,6 +50,16 @@ export class AssessmentsController {
     return this.preTests.submit(user, attemptId, input.answers);
   }
 
+  @Get('pre-tests/:quizId/result')
+  @Roles(UserRole.STUDENT)
+  @ApiOkResponse({ description: 'Authenticated Student completed Pre-Test score' })
+  preTestResult(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('quizId', new ParseUUIDPipe({ version: '4' })) quizId: string,
+  ): ReturnType<PreTestService['getResult']> {
+    return this.preTests.getResult(user, quizId);
+  }
+
   @Post('post-tests/:quizId/attempts')
   @Roles(UserRole.STUDENT)
   @ApiCreatedResponse({ description: 'Independent Post-Test attempt started' })

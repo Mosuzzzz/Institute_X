@@ -18,7 +18,7 @@ describe('MediaService', () => {
   const db = {
     courseVersion: { findUnique: jest.fn() },
     mediaAsset: { aggregate: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-    contentItem: { create: jest.fn() },
+    contentItem: { create: jest.fn(), delete: jest.fn() },
   };
   const prisma = {
     ...db,
@@ -28,6 +28,7 @@ describe('MediaService', () => {
     createUploadUrl: jest.fn(),
     createViewUrl: jest.fn(),
     headObject: jest.fn(),
+    deleteObject: jest.fn(),
   };
   const teacher = { id: 'teacher-id', role: UserRole.TEACHER };
   let service: MediaService;
@@ -227,5 +228,48 @@ describe('MediaService', () => {
         'asset-id',
       ),
     ).resolves.toEqual(expect.objectContaining({ url: 'https://storage.example/signed-view' }));
+  });
+
+  it('deletes an owned Draft media object and its Content Item', async () => {
+    db.mediaAsset.findUnique.mockResolvedValue({
+      id: 'asset-id',
+      storageKey: 'private/key',
+      contentItemId: 'content-id',
+      contentItem: {
+        version: {
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id' },
+        },
+      },
+    });
+    storage.deleteObject.mockResolvedValue(undefined);
+    db.contentItem.delete.mockResolvedValue({ id: 'content-id' });
+
+    await service.deleteDraftAsset(teacher, 'asset-id');
+
+    expect(storage.deleteObject).toHaveBeenCalledWith('private/key');
+    expect(db.contentItem.delete).toHaveBeenCalledWith({ where: { id: 'content-id' } });
+    expect(storage.deleteObject.mock.invocationCallOrder[0]).toBeLessThan(
+      db.contentItem.delete.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not delete media from a published Version', async () => {
+    db.mediaAsset.findUnique.mockResolvedValue({
+      id: 'asset-id',
+      storageKey: 'private/key',
+      contentItemId: 'content-id',
+      contentItem: {
+        version: {
+          status: CourseVersionStatus.PUBLISHED,
+          course: { teacherId: 'teacher-id' },
+        },
+      },
+    });
+
+    await expect(service.deleteDraftAsset(teacher, 'asset-id')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(storage.deleteObject).not.toHaveBeenCalled();
   });
 });

@@ -23,9 +23,19 @@ interface RequestWithUser extends Request {
 
 describe('Authoring REST API', () => {
   let app: INestApplication;
-  const permissions = { requestPermission: jest.fn(), review: jest.fn() };
-  const content = { addText: jest.fn() };
-  const versions = { submit: jest.fn(), review: jest.fn(), reopenRejected: jest.fn() };
+  const permissions = {
+    requestPermission: jest.fn(),
+    review: jest.fn(),
+    getMyLatest: jest.fn(),
+    listPending: jest.fn(),
+  };
+  const content = { addText: jest.fn(), updateText: jest.fn(), deleteText: jest.fn() };
+  const versions = {
+    submit: jest.fn(),
+    review: jest.fn(),
+    reopenRejected: jest.fn(),
+    listSubmitted: jest.fn(),
+  };
   const quizzes = { createQuiz: jest.fn(), addQuestion: jest.fn() };
 
   beforeEach(async () => {
@@ -81,6 +91,29 @@ describe('Authoring REST API', () => {
     );
   });
 
+  it('GET /teacher-permissions/me returns the Teacher latest state', async () => {
+    permissions.getMyLatest.mockResolvedValue({
+      id: 'request-id',
+      status: 'PENDING',
+    });
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/teacher-permissions/me')
+      .set('x-test-role', UserRole.TEACHER)
+      .expect(200)
+      .expect({ id: 'request-id', status: 'PENDING' });
+  });
+
+  it('GET /teacher-permissions/pending returns the Approver queue', async () => {
+    permissions.listPending.mockResolvedValue([{ id: 'request-id', status: 'PENDING' }]);
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/teacher-permissions/pending')
+      .set('x-test-role', UserRole.APPROVER)
+      .expect(200)
+      .expect([{ id: 'request-id', status: 'PENDING' }]);
+  });
+
   it('POST /course-versions/:id/content/text creates ordered text content', async () => {
     content.addText.mockResolvedValue({ id: 'content-id' });
 
@@ -99,6 +132,26 @@ describe('Authoring REST API', () => {
       .send({ textBody: 'Introduction', position: 0 })
       .expect(400);
     expect(content.addText).not.toHaveBeenCalled();
+  });
+
+  it('PATCH /content/:id/text updates owned Draft text content', async () => {
+    content.updateText.mockResolvedValue({ id: 'content-id', position: 2 });
+
+    await request(app.getHttpServer() as Server)
+      .patch('/api/content/11111111-1111-4111-8111-111111111111/text')
+      .set('x-test-role', UserRole.TEACHER)
+      .send({ textBody: 'Updated lesson', position: 2 })
+      .expect(200)
+      .expect({ id: 'content-id', position: 2 });
+  });
+
+  it('DELETE /content/:id/text removes owned Draft text content', async () => {
+    content.deleteText.mockResolvedValue(undefined);
+
+    await request(app.getHttpServer() as Server)
+      .delete('/api/content/11111111-1111-4111-8111-111111111111/text')
+      .set('x-test-role', UserRole.TEACHER)
+      .expect(204);
   });
 
   it('POST /course-versions/:id/submit submits an owned Draft', async () => {
@@ -133,6 +186,16 @@ describe('Authoring REST API', () => {
       expect.objectContaining({ id: 'actor-id', role: UserRole.TEACHER }),
       '11111111-1111-4111-8111-111111111111',
     );
+  });
+
+  it('GET /course-versions/pending-review returns the Approver queue', async () => {
+    versions.listSubmitted.mockResolvedValue([{ id: 'version-id', status: 'SUBMITTED' }]);
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/course-versions/pending-review')
+      .set('x-test-role', UserRole.APPROVER)
+      .expect(200)
+      .expect([{ id: 'version-id', status: 'SUBMITTED' }]);
   });
 
   it('POST /course-versions/:id/quizzes creates a timed Pre-Test', async () => {

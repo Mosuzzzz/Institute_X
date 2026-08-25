@@ -40,6 +40,14 @@ interface StartedPreTest {
   questions: PresentedQuestion[];
 }
 
+interface PreTestResultRecord {
+  id: string;
+  score: number;
+  result: QuizResult;
+  startedAt: Date;
+  submittedAt: Date;
+}
+
 @Injectable()
 export class PreTestService {
   constructor(
@@ -99,12 +107,12 @@ export class PreTestService {
     try {
       const attempt = await this.prisma.$transaction(
         async (tx) => {
-          const completed = await tx.quizAttempt.findFirst({
-            where: { quizId, studentId: student.id, submittedAt: { not: null } },
+          const existing = await tx.quizAttempt.findFirst({
+            where: { quizId, studentId: student.id },
             select: { id: true },
           });
-          if (completed) {
-            throw new ConflictException('Pre-Test may be completed only once');
+          if (existing) {
+            throw new ConflictException('Pre-Test may be attempted only once');
           }
           return tx.quizAttempt.create({
             data: {
@@ -222,6 +230,43 @@ export class PreTestService {
       }
     });
     return { score, result };
+  }
+
+  async getResult(student: StudentActor, quizId: string): Promise<PreTestResultRecord> {
+    this.requireActiveStudent(student);
+    const attempt = await this.prisma.quizAttempt.findFirst({
+      where: {
+        quizId,
+        studentId: student.id,
+        submittedAt: { not: null },
+        quiz: {
+          quizType: QuizType.PRE_TEST,
+          version: {
+            status: CourseVersionStatus.PUBLISHED,
+            course: {
+              allowedMajors: { some: { majorId: student.majorId! } },
+              enrollments: { some: { studentId: student.id } },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        score: true,
+        result: true,
+        startedAt: true,
+        submittedAt: true,
+      },
+    });
+    if (!attempt || attempt.score === null || !attempt.result || !attempt.submittedAt) {
+      throw new NotFoundException('Completed Pre-Test result was not found');
+    }
+    return {
+      ...attempt,
+      score: Number(attempt.score),
+      result: attempt.result,
+      submittedAt: attempt.submittedAt,
+    };
   }
 
   private requireActiveStudent(student: StudentActor): void {
