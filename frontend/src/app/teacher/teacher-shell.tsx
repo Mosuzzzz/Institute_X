@@ -11,15 +11,17 @@ import {
   resolveApplicationRole,
   type SsoProfile,
 } from '../../lib/sso-session';
-import LanguageSelector, { type Language } from '../language-selector';
+import { commonCopy, shellCopy } from '../../lib/app-copy';
+import { useAppLanguage } from '../../lib/language';
+import LanguageSelector from '../language-selector';
 import ProfileMenu from '../profile-menu';
 
 const subscribeToSession = () => () => undefined;
 
 const navigation = [
-  { href: '/teacher', label: 'Overview', icon: 'grid' },
-  { href: '/teacher/courses', label: 'My courses', icon: 'book' },
-  { href: '/teacher/permission', label: 'Teaching permission', icon: 'shield' },
+  { href: '/teacher', label: 'overview', icon: 'grid' },
+  { href: '/teacher/courses', label: 'courses', icon: 'book' },
+  { href: '/teacher/permission', label: 'permission', icon: 'shield' },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
@@ -31,8 +33,11 @@ function NavIcon({ icon }: { icon: string }) {
 export default function TeacherShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useAppLanguage();
+  const text = commonCopy[language];
+  const shell = shellCopy[language];
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const sessionReady = useSyncExternalStore(subscribeToSession, () => true, () => false);
   const isAuthenticated = useSyncExternalStore(
     subscribeToSession,
     hasActiveSsoSession,
@@ -47,6 +52,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
   }, [language]);
 
   useEffect(() => {
+    if (!sessionReady) return;
     if (!isAuthenticated) router.replace('/');
     else if (applicationRole === 'STUDENT') router.replace('/student');
     else if (applicationRole === 'APPROVER') router.replace('/approver');
@@ -55,14 +61,14 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
       clearSsoSession();
       router.replace('/');
     }
-  }, [applicationRole, isAuthenticated, router]);
+  }, [applicationRole, isAuthenticated, router, sessionReady]);
 
-  if (!isAuthenticated || !isTeacher) {
+  if (!sessionReady || !isAuthenticated || !isTeacher) {
     return (
       <main className="callback-shell">
         <section className="callback-panel" aria-live="polite">
           <span className="callback-spinner" aria-hidden="true" />
-          <h1>Checking your teaching account</h1>
+          <h1>{text.checking}</h1>
         </section>
       </main>
     );
@@ -79,7 +85,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
         <header>
           <Link href="/teacher" aria-label="Institute X teacher home">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
-            <span>Teacher workspace</span>
+            <span>{shell.teacherWorkspace}</span>
           </Link>
           <button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
         </header>
@@ -89,7 +95,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
             return (
               <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={() => setMobileNavOpen(false)}>
                 <NavIcon icon={item.icon} />
-                <span>{item.label}</span>
+                <span>{shell[item.label]}</span>
               </Link>
             );
           })}
@@ -108,15 +114,18 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
           </button>
           <div>
             <p>Institute X</p>
-            <strong>Course authoring</strong>
+            <strong>{shell.courseAuthoring}</strong>
           </div>
           <nav aria-label="Teacher account">
-            <LanguageSelector className="teacher-language-menu" value={language} label="Select language" onChange={setLanguage} />
+            <LanguageSelector className="teacher-language-menu" value={language} label={text.selectLanguage} onChange={setLanguage} />
             <ProfileMenu
               profile={profile}
-              roleLabel="Teacher account"
+              roleLabel={text.teacherAccount}
               fallbackName="Teacher"
               onSignOut={signOut}
+              logoutLabel={text.logout}
+              logoutHint={text.logoutHint}
+              accountLabel={text.account}
             />
           </nav>
         </header>

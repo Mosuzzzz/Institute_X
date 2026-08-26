@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Category, Prisma, UserRole } from '@prisma/client';
+import { Category, Major, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 
 interface CategoryActor {
@@ -29,6 +29,10 @@ export class CategoriesService {
 
   list(): Promise<Category[]> {
     return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
+  }
+
+  listMajors(): Promise<Major[]> {
+    return this.prisma.major.findMany({ orderBy: { code: 'asc' } });
   }
 
   async create(actor: CategoryActor, input: CreateCategoryInput): Promise<Category> {

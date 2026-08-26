@@ -56,6 +56,7 @@ export interface EligibleCourseSummary {
   publishedAt: Date | null;
   enrollments: number;
   enrolled: boolean;
+  progress: number;
   categories: Array<{ id: string; slug: string; name: string }>;
 }
 
@@ -85,6 +86,16 @@ export class CourseAccessService {
             title: true,
             description: true,
             publishedAt: true,
+            quizzes: {
+              where: { quizType: { in: [QuizType.PRE_TEST, QuizType.POST_TEST] } },
+              select: {
+                quizType: true,
+                attempts: {
+                  where: { studentId: student.id, submittedAt: { not: null } },
+                  select: { result: true },
+                },
+              },
+            },
           },
         },
         enrollments: {
@@ -114,11 +125,26 @@ export class CourseAccessService {
               publishedAt: version.publishedAt,
               enrollments: course._count.enrollments,
               enrolled: course.enrollments.length > 0,
+              progress: this.progressFor(version.quizzes, course.enrollments.length > 0),
               categories: course.categories.map(({ category }) => category),
             },
           ]
         : [];
     });
+  }
+
+  private progressFor(
+    quizzes: Array<{ quizType: QuizType; attempts: Array<{ result: QuizResult | null }> }>,
+    enrolled: boolean,
+  ): number {
+    if (!enrolled) return 0;
+    const preTestCompleted = quizzes.some(
+      (quiz) => quiz.quizType === QuizType.PRE_TEST && quiz.attempts.some((attempt) => attempt.result === QuizResult.COMPLETED),
+    );
+    const postTestPassed = quizzes.some(
+      (quiz) => quiz.quizType === QuizType.POST_TEST && quiz.attempts.some((attempt) => attempt.result === QuizResult.PASS),
+    );
+    return postTestPassed ? 100 : preTestCompleted ? 50 : 10;
   }
 
   async enterCourse(student: StudentActor, courseId: string): Promise<CourseEntry> {

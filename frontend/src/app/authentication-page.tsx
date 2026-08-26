@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useAppLanguage } from '../lib/language';
 import { SSO_STATE_KEY } from '../lib/sso-session';
 import LanguageSelector, { type Language } from './language-selector';
 
@@ -37,7 +38,7 @@ interface AuthenticationPageProps {
 }
 
 export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPageProps) {
-  const [language, setLanguage] = useState<Language>('th');
+  const [language, setLanguage] = useAppLanguage();
   const text = copy[language];
 
   useEffect(() => {

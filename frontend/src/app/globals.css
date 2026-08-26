@@ -26,16 +26,16 @@ body {
   margin: 0;
   color: var(--text);
   background: var(--canvas);
-  font-family: var(--font-noto-sans), sans-serif;
+  font-family: var(--font-kanit), sans-serif;
   text-rendering: optimizeLegibility;
 }
 
 html[lang="zh-CN"] body {
-  font-family: var(--font-noto-sans-sc), var(--font-noto-sans), sans-serif;
+  font-family: var(--font-kanit), var(--font-noto-sans-sc), sans-serif;
 }
 
 html[lang="ja"] body {
-  font-family: var(--font-noto-sans-jp), var(--font-noto-sans), sans-serif;
+  font-family: var(--font-kanit), var(--font-noto-sans-jp), sans-serif;
 }
 
 .visually-hidden {
@@ -993,7 +993,7 @@ h2 {
 .owner-panel > header h2 { color: var(--owner-ink); font-size: 1.35rem; }
 .owner-panel > header a, .owner-panel > header > span { color: var(--owner-teal); font-size: .73rem; font-weight: 700; text-decoration: none; }
 .owner-panel > header a:hover { text-decoration: underline; text-underline-offset: 4px; }
-.owner-bar-chart { height: 245px; display: grid; grid-template-columns: repeat(11, minmax(24px, 1fr)); align-items: end; gap: clamp(7px, 1vw, 14px); margin-top: 42px; padding-top: 28px; border-bottom: 1px solid #aeb7c2; background: repeating-linear-gradient(to bottom, transparent 0, transparent 48px, #edf0f3 49px); }
+.owner-bar-chart { height: 245px; display: grid; grid-template-columns: repeat(auto-fit, minmax(24px, 1fr)); align-items: end; gap: clamp(7px, 1vw, 14px); margin-top: 42px; padding-top: 28px; border-bottom: 1px solid #aeb7c2; background: repeating-linear-gradient(to bottom, transparent 0, transparent 48px, #edf0f3 49px); }
 .owner-bar-chart > div { height: 100%; display: grid; grid-template-rows: 1fr 28px; align-items: end; gap: 8px; }
 .owner-bar-chart > div > span { position: relative; min-height: 8px; display: block; background: var(--owner-teal); transition: filter 120ms ease; }
 .owner-bar-chart > div > span:hover { filter: brightness(1.18); }
@@ -1079,3 +1079,40 @@ h2 {
   .owner-bar-chart b { display: none; }
   .owner-activity-list article { grid-template-columns: 52px 10px minmax(0, 1fr); gap: 10px; padding-inline: 14px; }
 }
+
+/* Authenticated backend states */
+.api-state { min-height: 280px; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 40px; color: #4f5b6b; background: #fff; border: 1px solid #d8dde5; text-align: center; }
+.api-state strong { color: #202a38; font-size: 1.1rem; }
+.api-state p { max-width: 520px; line-height: 1.55; }
+.api-state small { color: #7a8492; }
+.api-state.is-error { border-left: 4px solid #ad424b; }
+.api-state.is-error strong { color: #8d3039; }
+.api-state a { color: #073d78; font-weight: 700; }
+.api-empty { margin: 20px 0; padding: 28px; color: #667182; background: #fff; border: 1px dashed #c9cfd8; line-height: 1.55; }
+button.teacher-primary-action { border: 0; font: inherit; cursor: pointer; }
+button.teacher-primary-action:disabled { cursor: wait; opacity: .65; }
+
+/* Student assessments */
+.assessment-link { display: inline-flex; margin-top: 28px; color: #073d78; font-size: .82rem; font-weight: 700; text-decoration: none; }
+.assessment-page { width: min(100% - 40px, 920px); padding-block: 64px 100px; }
+.assessment-page > header { display: grid; gap: 10px; margin-bottom: 42px; }
+.assessment-page > header > a { width: fit-content; margin-bottom: 24px; color: #073d78; font-size: .78rem; font-weight: 700; text-decoration: none; }
+.assessment-page > header h1 { color: #202a38; font-size: clamp(2.3rem, 5vw, 4.8rem); font-weight: 500; letter-spacing: -.055em; }
+.assessment-page > header > p:last-child { color: #697586; }
+.assessment-page form { display: grid; gap: 24px; }
+.assessment-page fieldset { display: grid; gap: 10px; padding: 26px; background: #fff; border: 1px solid #d8dde5; }
+.assessment-page legend { display: flex; gap: 14px; padding: 0 8px; color: #202a38; font-size: 1rem; font-weight: 650; line-height: 1.5; }
+.assessment-page legend span { color: #0b5b73; font-size: .7rem; font-weight: 800; }
+.assessment-page label { display: flex; align-items: center; gap: 12px; padding: 13px 15px; color: #4e5969; border: 1px solid #e1e5ea; cursor: pointer; }
+.assessment-page label:has(input:checked) { color: #073d78; background: #edf4f8; border-color: #76a0b5; }
+.assessment-page input { accent-color: #073d78; }
+.assessment-page form > button { justify-self: end; min-width: 200px; padding: 14px 22px; color: #fff; background: #073d78; border: 0; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.assessment-page form > button:disabled { cursor: wait; opacity: .65; }
+.assessment-error { padding: 13px 16px; color: #8d3039; background: #faeeee; border-left: 3px solid #ad424b; }
+.assessment-result { min-height: 520px; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; }
+.assessment-result h1 { color: #202a38; font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 500; }
+.assessment-result > strong { color: #0b5b73; font-size: clamp(4rem, 10vw, 8rem); font-weight: 500; letter-spacing: -.07em; }
+.assessment-result > p:not(.eyebrow) { color: #697586; }
+.assessment-result a { margin-top: 20px; color: #073d78; font-weight: 700; }
+.owner-user-table b.is-inactive { color: #8d3039; }
+.owner-user-table b.is-inactive i { background: #ad424b; }

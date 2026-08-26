@@ -1,8 +1,9 @@
 'use client';
 
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
+import type { Language } from '../lib/language';
 
-export type Language = 'th' | 'en' | 'zh-CN' | 'ja';
+export type { Language } from '../lib/language';
 
 const languageOptions: ReadonlyArray<{ value: Language; label: string }> = [
   { value: 'th', label: 'ภาษาไทย' },

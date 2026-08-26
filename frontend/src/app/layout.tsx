@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
-import { Noto_Sans_JP, Noto_Sans_SC, Noto_Sans_Thai } from 'next/font/google';
+import { Kanit, Noto_Sans_JP, Noto_Sans_SC } from 'next/font/google';
 import type { ReactNode } from 'react';
 import './globals.css';
 
-const notoSans = Noto_Sans_Thai({
+const kanit = Kanit({
   subsets: ['latin', 'thai'],
+  weight: ['300', '400', '500', '600', '700', '800'],
   display: 'swap',
-  variable: '--font-noto-sans',
+  variable: '--font-kanit',
 });
 
 const notoSansChinese = Noto_Sans_SC({
@@ -34,7 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html
       lang="th"
-      className={`${notoSans.variable} ${notoSansChinese.variable} ${notoSansJapanese.variable}`}
+      className={`${kanit.variable} ${notoSansChinese.variable} ${notoSansJapanese.variable}`}
     >
       <body>{children}</body>
     </html>

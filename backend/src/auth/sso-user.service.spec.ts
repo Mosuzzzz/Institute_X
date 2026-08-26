@@ -87,6 +87,31 @@ describe('SsoUserService', () => {
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
+  it('maps the legacy SSO CS Major code to BTECH-ICT', async () => {
+    prisma.major.findUnique.mockResolvedValue({ id: 'btech-ict-major-id' });
+    prisma.user.upsert.mockResolvedValue({ id: 'student-id' });
+
+    await service.synchronize({
+      subject: 'sso-legacy-cs',
+      universityEmail: 'legacy@institute.example',
+      fullName: 'Legacy CS Student',
+      role: UserRole.STUDENT,
+      accountStatus: AccountStatus.ACTIVE,
+      majorCode: 'CS',
+    });
+
+    expect(prisma.major.findUnique).toHaveBeenCalledWith({
+      where: { code: 'BTECH-ICT' },
+      select: { id: true },
+    });
+    expect(prisma.user.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ majorId: 'btech-ict-major-id' }),
+        update: expect.objectContaining({ majorId: 'btech-ict-major-id' }),
+      }),
+    );
+  });
+
   it('does not assign a Major to a non-Student', async () => {
     prisma.user.upsert.mockResolvedValue({ id: 'teacher-id' });
 

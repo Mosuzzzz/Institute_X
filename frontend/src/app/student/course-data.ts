@@ -3,6 +3,7 @@ export type StudentCourse = {
   title: string;
   instructor: string;
   category: string;
+  categorySlug?: string;
   availability: 'OPEN' | 'LIMITED';
   accent: string;
   mark: string;

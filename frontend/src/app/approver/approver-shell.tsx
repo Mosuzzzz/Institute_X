@@ -11,14 +11,16 @@ import {
   resolveApplicationRole,
   type SsoProfile,
 } from '../../lib/sso-session';
-import LanguageSelector, { type Language } from '../language-selector';
+import { commonCopy, shellCopy } from '../../lib/app-copy';
+import { useAppLanguage } from '../../lib/language';
+import LanguageSelector from '../language-selector';
 import ProfileMenu from '../profile-menu';
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
-  { href: '/approver', label: 'Review overview', icon: 'grid' },
-  { href: '/approver/teacher-requests', label: 'Teacher requests', icon: 'users' },
-  { href: '/approver/course-reviews', label: 'Course reviews', icon: 'review' },
+  { href: '/approver', label: 'reviewOverview', icon: 'grid' },
+  { href: '/approver/teacher-requests', label: 'teacherRequests', icon: 'users' },
+  { href: '/approver/course-reviews', label: 'courseReviews', icon: 'review' },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
@@ -30,8 +32,11 @@ function NavIcon({ icon }: { icon: string }) {
 export default function ApproverShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useAppLanguage();
+  const text = commonCopy[language];
+  const shell = shellCopy[language];
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const sessionReady = useSyncExternalStore(subscribeToSession, () => true, () => false);
   const isAuthenticated = useSyncExternalStore(subscribeToSession, hasActiveSsoSession, () => false);
   const profile: SsoProfile | null = isAuthenticated ? readStoredProfile() : null;
   const applicationRole = resolveApplicationRole(profile);
@@ -39,6 +44,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
 
   useEffect(() => { document.documentElement.lang = language; }, [language]);
   useEffect(() => {
+    if (!sessionReady) return;
     if (!isAuthenticated) router.replace('/');
     else if (applicationRole === 'STUDENT') router.replace('/student');
     else if (applicationRole === 'TEACHER') router.replace('/teacher');
@@ -47,10 +53,10 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
       clearSsoSession();
       router.replace('/');
     }
-  }, [applicationRole, isAuthenticated, router]);
+  }, [applicationRole, isAuthenticated, router, sessionReady]);
 
-  if (!isAuthenticated || !isApprover) {
-    return <main className="callback-shell"><section className="callback-panel" aria-live="polite"><span className="callback-spinner" aria-hidden="true" /><h1>Checking your Approver account</h1></section></main>;
+  if (!sessionReady || !isAuthenticated || !isApprover) {
+    return <main className="callback-shell"><section className="callback-panel" aria-live="polite"><span className="callback-spinner" aria-hidden="true" /><h1>{text.checking}</h1></section></main>;
   }
 
   const signOut = () => { clearSsoSession(); router.replace('/'); };
@@ -58,17 +64,17 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
   return (
     <div className="teacher-shell approver-shell">
       <aside className={`teacher-sidebar approver-sidebar${mobileNavOpen ? ' is-open' : ''}`}>
-        <header><Link href="/approver" aria-label="Institute X Approver home"><Image src="/logoX.png" alt="" width={44} height={44} priority /><span>Approver workspace</span></Link><button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button></header>
+        <header><Link href="/approver" aria-label="Institute X Approver home"><Image src="/logoX.png" alt="" width={44} height={44} priority /><span>{shell.approverWorkspace}</span></Link><button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button></header>
         <nav aria-label="Approver navigation">
           {navigation.map((item) => {
             const active = item.href === '/approver' ? pathname === item.href : pathname.startsWith(item.href);
-            return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={() => setMobileNavOpen(false)}><NavIcon icon={item.icon} /><span>{item.label}</span></Link>;
+            return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={() => setMobileNavOpen(false)}><NavIcon icon={item.icon} /><span>{shell[item.label]}</span></Link>;
           })}
         </nav>
         <footer><p>Review authority</p><strong>{profile?.name ?? profile?.username ?? 'Approver'}</strong><span>{profile?.email}</span></footer>
       </aside>
       <div className="teacher-workspace">
-        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>Approval operations</strong></div><nav aria-label="Approver account"><LanguageSelector className="teacher-language-menu" value={language} label="Select language" onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel="Approver account" fallbackName="Approver" onSignOut={signOut} /></nav></header>
+        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>{shell.approvalOperations}</strong></div><nav aria-label={text.approverAccount}><LanguageSelector className="teacher-language-menu" value={language} label={text.selectLanguage} onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel={text.approverAccount} fallbackName="Approver" onSignOut={signOut} logoutLabel={text.logout} logoutHint={text.logoutHint} accountLabel={text.account} /></nav></header>
         {children}
       </div>
       {mobileNavOpen ? <button className="teacher-nav-scrim" type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} /> : null}

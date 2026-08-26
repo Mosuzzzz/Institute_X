@@ -300,7 +300,11 @@ describe('CourseAccessService', () => {
               id: 'version-id',
               title: 'Network Fundamentals',
               description: 'Introduction',
-              publishedAt: new Date('2026-08-25T00:00:00.000Z'),
+            publishedAt: new Date('2026-08-25T00:00:00.000Z'),
+              quizzes: [
+                { quizType: QuizType.PRE_TEST, attempts: [{ result: QuizResult.COMPLETED }] },
+                { quizType: QuizType.POST_TEST, attempts: [{ result: QuizResult.PASS }] },
+              ],
             },
           ],
           enrollments: [{ studentId: 'student-id' }],
@@ -318,6 +322,7 @@ describe('CourseAccessService', () => {
           publishedAt: new Date('2026-08-25T00:00:00.000Z'),
           enrollments: 25,
           enrolled: true,
+          progress: 100,
           categories: [{ id: 'category-id', slug: 'technology', name: 'Technology' }],
         },
       ]);

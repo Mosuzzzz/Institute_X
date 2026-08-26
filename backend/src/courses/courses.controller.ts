@@ -29,6 +29,16 @@ export class CoursesController {
     return this.courses.listOwned(user);
   }
 
+  @Get(':courseId')
+  @Roles(UserRole.TEACHER)
+  @ApiOkResponse({ description: 'Owned Course detail with latest Version readiness' })
+  detail(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+  ): ReturnType<CoursesService['getOwnedDetail']> {
+    return this.courses.getOwnedDetail(user, courseId);
+  }
+
   @Post()
   @Roles(UserRole.TEACHER)
   @ApiCreatedResponse({ description: 'Course and Version 1 Draft created' })

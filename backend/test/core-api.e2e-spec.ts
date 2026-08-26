@@ -24,6 +24,7 @@ describe('Core REST API', () => {
     createCourse: jest.fn(),
     updateDraft: jest.fn(),
     createRevision: jest.fn(),
+    getOwnedDetail: jest.fn(),
     listOwned: jest.fn(),
     replaceCategories: jest.fn(),
   };
@@ -169,6 +170,21 @@ describe('Core REST API', () => {
       .set('x-test-role', UserRole.TEACHER)
       .expect(200)
       .expect([{ id: 'course-id', versions: [] }]);
+  });
+
+  it('GET /api/courses/:id returns owned Course detail and readiness', async () => {
+    courses.getOwnedDetail.mockResolvedValue({ id: 'course-id', readiness: 75 });
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/courses/11111111-1111-4111-8111-111111111111')
+      .set('x-test-role', UserRole.TEACHER)
+      .expect(200)
+      .expect({ id: 'course-id', readiness: 75 });
+
+    expect(courses.getOwnedDetail).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'teacher-id', role: UserRole.TEACHER }),
+      '11111111-1111-4111-8111-111111111111',
+    );
   });
 
   it('POST /api/courses denies the wrong role', async () => {

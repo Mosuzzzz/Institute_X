@@ -8,6 +8,10 @@ import { AccountStatus, Prisma, User, UserRole } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { SsoIdentity } from './sso-identity';
 
+const LEGACY_MAJOR_ALIASES: Readonly<Record<string, string>> = {
+  CS: 'BTECH-ICT',
+};
+
 @Injectable()
 export class SsoUserService {
   constructor(private readonly prisma: PrismaService) {}
@@ -49,8 +53,10 @@ export class SsoUserService {
       throw new UnprocessableEntityException('Student Major is required');
     }
 
+    const normalizedCode = identity.majorCode.trim().toUpperCase();
+    const majorCode = LEGACY_MAJOR_ALIASES[normalizedCode] ?? normalizedCode;
     const major = await this.prisma.major.findUnique({
-      where: { code: identity.majorCode },
+      where: { code: majorCode },
       select: { id: true },
     });
     if (!major) {

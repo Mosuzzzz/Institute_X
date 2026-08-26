@@ -40,6 +40,28 @@ interface OwnerDashboard {
   peakUsage: Array<{ hour: number; accesses: number }>;
 }
 
+type OwnerUser = Prisma.UserGetPayload<{
+  select: {
+    id: true;
+    username: true;
+    universityEmail: true;
+    fullName: true;
+    role: true;
+    accountStatus: true;
+    createdAt: true;
+    updatedAt: true;
+    major: { select: { code: true; name: true } };
+  };
+}>;
+
+interface OwnerActivity {
+  id: string;
+  type: 'COURSE_ACCESS' | 'TEACHER_PERMISSION' | 'COURSE_VERSION';
+  occurredAt: Date;
+  actor: string;
+  detail: string;
+}
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -193,6 +215,50 @@ export class AnalyticsService {
         accesses: Number(row.accesses),
       })),
     };
+  }
+
+  async listOwnerUsers(actor: AnalyticsActor): Promise<OwnerUser[]> {
+    this.requireRole(actor, UserRole.OWNER);
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        universityEmail: true,
+        fullName: true,
+        role: true,
+        accountStatus: true,
+        createdAt: true,
+        updatedAt: true,
+        major: { select: { code: true, name: true } },
+      },
+      orderBy: [{ updatedAt: 'desc' }, { fullName: 'asc' }],
+    });
+  }
+
+  async listOwnerActivity(actor: AnalyticsActor): Promise<OwnerActivity[]> {
+    this.requireRole(actor, UserRole.OWNER);
+    const [accesses, permissions, versions] = await Promise.all([
+      this.prisma.courseAccessEvent.findMany({
+        take: 20,
+        orderBy: { accessedAt: 'desc' },
+        include: { student: { select: { fullName: true } }, course: { select: { id: true } } },
+      }),
+      this.prisma.teacherPermissionRequest.findMany({
+        take: 20,
+        orderBy: { requestedAt: 'desc' },
+        include: { teacher: { select: { fullName: true } } },
+      }),
+      this.prisma.courseVersion.findMany({
+        take: 20,
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true, title: true, status: true, updatedAt: true },
+      }),
+    ]);
+    return [
+      ...accesses.map((event) => ({ id: event.id, type: 'COURSE_ACCESS' as const, occurredAt: event.accessedAt, actor: event.student.fullName, detail: `Accessed course ${event.course.id}` })),
+      ...permissions.map((request) => ({ id: request.id, type: 'TEACHER_PERMISSION' as const, occurredAt: request.requestedAt, actor: request.teacher.fullName, detail: `Permission ${request.status.toLowerCase()}` })),
+      ...versions.map((version) => ({ id: version.id, type: 'COURSE_VERSION' as const, occurredAt: version.updatedAt, actor: 'Course authoring', detail: `${version.title} · ${version.status}` })),
+    ].sort((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime()).slice(0, 30);
   }
 
   private outcomeCount(

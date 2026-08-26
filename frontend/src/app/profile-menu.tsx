@@ -8,6 +8,9 @@ type ProfileMenuProps = {
   roleLabel: string;
   fallbackName: string;
   onSignOut: () => void;
+  logoutLabel?: string;
+  logoutHint?: string;
+  accountLabel?: string;
 };
 
 export default function ProfileMenu({
@@ -15,13 +18,16 @@ export default function ProfileMenu({
   roleLabel,
   fallbackName,
   onSignOut,
+  logoutLabel = 'Log out',
+  logoutHint = 'End this browser session',
+  accountLabel = 'Institute X account',
 }: ProfileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const displayName = profile?.name ?? profile?.username ?? fallbackName;
-  const email = profile?.email ?? 'Institute X account';
+  const email = profile?.email ?? accountLabel;
   const initials = displayName
     .split(/\s+/)
     .filter(Boolean)
@@ -97,7 +103,7 @@ export default function ProfileMenu({
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M10 5H5v14h5M14 8l4 4-4 4M18 12H9" />
             </svg>
-            <span><strong>Log out</strong><small>End this browser session</small></span>
+            <span><strong>{logoutLabel}</strong><small>{logoutHint}</small></span>
           </button>
         </div>
       ) : null}

@@ -9,11 +9,12 @@ describe('CategoriesService', () => {
     findUnique: jest.fn(),
     update: jest.fn(),
   };
+  const majors = { findMany: jest.fn() };
   let service: CategoriesService;
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new CategoriesService({ category: categories } as never);
+    service = new CategoriesService({ category: categories, major: majors } as never);
   });
 
   it('lists categories alphabetically', async () => {
@@ -21,6 +22,12 @@ describe('CategoriesService', () => {
 
     await expect(service.list()).resolves.toEqual([{ id: 'category-id', slug: 'technology' }]);
     expect(categories.findMany).toHaveBeenCalledWith({ orderBy: { name: 'asc' } });
+  });
+
+  it('lists Majors by code for Course eligibility forms', async () => {
+    majors.findMany.mockResolvedValue([{ id: 'major-id', code: 'CS', name: 'Computer Science' }]);
+    await expect(service.listMajors()).resolves.toEqual([{ id: 'major-id', code: 'CS', name: 'Computer Science' }]);
+    expect(majors.findMany).toHaveBeenCalledWith({ orderBy: { code: 'asc' } });
   });
 
   it('allows an Owner to create a category', async () => {

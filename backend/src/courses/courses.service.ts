@@ -49,6 +49,34 @@ type OwnedCourse = Prisma.CourseGetPayload<{
   };
 }>;
 
+type OwnedCourseDetail = Prisma.CourseGetPayload<{
+  include: {
+    allowedMajors: { include: { major: true } };
+    categories: { include: { category: true } };
+    versions: {
+      include: {
+        contentItems: { include: { mediaAsset: true } };
+        quizzes: { include: { questions: { include: { options: true } } } };
+        reviews: true;
+      };
+    };
+  };
+}>;
+
+interface CourseReadiness {
+  details: boolean;
+  majors: boolean;
+  categories: boolean;
+  content: boolean;
+  preTest: boolean;
+  postTest: boolean;
+}
+
+type OwnedCourseDetailResponse = OwnedCourseDetail & {
+  readiness: number;
+  checks: CourseReadiness;
+};
+
 @Injectable()
 export class CoursesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -73,6 +101,42 @@ export class CoursesService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async getOwnedDetail(actor: CourseActor, courseId: string): Promise<OwnedCourseDetailResponse> {
+    this.requireTeacher(actor);
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        allowedMajors: { include: { major: true } },
+        categories: { include: { category: true } },
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          include: {
+            contentItems: { orderBy: { position: 'asc' }, include: { mediaAsset: true } },
+            quizzes: { include: { questions: { include: { options: true } } } },
+            reviews: { orderBy: { submissionNumber: 'desc' }, take: 1 },
+          },
+        },
+      },
+    });
+    if (!course) throw new NotFoundException('Course was not found');
+    if (course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may view this Course');
+    }
+    const latest = course.versions[0];
+    const checks = latest
+      ? {
+          details: Boolean(latest.title.trim() && latest.description?.trim()),
+          majors: course.allowedMajors.length > 0,
+          categories: course.categories.length > 0,
+          content: latest.contentItems.length > 0,
+          preTest: latest.quizzes.some((quiz) => quiz.quizType === 'PRE_TEST' && quiz.questions.length > 0),
+          postTest: latest.quizzes.some((quiz) => quiz.quizType === 'POST_TEST' && quiz.questions.length > 0),
+        }
+      : { details: false, majors: false, categories: false, content: false, preTest: false, postTest: false };
+    const passed = Object.values(checks).filter(Boolean).length;
+    return { ...course, readiness: Math.round((passed / Object.keys(checks).length) * 100), checks };
   }
 
   async createCourse(actor: CourseActor, input: CreateCourseInput): Promise<CreatedCourse> {

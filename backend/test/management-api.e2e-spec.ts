@@ -8,6 +8,7 @@ import { AnalyticsModule } from '../src/analytics/analytics.module';
 import { AnalyticsService } from '../src/analytics/analytics.service';
 import { MediaModule } from '../src/media/media.module';
 import { MediaService } from '../src/media/media.service';
+import { PrismaService } from '../src/database/prisma.service';
 
 interface RequestWithUser extends Request {
   user?: { id: string; role: UserRole; accountStatus: AccountStatus };
@@ -18,6 +19,8 @@ describe('Management REST API', () => {
   const analytics = {
     getTeacherCourseAnalytics: jest.fn(),
     getOwnerDashboard: jest.fn(),
+    listOwnerUsers: jest.fn(),
+    listOwnerActivity: jest.fn(),
   };
   const media = {
     initializeUpload: jest.fn(),
@@ -35,6 +38,8 @@ describe('Management REST API', () => {
       .useValue(analytics)
       .overrideProvider(MediaService)
       .useValue(media)
+      .overrideProvider(PrismaService)
+      .useValue({})
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -83,6 +88,24 @@ describe('Management REST API', () => {
       .get('/api/owner/dashboard')
       .set('x-test-role', UserRole.TEACHER)
       .expect(403);
+  });
+
+  it('GET /owner/users returns the Owner user directory', async () => {
+    analytics.listOwnerUsers.mockResolvedValue([{ id: 'user-id', role: UserRole.STUDENT }]);
+    await request(app.getHttpServer() as Server)
+      .get('/api/owner/users')
+      .set('x-test-role', UserRole.OWNER)
+      .expect(200)
+      .expect([{ id: 'user-id', role: UserRole.STUDENT }]);
+  });
+
+  it('GET /owner/activity returns recent operational events', async () => {
+    analytics.listOwnerActivity.mockResolvedValue([{ id: 'event-id', type: 'COURSE_ACCESS' }]);
+    await request(app.getHttpServer() as Server)
+      .get('/api/owner/activity')
+      .set('x-test-role', UserRole.OWNER)
+      .expect(200)
+      .expect([{ id: 'event-id', type: 'COURSE_ACCESS' }]);
   });
 
   it('POST /course-versions/:id/media/uploads initializes a private upload', async () => {

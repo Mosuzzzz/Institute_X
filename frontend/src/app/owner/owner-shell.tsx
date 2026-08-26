@@ -11,15 +11,17 @@ import {
   resolveApplicationRole,
   type SsoProfile,
 } from '../../lib/sso-session';
-import LanguageSelector, { type Language } from '../language-selector';
+import { commonCopy, shellCopy } from '../../lib/app-copy';
+import { useAppLanguage } from '../../lib/language';
+import LanguageSelector from '../language-selector';
 import ProfileMenu from '../profile-menu';
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
-  { href: '/owner', label: 'System overview', icon: 'grid' },
-  { href: '/owner/users', label: 'Users', icon: 'users' },
-  { href: '/owner/courses', label: 'Courses', icon: 'book' },
-  { href: '/owner/operations', label: 'Operations', icon: 'pulse' },
+  { href: '/owner', label: 'systemOverview', icon: 'grid' },
+  { href: '/owner/users', label: 'users', icon: 'users' },
+  { href: '/owner/courses', label: 'courses', icon: 'book' },
+  { href: '/owner/operations', label: 'operations', icon: 'pulse' },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
@@ -32,8 +34,11 @@ function NavIcon({ icon }: { icon: string }) {
 export default function OwnerShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useAppLanguage();
+  const text = commonCopy[language];
+  const shell = shellCopy[language];
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const sessionReady = useSyncExternalStore(subscribeToSession, () => true, () => false);
   const isAuthenticated = useSyncExternalStore(subscribeToSession, hasActiveSsoSession, () => false);
   const profile: SsoProfile | null = isAuthenticated ? readStoredProfile() : null;
   const applicationRole = resolveApplicationRole(profile);
@@ -41,6 +46,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
 
   useEffect(() => { document.documentElement.lang = language; }, [language]);
   useEffect(() => {
+    if (!sessionReady) return;
     if (!isAuthenticated) router.replace('/');
     else if (applicationRole === 'STUDENT') router.replace('/student');
     else if (applicationRole === 'TEACHER') router.replace('/teacher');
@@ -49,10 +55,10 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
       clearSsoSession();
       router.replace('/');
     }
-  }, [applicationRole, isAuthenticated, router]);
+  }, [applicationRole, isAuthenticated, router, sessionReady]);
 
-  if (!isAuthenticated || !isOwner) {
-    return <main className="callback-shell"><section className="callback-panel" aria-live="polite"><span className="callback-spinner" aria-hidden="true" /><h1>Checking your Owner account</h1></section></main>;
+  if (!sessionReady || !isAuthenticated || !isOwner) {
+    return <main className="callback-shell"><section className="callback-panel" aria-live="polite"><span className="callback-spinner" aria-hidden="true" /><h1>{text.checking}</h1></section></main>;
   }
 
   const signOut = () => { clearSsoSession(); router.replace('/'); };
@@ -60,17 +66,17 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
   return (
     <div className="teacher-shell owner-shell">
       <aside className={`teacher-sidebar owner-sidebar${mobileNavOpen ? ' is-open' : ''}`}>
-        <header><Link href="/owner" aria-label="Institute X Owner home"><Image src="/logoX.png" alt="" width={44} height={44} priority /><span>Owner workspace</span></Link><button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button></header>
+        <header><Link href="/owner" aria-label="Institute X Owner home"><Image src="/logoX.png" alt="" width={44} height={44} priority /><span>{shell.ownerWorkspace}</span></Link><button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button></header>
         <nav aria-label="Owner navigation">
           {navigation.map((item) => {
             const active = item.href === '/owner' ? pathname === item.href : pathname.startsWith(item.href);
-            return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={() => setMobileNavOpen(false)}><NavIcon icon={item.icon} /><span>{item.label}</span></Link>;
+            return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={() => setMobileNavOpen(false)}><NavIcon icon={item.icon} /><span>{shell[item.label]}</span></Link>;
           })}
         </nav>
         <footer><p>System authority</p><strong>{profile?.name ?? profile?.username ?? 'Owner'}</strong><span>{profile?.email}</span></footer>
       </aside>
       <div className="teacher-workspace">
-        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>System oversight</strong></div><nav aria-label="Owner account"><LanguageSelector className="teacher-language-menu" value={language} label="Select language" onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel="Owner account" fallbackName="Owner" onSignOut={signOut} /></nav></header>
+        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>{shell.systemOversight}</strong></div><nav aria-label={text.ownerAccount}><LanguageSelector className="teacher-language-menu" value={language} label={text.selectLanguage} onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel={text.ownerAccount} fallbackName="Owner" onSignOut={signOut} logoutLabel={text.logout} logoutHint={text.logoutHint} accountLabel={text.account} /></nav></header>
         {children}
       </div>
       {mobileNavOpen ? <button className="teacher-nav-scrim" type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} /> : null}

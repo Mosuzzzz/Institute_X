@@ -32,4 +32,18 @@ export class AnalyticsController {
   ): ReturnType<AnalyticsService['getOwnerDashboard']> {
     return this.analytics.getOwnerDashboard(user);
   }
+
+  @Get('owner/users')
+  @Roles(UserRole.OWNER)
+  @ApiOkResponse({ description: 'System user directory for the Owner' })
+  ownerUsers(@CurrentUser() user: CurrentUserValue): ReturnType<AnalyticsService['listOwnerUsers']> {
+    return this.analytics.listOwnerUsers(user);
+  }
+
+  @Get('owner/activity')
+  @Roles(UserRole.OWNER)
+  @ApiOkResponse({ description: 'Recent system activity for the Owner' })
+  ownerActivity(@CurrentUser() user: CurrentUserValue): ReturnType<AnalyticsService['listOwnerActivity']> {
+    return this.analytics.listOwnerActivity(user);
+  }
 }
