@@ -10,6 +10,8 @@ describe('database schema contract', () => {
     'User',
     'TeacherPermissionRequest',
     'Course',
+    'Category',
+    'CourseCategory',
     'CourseAllowedMajor',
     'CourseVersion',
     'CourseVersionReview',
@@ -109,5 +111,17 @@ describe('database schema contract', () => {
     expect(migration).toContain('SET "username" = "sso_subject"');
     expect(migration).toContain('SET NOT NULL');
     expect(migration).toContain('CREATE UNIQUE INDEX');
+  });
+
+  it('creates category taxonomy and backfills existing Courses', () => {
+    const migration = readFileSync(
+      resolve(__dirname, '../prisma/migrations/202608260001_add_course_categories/migration.sql'),
+      'utf8',
+    );
+
+    expect(migration).toContain('CREATE TABLE "public"."categories"');
+    expect(migration).toContain('CREATE TABLE "public"."course_categories"');
+    expect(migration).toContain("'uncategorized'");
+    expect(migration).toContain('INSERT INTO "public"."course_categories"');
   });
 });

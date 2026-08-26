@@ -11,6 +11,7 @@ import { CourseAccessService } from '../src/learning/course-access.service';
 import { LearningModule } from '../src/learning/learning.module';
 import { MediaModule } from '../src/media/media.module';
 import { MediaService } from '../src/media/media.service';
+import { PrismaService } from '../src/database/prisma.service';
 
 interface RequestWithUser extends Request {
   user?: {
@@ -45,6 +46,8 @@ describe('Student REST API', () => {
       .useValue(postTest)
       .overrideProvider(MediaService)
       .useValue(media)
+      .overrideProvider(PrismaService)
+      .useValue({})
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -105,7 +108,7 @@ describe('Student REST API', () => {
     ]);
 
     await request(app.getHttpServer() as Server)
-      .get('/api/courses')
+      .get('/api/courses?categoryId=22222222-2222-4222-8222-222222222222')
       .set('x-test-role', UserRole.STUDENT)
       .expect(200)
       .expect([
@@ -120,6 +123,7 @@ describe('Student REST API', () => {
 
     expect(access.listEligibleCourses).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'student-id', role: UserRole.STUDENT }),
+      '22222222-2222-4222-8222-222222222222',
     );
   });
 

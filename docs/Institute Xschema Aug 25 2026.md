@@ -1,7 +1,7 @@
 # Institute X E-Learning Database Schema
 
-**Schema version:** 1.1  
-**Updated:** August 25, 2026  
+**Schema version:** 1.2
+**Updated:** August 26, 2026
 **Database:** PostgreSQL  
 **Source of truth:** Institute X E-Learning SRS v1.5
 
@@ -15,6 +15,8 @@
 - Pre-Test: one completed attempt and no passing threshold. Post-Test: unlimited attempts and 80% to pass.
 - Answers and randomized presentation order are retained for auditability.
 - Media is private in S3-compatible storage. All timestamps use UTC `TIMESTAMPTZ`.
+- Courses may belong to one or more reusable Categories through a normalized join table.
+- Existing Courses are assigned to the `Uncategorized` fallback Category during migration.
 
 ## 2. Enumerations
 
@@ -84,6 +86,18 @@ Partial unique index on `teacher_id` where `status = PENDING`. Only a `TEACHER` 
 | `created_at` | TIMESTAMPTZ | NOT NULL, default now |
 | `archived_at` | TIMESTAMPTZ | NULL |
 
+### `categories`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `category_id` | UUID | PK, generated |
+| `slug` | VARCHAR(100) | NOT NULL, UNIQUE |
+| `name` | VARCHAR(255) | NOT NULL, UNIQUE |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default now |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, updated automatically |
+
+Categories are Owner-managed taxonomy labels; authenticated users may list them.
+
 ### `course_allowed_majors`
 
 | Column | Type | Constraints |
@@ -92,6 +106,15 @@ Partial unique index on `teacher_id` where `status = PENDING`. Only a `TEACHER` 
 | `major_id` | UUID | PK part, FK → `majors.major_id` |
 
 Primary key: (`course_id`, `major_id`). Every submitted Course must have at least one eligible Major.
+
+### `course_categories`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `course_id` | UUID | PK part, FK → `courses.course_id`, cascade on Course delete |
+| `category_id` | UUID | PK part, FK → `categories.category_id`, deletion restricted |
+
+Primary key: (`course_id`, `category_id`). New Courses require at least one Category.
 
 ### `course_versions`
 
@@ -277,6 +300,8 @@ erDiagram
     users ||--o{ courses : owns
     courses ||--o{ course_allowed_majors : allows
     majors ||--o{ course_allowed_majors : eligible
+    courses ||--o{ course_categories : classified
+    categories ||--o{ course_categories : groups
     courses ||--o{ course_versions : versions
     course_versions ||--o{ course_version_reviews : reviewed
     course_versions ||--o{ content_items : contains
@@ -306,6 +331,8 @@ erDiagram
 7. Content remains locked until the Student submits the single Pre-Test attempt.
 8. Post-Test attempts start only after content is unlocked.
 9. The server calculates all scores/results and never trusts client-provided totals.
+10. Every newly created Course must have at least one unique Category assignment; unknown or duplicate Category IDs are rejected.
+11. The owning authorized Teacher may replace a Course's Category assignments; assigned Categories cannot be deleted.
 
 ## 6. Retention and deletion
 
@@ -327,3 +354,9 @@ erDiagram
 | Assessments/timers | `quizzes`, `questions`, `question_options` |
 | Attempts/randomization/grading | `quiz_attempts`, `quiz_attempt_questions`, `quiz_attempt_options`, `quiz_attempt_answers` |
 | Traffic/peak usage | `course_access_events` |
+
+## 8. Migration history
+
+| Migration | Purpose |
+|---|---|
+| `202608260001_add_course_categories` | Add Category tables, seed `Uncategorized`, and backfill existing Courses |

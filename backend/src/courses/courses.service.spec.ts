@@ -11,7 +11,9 @@ describe('CoursesService', () => {
   const db = {
     teacherPermissionRequest: { findFirst: jest.fn() },
     major: { count: jest.fn() },
+    category: { count: jest.fn() },
     course: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
+    courseCategory: { createMany: jest.fn(), deleteMany: jest.fn() },
     courseVersion: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
   };
   const prisma = {
@@ -30,6 +32,7 @@ describe('CoursesService', () => {
       title: 'Network Fundamentals',
       description: 'Introduction to networking',
       majorIds: ['major-it', 'major-electronics'],
+      categoryIds: ['category-technology'],
     };
 
     it('atomically creates a Course with eligible Majors and Version 1 Draft', async () => {
@@ -37,6 +40,7 @@ describe('CoursesService', () => {
         status: TeacherPermissionStatus.APPROVED,
       });
       db.major.count.mockResolvedValue(2);
+      db.category.count.mockResolvedValue(1);
       db.course.create.mockResolvedValue({
         id: 'course-id',
         versions: [{ id: 'version-id', versionNumber: 1 }],
@@ -54,6 +58,9 @@ describe('CoursesService', () => {
           allowedMajors: {
             create: [{ majorId: 'major-it' }, { majorId: 'major-electronics' }],
           },
+          categories: {
+            create: [{ categoryId: 'category-technology' }],
+          },
           versions: {
             create: {
               versionNumber: 1,
@@ -63,7 +70,7 @@ describe('CoursesService', () => {
             },
           },
         },
-        include: { allowedMajors: true, versions: true },
+        include: { allowedMajors: true, categories: true, versions: true },
       });
       expect(result).toEqual(expect.objectContaining({ id: 'course-id' }));
     });
@@ -108,6 +115,27 @@ describe('CoursesService', () => {
         status: TeacherPermissionStatus.APPROVED,
       });
       db.major.count.mockResolvedValue(1);
+
+      await expect(
+        service.createCourse({ id: 'teacher-id', role: UserRole.TEACHER }, input),
+      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    });
+
+    it('requires at least one category', async () => {
+      await expect(
+        service.createCourse(
+          { id: 'teacher-id', role: UserRole.TEACHER },
+          { ...input, categoryIds: [] },
+        ),
+      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    });
+
+    it('rejects unknown categories', async () => {
+      db.teacherPermissionRequest.findFirst.mockResolvedValue({
+        status: TeacherPermissionStatus.APPROVED,
+      });
+      db.major.count.mockResolvedValue(2);
+      db.category.count.mockResolvedValue(0);
 
       await expect(
         service.createCourse({ id: 'teacher-id', role: UserRole.TEACHER }, input),
@@ -210,10 +238,7 @@ describe('CoursesService', () => {
         status: CourseVersionStatus.DRAFT,
       });
 
-      await service.createRevision(
-        { id: 'teacher-id', role: UserRole.TEACHER },
-        'course-id',
-      );
+      await service.createRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id');
 
       expect(db.courseVersion.create).toHaveBeenCalledWith({
         data: {
@@ -270,6 +295,9 @@ describe('CoursesService', () => {
           allowedMajors: {
             include: { major: { select: { id: true, code: true, name: true } } },
           },
+          categories: {
+            include: { category: true },
+          },
           versions: {
             orderBy: { versionNumber: 'desc' },
             include: {
@@ -286,6 +314,30 @@ describe('CoursesService', () => {
         service.listOwned({ id: 'owner-id', role: UserRole.OWNER }),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(db.course.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('replaceCategories', () => {
+    it('replaces category assignments for the owning Teacher', async () => {
+      db.course.findUnique.mockResolvedValue({ teacherId: 'teacher-id' });
+      db.category.count.mockResolvedValue(2);
+      db.courseCategory.deleteMany.mockResolvedValue({ count: 1 });
+      db.courseCategory.createMany.mockResolvedValue({ count: 2 });
+
+      await service.replaceCategories({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id', [
+        'category-a',
+        'category-b',
+      ]);
+
+      expect(db.courseCategory.deleteMany).toHaveBeenCalledWith({
+        where: { courseId: 'course-id' },
+      });
+      expect(db.courseCategory.createMany).toHaveBeenCalledWith({
+        data: [
+          { courseId: 'course-id', categoryId: 'category-a' },
+          { courseId: 'course-id', categoryId: 'category-b' },
+        ],
+      });
     });
   });
 });

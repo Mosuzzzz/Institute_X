@@ -23,6 +23,7 @@ export interface CreateCourseInput {
   title: string;
   description?: string;
   majorIds: string[];
+  categoryIds: string[];
 }
 
 export interface UpdateDraftInput {
@@ -31,13 +32,16 @@ export interface UpdateDraftInput {
 }
 
 type CreatedCourse = Prisma.CourseGetPayload<{
-  include: { allowedMajors: true; versions: true };
+  include: { allowedMajors: true; categories: true; versions: true };
 }>;
 
 type OwnedCourse = Prisma.CourseGetPayload<{
   include: {
     allowedMajors: {
       include: { major: { select: { id: true; code: true; name: true } } };
+    };
+    categories: {
+      include: { category: true };
     };
     versions: {
       include: { reviews: true };
@@ -57,6 +61,9 @@ export class CoursesService {
         allowedMajors: {
           include: { major: { select: { id: true, code: true, name: true } } },
         },
+        categories: {
+          include: { category: true },
+        },
         versions: {
           orderBy: { versionNumber: 'desc' },
           include: {
@@ -71,6 +78,7 @@ export class CoursesService {
   async createCourse(actor: CourseActor, input: CreateCourseInput): Promise<CreatedCourse> {
     this.requireTeacher(actor);
     this.validateMajorIds(input.majorIds);
+    this.validateCategoryIds(input.categoryIds);
     const title = input.title.trim();
     if (!title) {
       throw new UnprocessableEntityException('Course title is required');
@@ -93,11 +101,21 @@ export class CoursesService {
         throw new UnprocessableEntityException('One or more eligible Majors are unknown');
       }
 
+      const categoryCount = await tx.category.count({
+        where: { id: { in: input.categoryIds } },
+      });
+      if (categoryCount !== input.categoryIds.length) {
+        throw new UnprocessableEntityException('One or more Categories are unknown');
+      }
+
       return tx.course.create({
         data: {
           teacherId: actor.id,
           allowedMajors: {
             create: input.majorIds.map((majorId) => ({ majorId })),
+          },
+          categories: {
+            create: input.categoryIds.map((categoryId) => ({ categoryId })),
           },
           versions: {
             create: {
@@ -108,7 +126,7 @@ export class CoursesService {
             },
           },
         },
-        include: { allowedMajors: true, versions: true },
+        include: { allowedMajors: true, categories: true, versions: true },
       });
     });
   }
@@ -211,12 +229,53 @@ export class CoursesService {
     }
   }
 
+  async replaceCategories(
+    actor: CourseActor,
+    courseId: string,
+    categoryIds: string[],
+  ): Promise<{ courseId: string; categoryIds: string[] }> {
+    this.requireTeacher(actor);
+    this.validateCategoryIds(categoryIds);
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { teacherId: true },
+    });
+    if (!course) {
+      throw new NotFoundException('Course was not found');
+    }
+    if (course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may edit this Course');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const categoryCount = await tx.category.count({ where: { id: { in: categoryIds } } });
+      if (categoryCount !== categoryIds.length) {
+        throw new UnprocessableEntityException('One or more Categories are unknown');
+      }
+      await tx.courseCategory.deleteMany({ where: { courseId } });
+      await tx.courseCategory.createMany({
+        data: categoryIds.map((categoryId) => ({ courseId, categoryId })),
+      });
+    });
+
+    return { courseId, categoryIds };
+  }
+
   private validateMajorIds(majorIds: string[]): void {
     if (majorIds.length === 0) {
       throw new UnprocessableEntityException('At least one eligible Major is required');
     }
     if (new Set(majorIds).size !== majorIds.length) {
       throw new UnprocessableEntityException('Eligible Majors must not contain duplicates');
+    }
+  }
+
+  private validateCategoryIds(categoryIds: string[]): void {
+    if (categoryIds.length === 0) {
+      throw new UnprocessableEntityException('At least one Category is required');
+    }
+    if (new Set(categoryIds).size !== categoryIds.length) {
+      throw new UnprocessableEntityException('Categories must not contain duplicates');
     }
   }
 

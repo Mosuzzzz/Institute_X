@@ -8,6 +8,7 @@ import { CoursesModule } from '../src/courses/courses.module';
 import { CoursesService } from '../src/courses/courses.service';
 import { TeacherPermissionsModule } from '../src/teacher-permissions/teacher-permissions.module';
 import { TeacherPermissionsService } from '../src/teacher-permissions/teacher-permissions.service';
+import { PrismaService } from '../src/database/prisma.service';
 
 interface RequestWithUser extends Request {
   user?: {
@@ -24,6 +25,7 @@ describe('Core REST API', () => {
     updateDraft: jest.fn(),
     createRevision: jest.fn(),
     listOwned: jest.fn(),
+    replaceCategories: jest.fn(),
   };
   const permissions = { requestPermission: jest.fn() };
 
@@ -36,6 +38,8 @@ describe('Core REST API', () => {
       .useValue(courses)
       .overrideProvider(TeacherPermissionsService)
       .useValue(permissions)
+      .overrideProvider(PrismaService)
+      .useValue({})
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -73,6 +77,7 @@ describe('Core REST API', () => {
         title: 'Network Fundamentals',
         description: 'Introduction',
         majorIds: ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'],
+        categoryIds: ['33333333-3333-4333-8333-333333333333'],
       })
       .expect(201)
       .expect({ id: 'course-id' });
@@ -134,6 +139,25 @@ describe('Core REST API', () => {
     expect(courses.createRevision).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'teacher-id', role: UserRole.TEACHER }),
       '11111111-1111-4111-8111-111111111111',
+    );
+  });
+
+  it('PUT /api/courses/:id/categories replaces owned Course categories', async () => {
+    courses.replaceCategories.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      categories: [],
+    });
+
+    await request(app.getHttpServer() as Server)
+      .put('/api/courses/11111111-1111-4111-8111-111111111111/categories')
+      .set('x-test-role', UserRole.TEACHER)
+      .send({ categoryIds: ['33333333-3333-4333-8333-333333333333'] })
+      .expect(200);
+
+    expect(courses.replaceCategories).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'teacher-id', role: UserRole.TEACHER }),
+      '11111111-1111-4111-8111-111111111111',
+      ['33333333-3333-4333-8333-333333333333'],
     );
   });
 

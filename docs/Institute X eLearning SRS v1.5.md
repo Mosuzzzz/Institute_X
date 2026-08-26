@@ -25,6 +25,7 @@ The system includes:
 - Role-based access control
 - Teacher authorization
 - Course creation and editing
+- Reusable Course Categories and catalog filtering
 - Course eligibility validation by Major
 - Course versioning and approval
 - Automatic publication after approval
@@ -117,6 +118,8 @@ Teacher → Request Permission → Approver
 | FR-CM-08 | Changes to published content shall create a new Course Version. |
 | FR-CM-09 | A new Version shall require approval before publication. |
 | FR-CM-10 | The currently published Version may remain available while a newer Version is under review. |
+| FR-CM-11 | An authorized Teacher shall assign at least one Category when creating a Course. |
+| FR-CM-12 | The owning authorized Teacher shall be able to replace a Course's Category assignments. |
 
 ---
 
@@ -145,6 +148,18 @@ Student → Select Course → Check Major
                            ↓         ↓
                           Deny    Continue
 ```
+
+### 7.1 Course Categories and Catalog Filtering
+
+Categories are reusable, Owner-managed taxonomy labels. A Course may belong to one or more Categories. The catalog may filter Courses by Category while preserving publication, account-status, and Major-eligibility rules.
+
+| ID | Requirement |
+|---|---|
+| FR-CAT-01 | An Owner shall create and update unique Category slugs and names. |
+| FR-CAT-02 | Authenticated users shall be able to list Categories. |
+| FR-CAT-03 | Course creation shall reject missing, unknown, or duplicate Category IDs. |
+| FR-CAT-04 | A Student shall be able to filter the eligible Course catalog by Category. |
+| FR-CAT-05 | Category filtering shall not bypass Major eligibility, publication, or archive rules. |
 
 ---
 
@@ -481,6 +496,7 @@ The database shall persist, at minimum:
 - SSO-linked users, their single Role, account status, and Student Major
 - Teacher permission requests and review history
 - Courses, eligible Majors, immutable Versions, submissions, and review decisions
+- Categories and Course-Category assignments used for catalog taxonomy and filtering
 - Ordered text/media content and private-object metadata
 - Course Enrollments distinct from repeat Course access events
 - Quiz timer configuration, questions, options, and grading keys
@@ -490,3 +506,5 @@ The database shall persist, at minimum:
 Domain rules that span tables—including the 1 GB per-Course asset limit, automatic publication, single completed Pre-Test attempt, and timed submission enforcement—shall be executed transactionally by the Backend. Database constraints and indexes shall be used wherever PostgreSQL can enforce the rule directly.
 
 Student-facing APIs shall never expose correct-answer flags, private storage keys, or unrestricted media URLs.
+
+The schema change is maintained by Prisma migration `202608260001_add_course_categories`, which seeds and backfills the `Uncategorized` fallback Category.

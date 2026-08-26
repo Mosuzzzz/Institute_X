@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
@@ -6,6 +6,7 @@ import { OidcAuthGuard } from '../auth/oidc-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CourseAccessService } from './course-access.service';
+import { ListCoursesQueryDto } from './dto/list-courses-query.dto';
 
 @ApiTags('student-learning')
 @ApiBearerAuth()
@@ -17,8 +18,14 @@ export class LearningController {
   @Get()
   @Roles(UserRole.STUDENT)
   @ApiOkResponse({ description: 'Published Course catalog eligible for the Student Major' })
-  list(@CurrentUser() user: CurrentUserValue): ReturnType<CourseAccessService['listEligibleCourses']> {
-    return this.access.listEligibleCourses({ ...user, majorId: user.majorId ?? null });
+  list(
+    @CurrentUser() user: CurrentUserValue,
+    @Query() query: ListCoursesQueryDto,
+  ): ReturnType<CourseAccessService['listEligibleCourses']> {
+    return this.access.listEligibleCourses(
+      { ...user, majorId: user.majorId ?? null },
+      query.categoryId,
+    );
   }
 
   @Post(':courseId/enter')

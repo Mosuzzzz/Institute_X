@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import {
   AccountStatus,
   AssetStatus,
@@ -300,6 +304,7 @@ describe('CourseAccessService', () => {
             },
           ],
           enrollments: [{ studentId: 'student-id' }],
+          categories: [{ category: { id: 'category-id', slug: 'technology', name: 'Technology' } }],
           _count: { enrollments: 25 },
         },
       ]);
@@ -313,6 +318,7 @@ describe('CourseAccessService', () => {
           publishedAt: new Date('2026-08-25T00:00:00.000Z'),
           enrollments: 25,
           enrolled: true,
+          categories: [{ id: 'category-id', slug: 'technology', name: 'Technology' }],
         },
       ]);
       expect(prisma.course.findMany).toHaveBeenCalledWith(
@@ -322,6 +328,20 @@ describe('CourseAccessService', () => {
             allowedMajors: { some: { majorId: 'major-it' } },
             versions: { some: { status: CourseVersionStatus.PUBLISHED } },
           },
+        }),
+      );
+    });
+
+    it('filters the eligible catalog by category', async () => {
+      prisma.course.findMany.mockResolvedValue([]);
+
+      await service.listEligibleCourses(student, 'category-id');
+
+      expect(prisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            categories: { some: { categoryId: 'category-id' } },
+          }),
         }),
       );
     });

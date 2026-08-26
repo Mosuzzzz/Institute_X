@@ -31,4 +31,14 @@ export class CreateCourseDto {
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
   majorIds!: string[];
+
+  @ApiProperty({
+    type: [String],
+    format: 'uuid',
+    description: 'One or more Course Category identifiers',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  categoryIds!: string[];
 }

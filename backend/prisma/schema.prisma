@@ -126,12 +126,35 @@ model Course {
   archivedAt    DateTime?            @map("archived_at") @db.Timestamptz
   teacher       User                 @relation(fields: [teacherId], references: [id])
   allowedMajors CourseAllowedMajor[]
+  categories    CourseCategory[]
   versions      CourseVersion[]
   enrollments   CourseEnrollment[]
   accessEvents  CourseAccessEvent[]
 
   @@index([teacherId])
   @@map("courses")
+}
+
+model Category {
+  id        String           @id @default(uuid()) @map("category_id") @db.Uuid
+  slug      String           @unique @db.VarChar(100)
+  name      String           @unique @db.VarChar(255)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  courses   CourseCategory[]
+
+  @@map("categories")
+}
+
+model CourseCategory {
+  courseId   String   @map("course_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@id([courseId, categoryId])
+  @@index([categoryId])
+  @@map("course_categories")
 }
 
 model CourseAllowedMajor {

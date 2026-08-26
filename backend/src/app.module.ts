@@ -13,6 +13,7 @@ import { LearningModule } from './learning/learning.module';
 import { AssessmentsModule } from './assessments/assessments.module';
 import { MediaModule } from './media/media.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     AssessmentsModule,
     MediaModule,
     AnalyticsModule,
+    CategoriesModule,
     HealthModule,
   ],
 })

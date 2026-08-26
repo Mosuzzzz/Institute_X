@@ -56,19 +56,24 @@ export interface EligibleCourseSummary {
   publishedAt: Date | null;
   enrollments: number;
   enrolled: boolean;
+  categories: Array<{ id: string; slug: string; name: string }>;
 }
 
 @Injectable()
 export class CourseAccessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listEligibleCourses(student: StudentActor): Promise<EligibleCourseSummary[]> {
+  async listEligibleCourses(
+    student: StudentActor,
+    categoryId?: string,
+  ): Promise<EligibleCourseSummary[]> {
     this.requireActiveStudent(student);
     const courses = await this.prisma.course.findMany({
       where: {
         archivedAt: null,
         allowedMajors: { some: { majorId: student.majorId! } },
         versions: { some: { status: CourseVersionStatus.PUBLISHED } },
+        ...(categoryId ? { categories: { some: { categoryId } } } : {}),
       },
       select: {
         id: true,
@@ -87,6 +92,11 @@ export class CourseAccessService {
           take: 1,
           select: { studentId: true },
         },
+        categories: {
+          select: {
+            category: { select: { id: true, slug: true, name: true } },
+          },
+        },
         _count: { select: { enrollments: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -104,6 +114,7 @@ export class CourseAccessService {
               publishedAt: version.publishedAt,
               enrollments: course._count.enrollments,
               enrolled: course.enrollments.length > 0,
+              categories: course.categories.map(({ category }) => category),
             },
           ]
         : [];
@@ -163,12 +174,8 @@ export class CourseAccessService {
       });
     });
 
-    const preTest = publishedVersion.quizzes.find(
-      (quiz) => quiz.quizType === QuizType.PRE_TEST,
-    );
-    const postTest = publishedVersion.quizzes.find(
-      (quiz) => quiz.quizType === QuizType.POST_TEST,
-    );
+    const preTest = publishedVersion.quizzes.find((quiz) => quiz.quizType === QuizType.PRE_TEST);
+    const postTest = publishedVersion.quizzes.find((quiz) => quiz.quizType === QuizType.POST_TEST);
     const contentUnlocked =
       preTest?.attempts.some((attempt) => attempt.result === QuizResult.COMPLETED) ?? false;
     return {

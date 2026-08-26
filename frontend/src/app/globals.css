@@ -26,8 +26,28 @@ body {
   margin: 0;
   color: var(--text);
   background: var(--canvas);
-  font-family: Tahoma, Arial, "Noto Sans Thai", sans-serif;
+  font-family: var(--font-noto-sans), sans-serif;
   text-rendering: optimizeLegibility;
+}
+
+html[lang="zh-CN"] body {
+  font-family: var(--font-noto-sans-sc), var(--font-noto-sans), sans-serif;
+}
+
+html[lang="ja"] body {
+  font-family: var(--font-noto-sans-jp), var(--font-noto-sans), sans-serif;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .auth-shell {
@@ -37,6 +57,135 @@ body {
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: clamp(24px, 5vw, 72px);
+}
+
+.language-nav {
+  position: fixed;
+  z-index: 10;
+  top: clamp(18px, 3vw, 34px);
+  right: clamp(18px, 3vw, 42px);
+}
+
+.language-menu {
+  position: relative;
+  width: 132px;
+  color: var(--text);
+}
+
+.language-trigger {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 9px 2px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--control-radius);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.language-trigger:hover {
+  color: var(--action-hover);
+}
+
+.language-trigger:focus-visible,
+.language-option:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
+  outline-offset: 2px;
+  border-color: var(--focus);
+}
+
+.language-chevron,
+.language-check {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.language-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.language-chevron {
+  width: 18px;
+  height: 18px;
+  transition: transform 150ms ease;
+}
+
+.language-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.language-options {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  max-height: min(280px, calc(100svh - 88px));
+  padding: 6px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  box-shadow: 0 12px 28px rgb(25 35 45 / 14%);
+}
+
+.language-option {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.language-option:hover {
+  background: #f2f5f8;
+}
+
+.language-option[aria-selected="true"] {
+  color: var(--action-hover);
+  background: #edf5fc;
+}
+
+.language-option-copy {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  font-size: 0.925rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.language-check {
+  stroke-width: 2;
 }
 
 .auth-panel {
@@ -169,10 +318,15 @@ h2 {
   .auth-panel {
     width: 100%;
     min-height: 100svh;
-    padding: 40px 22px;
+    padding: 92px 22px 40px;
     border: 0;
     border-radius: 0;
     box-shadow: none;
+  }
+
+  .language-nav {
+    top: 16px;
+    right: 16px;
   }
 
   .brand-lockup {
@@ -194,6 +348,8 @@ h2 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .language-trigger,
+  .language-chevron,
   .sso-link {
     transition: none;
   }
@@ -201,10 +357,15 @@ h2 {
 
 @media (forced-colors: active) {
   .auth-panel,
+  .language-trigger,
+  .language-options,
+  .language-option,
   .sso-link {
     border-color: CanvasText;
   }
 
+  .language-trigger:focus-visible,
+  .language-option:focus-visible,
   .sso-link:focus-visible {
     outline-color: Highlight;
   }

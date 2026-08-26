@@ -1,6 +1,6 @@
 # Institute X Backend Completion
 
-Date: 25 August 2026  
+Date: 26 August 2026
 Source: Institute X eLearning SRS v1.5
 
 ## Functional traceability
@@ -9,9 +9,9 @@ Source: Institute X eLearning SRS v1.5
 |---|---|---|
 | FR-AUTH-01–06 | OIDC bearer guard plus Mock SSO adapter, verified university domain, inactive-account denial, SSO user synchronization, no password model | OIDC/Mock SSO guard and verifier unit tests; protected-route E2E tests. Live Institute endpoint remains an Institute UAT item. |
 | FR-TA-01–04 | Teacher requests, personal status, Approver pending queue, approve/reject, effective latest permission enforcement | Teacher permission unit and authoring E2E tests |
-| FR-CM-01–10 | Course creation, owned workspace, Draft metadata/text editing, new revisions, immutable published Versions, submit/reopen/re-submit | Course, content, and Version unit/E2E tests; PostgreSQL approval integration test |
+| FR-CM-01–12 | Course creation, owned workspace, Draft metadata/text editing, category assignment, new revisions, immutable published Versions, submit/reopen/re-submit | Course, category, content, and Version unit/E2E tests; PostgreSQL approval integration test |
 | FR-COST-01–02 | No payment, subscription, password, or paid-lock models or endpoints | Prisma schema contract |
-| FR-CA-01–09 | Major-filtered catalog, entry eligibility, unique Enrollment, repeated access events | Learning unit/E2E tests; PostgreSQL Enrollment integration test |
+| FR-CA-01–09 / FR-CAT-01–05 | Major- and category-filtered catalog, taxonomy, entry eligibility, unique Enrollment, repeated access events | Learning/category unit and E2E tests; PostgreSQL Enrollment integration test |
 | FR-AP-01–09 | Submitted queue, review, rejection correction, automatic publication and superseding | Version unit/E2E tests; PostgreSQL approval integration test |
 | FR-PRE-01–12 | Single attempt, randomized presentation, timer, server grading, stored score/result, result endpoint, content unlock | Pre-Test unit and Student E2E tests |
 | FR-LC-01–09 | Text and supported media authoring, 1 GiB limits, ordered published content, private signed URLs, Draft deletion recovery | Content/media/learning unit and E2E tests; S3 adapter tests |
@@ -29,6 +29,7 @@ Source: Institute X eLearning SRS v1.5
 - Draft authoring: `PATCH /api/course-versions/:id`, text/media/quiz/question endpoints
 - Version approval: submit, pending-review queue, review, rejection reopen and resubmit
 - Student catalog and learning: `GET /api/courses`, Course entry, Pre-Test, published content, signed media view, Post-Test
+- Categories and catalog filtering: `GET /api/categories`, Owner `POST/PATCH /api/categories`, owning Teacher `PUT /api/courses/:id/categories`, and `GET /api/courses?categoryId=...`; `POST /api/courses` requires `categoryIds`
 - Analytics: owned Teacher Course analytics and Owner dashboard
 - Operations: `/api/health`, `/api/ready`, `/api/docs`
 
@@ -59,6 +60,8 @@ npx prisma migrate status
 ```
 
 The integration suite creates UUID-scoped temporary records in the configured local PostgreSQL database and deletes only those records after the suite.
+
+Migration `202608260001_add_course_categories` is applied locally. It creates the normalized Category tables, seeds `Uncategorized`, and backfills existing Courses. The integration suite verifies the migration and category relationships.
 
 ## External acceptance items
 

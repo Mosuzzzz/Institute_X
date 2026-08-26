@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -13,6 +13,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
+import { ReplaceCourseCategoriesDto } from './dto/replace-course-categories.dto';
 
 @ApiTags('courses')
 @ApiBearerAuth()
@@ -47,5 +48,16 @@ export class CoursesController {
     @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
   ): ReturnType<CoursesService['createRevision']> {
     return this.courses.createRevision(user, courseId);
+  }
+
+  @Put(':courseId/categories')
+  @Roles(UserRole.TEACHER)
+  @ApiOkResponse({ description: 'Owned Course categories replaced' })
+  replaceCategories(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+    @Body() input: ReplaceCourseCategoriesDto,
+  ): ReturnType<CoursesService['replaceCategories']> {
+    return this.courses.replaceCategories(user, courseId, input.categoryIds);
   }
 }
