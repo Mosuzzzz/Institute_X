@@ -4,17 +4,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
-import { clearSsoSession, hasActiveSsoSession, readStoredProfile, type SsoProfile } from '../../lib/sso-session';
+import {
+  clearSsoSession,
+  hasActiveSsoSession,
+  readStoredProfile,
+  resolveApplicationRole,
+  type SsoProfile,
+} from '../../lib/sso-session';
+import LanguageSelector, { type Language } from '../language-selector';
+import ProfileMenu from '../profile-menu';
 import { categories } from './course-data';
-
-type Language = 'th' | 'en' | 'zh-CN' | 'ja';
-
-const languageOptions: Array<{ value: Language; label: string }> = [
-  { value: 'th', label: 'ภาษาไทย' },
-  { value: 'en', label: 'English' },
-  { value: 'zh-CN', label: '中文' },
-  { value: 'ja', label: '日本語' },
-];
 
 const subscribeToSession = () => () => undefined;
 
@@ -28,6 +27,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
     () => false,
   );
   const profile: SsoProfile | null = isAuthenticated ? readStoredProfile() : null;
+  const applicationRole = resolveApplicationRole(profile);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -36,10 +36,27 @@ export default function StudentShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/');
+    } else if (
+      applicationRole === 'TEACHER' ||
+      applicationRole === 'APPROVER' ||
+      applicationRole === 'OWNER'
+    ) {
+      router.replace(
+        applicationRole === 'TEACHER'
+          ? '/teacher'
+          : applicationRole === 'APPROVER'
+            ? '/approver'
+            : '/owner',
+      );
     }
-  }, [isAuthenticated, router]);
+  }, [applicationRole, isAuthenticated, router]);
 
-  if (isAuthenticated !== true) {
+  if (
+    isAuthenticated !== true ||
+    applicationRole === 'TEACHER' ||
+    applicationRole === 'APPROVER' ||
+    applicationRole === 'OWNER'
+  ) {
     return (
       <main className="callback-shell">
         <section className="callback-panel" aria-live="polite">
@@ -49,13 +66,6 @@ export default function StudentShell({ children }: { children: ReactNode }) {
       </main>
     );
   }
-
-  const initials = (profile?.name ?? profile?.username ?? 'Student')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
 
   const signOut = () => {
     clearSsoSession();
@@ -82,15 +92,18 @@ export default function StudentShell({ children }: { children: ReactNode }) {
           <Link className={pathname === '/student/learning' ? 'is-active' : ''} href="/student/learning">
             My learning
           </Link>
-          <label className="student-language">
-            <span className="visually-hidden">Language</span>
-            <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
-              {languageOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-          <button className="student-avatar" type="button" aria-label="Sign out" title="Sign out" onClick={signOut}>{initials}</button>
+          <LanguageSelector
+            className="student-language-menu"
+            value={language}
+            label="Select language"
+            onChange={setLanguage}
+          />
+          <ProfileMenu
+            profile={profile}
+            roleLabel="Student account"
+            fallbackName="Student"
+            onSignOut={signOut}
+          />
         </nav>
       </header>
 

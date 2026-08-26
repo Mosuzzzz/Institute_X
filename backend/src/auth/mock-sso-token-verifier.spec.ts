@@ -11,7 +11,6 @@ describe('MockSsoTokenVerifier', () => {
       throw new Error(`Unexpected config: ${key}`);
     }),
     get: jest.fn((key: string, fallback?: unknown) => {
-      if (key === 'MOCK_SSO_STAFF_ROLE') return UserRole.APPROVER;
       return fallback;
     }),
   };
@@ -123,7 +122,7 @@ describe('MockSsoTokenVerifier', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('maps staff personnel to the configured application role', async () => {
+  it('rejects generic staff personnel when the SSO role is absent', async () => {
     fetchSpy.mockResolvedValue(
       responseFor({
         user_id: 'EMP0002',
@@ -135,8 +134,77 @@ describe('MockSsoTokenVerifier', () => {
       }),
     );
 
-    await expect(verifier.verify('staff-token')).resolves.toEqual(
-      expect.objectContaining({ role: UserRole.APPROVER }),
+    await expect(verifier.verify('staff-token')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it.each([
+    ['teacher', UserRole.TEACHER],
+    ['approver', UserRole.APPROVER],
+    ['owner', UserRole.OWNER],
+  ] as const)(
+    'maps the SSO personnel type %s when an explicit role is absent',
+    async (personnelType, expectedRole) => {
+      fetchSpy.mockResolvedValue(
+        responseFor({
+          user_id: `EMP-${personnelType}`,
+          name: `${personnelType} Account`,
+          email: `${personnelType}@university.ac.th`,
+          is_current_student: false,
+          is_educational_personnel: true,
+          personnel_type: personnelType,
+        }),
+      );
+
+      await expect(verifier.verify(`${personnelType}-token`)).resolves.toEqual(
+        expect.objectContaining({ role: expectedRole }),
+      );
+    },
+  );
+
+  it.each([
+    [UserRole.STUDENT, true, false, null, 'CS'],
+    [UserRole.TEACHER, false, true, 'lecturer', undefined],
+    [UserRole.APPROVER, false, true, 'staff', undefined],
+    [UserRole.OWNER, false, true, 'staff', undefined],
+  ] as const)(
+    'uses the explicit SSO role %s as the application role',
+    async (role, isCurrentStudent, isEducationalPersonnel, personnelType, majorCode) => {
+      fetchSpy.mockResolvedValue(
+        responseFor({
+          user_id: `USER-${role}`,
+          name: `${role} Account`,
+          email: `${role.toLowerCase()}@university.ac.th`,
+          role,
+          major_code: majorCode,
+          is_current_student: isCurrentStudent,
+          is_educational_personnel: isEducationalPersonnel,
+          personnel_type: personnelType,
+        }),
+      );
+
+      await expect(verifier.verify(`${role.toLowerCase()}-token`)).resolves.toEqual(
+        expect.objectContaining({ role, majorCode }),
+      );
+    },
+  );
+
+  it('rejects an explicit SSO role outside the supported application roles', async () => {
+    fetchSpy.mockResolvedValue(
+      responseFor({
+        user_id: 'ADMIN-1',
+        name: 'Unexpected Admin',
+        email: 'admin@university.ac.th',
+        role: 'ADMIN',
+        is_current_student: false,
+        is_educational_personnel: true,
+        personnel_type: 'staff',
+      }),
+    );
+
+    await expect(verifier.verify('admin-token')).rejects.toBeInstanceOf(
+      UnauthorizedException,
     );
   });
 
@@ -175,16 +243,18 @@ function responseFor(input: {
   user_id: string;
   name: string;
   email: string;
+  role?: string;
+  major_code?: string;
   is_active?: boolean;
   is_current_student: boolean;
   is_educational_personnel: boolean;
   personnel_type: string | null;
 }): Response {
-  const { user_id, name, email, is_active = true, ...status } = input;
+  const { user_id, name, email, role, major_code, is_active = true, ...status } = input;
   return new Response(
     JSON.stringify({
       success: true,
-      user: { user_id, name, email },
+      user: { user_id, name, email, role, major_code },
       status: { is_active, ...status },
     }),
     { status: 200, headers: { 'content-type': 'application/json' } },

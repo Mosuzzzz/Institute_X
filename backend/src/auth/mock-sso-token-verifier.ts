@@ -13,6 +13,7 @@ interface MockSsoResponse {
     name?: unknown;
     email?: unknown;
     major_code?: unknown;
+    role?: unknown;
   };
   status?: {
     is_active?: unknown;
@@ -115,7 +116,7 @@ export class MockSsoTokenVerifier implements OidcTokenVerifier {
       throw new UnauthorizedException('Mock University email domain is invalid');
     }
 
-    const role = this.resolveRole(status);
+    const role = this.resolveRole(user, status);
     const majorCode =
       role === UserRole.STUDENT
         ? this.optionalString(user.major_code)
@@ -132,16 +133,31 @@ export class MockSsoTokenVerifier implements OidcTokenVerifier {
     };
   }
 
-  private resolveRole(status: NonNullable<MockSsoResponse['status']>): UserRole {
+  private resolveRole(
+    user: NonNullable<MockSsoResponse['user']>,
+    status: NonNullable<MockSsoResponse['status']>,
+  ): UserRole {
+    if (user.role !== undefined) {
+      const explicitRole = this.requiredString(user.role).toUpperCase();
+      if (!Object.values(UserRole).includes(explicitRole as UserRole)) {
+        throw new UnauthorizedException('Mock University SSO role is not supported');
+      }
+      return explicitRole as UserRole;
+    }
+
     if (status.is_current_student === true && status.is_educational_personnel === false) {
       return UserRole.STUDENT;
     }
     if (status.is_current_student === false && status.is_educational_personnel === true) {
-      if (status.personnel_type === 'lecturer') {
+      const personnelType = this.optionalString(status.personnel_type)?.toLowerCase();
+      if (personnelType === 'lecturer' || personnelType === 'teacher') {
         return UserRole.TEACHER;
       }
-      if (status.personnel_type === 'staff') {
-        return this.config.get<UserRole>('MOCK_SSO_STAFF_ROLE', UserRole.APPROVER);
+      if (personnelType === 'approver') {
+        return UserRole.APPROVER;
+      }
+      if (personnelType === 'owner') {
+        return UserRole.OWNER;
       }
       throw new UnauthorizedException('Educational personnel type is not supported');
     }

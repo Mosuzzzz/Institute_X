@@ -9,9 +9,41 @@ export type SsoProfile = {
   name?: string;
   email?: string;
   affiliation?: string;
+  role?: string;
   major_code?: string | null;
   year_level?: number | null;
+  is_active?: boolean;
+  is_current_student?: boolean;
+  is_educational_personnel?: boolean;
+  personnel_type?: string | null;
 };
+
+export type ApplicationRole = 'STUDENT' | 'TEACHER' | 'APPROVER' | 'OWNER' | null;
+
+export function resolveApplicationRole(profile: SsoProfile | null): ApplicationRole {
+  if (!profile) return null;
+
+  const explicitRole = profile.role?.trim().toUpperCase();
+  if (explicitRole === 'TEACHER') return 'TEACHER';
+  if (explicitRole === 'STUDENT') return 'STUDENT';
+  if (explicitRole === 'APPROVER') return 'APPROVER';
+  if (explicitRole === 'OWNER') return 'OWNER';
+
+  const affiliation = profile.affiliation?.trim().toLowerCase();
+  const personnelType = profile.personnel_type?.trim().toLowerCase();
+  if (
+    affiliation === 'lecturer' ||
+    affiliation === 'teacher' ||
+    personnelType === 'lecturer' ||
+    personnelType === 'teacher'
+  ) {
+    return 'TEACHER';
+  }
+  if (profile.is_current_student === true || affiliation === 'student') return 'STUDENT';
+  if (personnelType === 'approver') return 'APPROVER';
+  if (personnelType === 'owner') return 'OWNER';
+  return null;
+}
 
 export function clearSsoSession() {
   sessionStorage.removeItem(SSO_STATE_KEY);

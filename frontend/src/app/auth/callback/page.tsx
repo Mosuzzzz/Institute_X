@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   clearSsoSession,
+  resolveApplicationRole,
   SSO_PROFILE_KEY,
   SSO_STATE_KEY,
   SSO_TOKEN_EXPIRY_KEY,
@@ -28,7 +29,32 @@ function extractProfile(payload: unknown): SsoProfile | null {
   if (!payload || typeof payload !== 'object') return null;
   const response = payload as Record<string, unknown>;
   const candidate = response.user && typeof response.user === 'object' ? response.user : response;
-  return candidate as SsoProfile;
+  const candidateProfile = candidate as SsoProfile;
+  const status =
+    response.status && typeof response.status === 'object'
+      ? (response.status as Record<string, unknown>)
+      : {};
+
+  return {
+    ...candidateProfile,
+    role:
+      typeof candidateProfile.role === 'string'
+        ? candidateProfile.role
+        : typeof response.role === 'string'
+          ? response.role
+          : undefined,
+    is_active: typeof status.is_active === 'boolean' ? status.is_active : undefined,
+    is_current_student:
+      typeof status.is_current_student === 'boolean' ? status.is_current_student : undefined,
+    is_educational_personnel:
+      typeof status.is_educational_personnel === 'boolean'
+        ? status.is_educational_personnel
+        : undefined,
+    personnel_type:
+      typeof status.personnel_type === 'string' || status.personnel_type === null
+        ? status.personnel_type
+        : candidateProfile.personnel_type,
+  };
 }
 
 export default function SsoCallbackPage() {
@@ -71,7 +97,16 @@ export default function SsoCallbackPage() {
         sessionStorage.setItem(SSO_TOKEN_KEY, token);
         sessionStorage.setItem(SSO_TOKEN_EXPIRY_KEY, String(expiresAt(fragment.get('expires_in'))));
         sessionStorage.setItem(SSO_PROFILE_KEY, JSON.stringify(profile));
-        router.replace('/student');
+        const applicationRole = resolveApplicationRole(profile);
+        router.replace(
+          applicationRole === 'TEACHER'
+            ? '/teacher'
+            : applicationRole === 'APPROVER'
+              ? '/approver'
+              : applicationRole === 'OWNER'
+                ? '/owner'
+                : '/student',
+        );
       } catch {
         clearSsoSession();
         setError('We could not verify your SSO account. Please try again.');

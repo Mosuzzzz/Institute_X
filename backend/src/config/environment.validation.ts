@@ -25,7 +25,6 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
     otherwise: Joi.optional(),
   }),
   MOCK_SSO_ALLOWED_EMAIL_DOMAIN: Joi.string().hostname().default('university.ac.th'),
-  MOCK_SSO_STAFF_ROLE: Joi.string().valid('APPROVER', 'OWNER').default('APPROVER'),
   OIDC_USERINFO_URL: Joi.string().uri().optional(),
   OIDC_ALLOWED_EMAIL_DOMAIN: Joi.string().hostname().optional(),
   OIDC_ROLE_CLAIM: Joi.string().default('role'),

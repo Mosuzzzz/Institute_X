@@ -1,10 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SSO_STATE_KEY } from '../lib/sso-session';
-
-type Language = 'th' | 'en' | 'zh-CN' | 'ja';
+import LanguageSelector, { type Language } from './language-selector';
 
 const copy = {
   th: {
@@ -33,87 +32,17 @@ const copy = {
   },
 } as const;
 
-const languageOptions: ReadonlyArray<{ value: Language; label: string }> = [
-  { value: 'th', label: 'ภาษาไทย' },
-  { value: 'en', label: 'English' },
-  { value: 'zh-CN', label: '中文' },
-  { value: 'ja', label: '日本語' },
-];
-
 interface AuthenticationPageProps {
   ssoLoginUrl: string;
 }
 
 export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPageProps) {
   const [language, setLanguage] = useState<Language>('th');
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
-  const languageMenuRef = useRef<HTMLDivElement>(null);
-  const languageTriggerRef = useRef<HTMLButtonElement>(null);
   const text = copy[language];
-  const selectedLanguage = languageOptions.find((option) => option.value === language)!;
 
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
-
-  useEffect(() => {
-    if (!isLanguageMenuOpen) {
-      return;
-    }
-
-    const selectedOption = languageMenuRef.current?.querySelector<HTMLButtonElement>(
-      '[role="option"][aria-selected="true"]',
-    );
-    selectedOption?.focus();
-
-    const closeOnOutsidePress = (event: PointerEvent) => {
-      if (!languageMenuRef.current?.contains(event.target as Node)) {
-        setIsLanguageMenuOpen(false);
-      }
-    };
-
-    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsLanguageMenuOpen(false);
-        languageTriggerRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('pointerdown', closeOnOutsidePress);
-    document.addEventListener('keydown', closeOnEscape);
-
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsidePress);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [isLanguageMenuOpen]);
-
-  const selectLanguage = (nextLanguage: Language) => {
-    setLanguage(nextLanguage);
-    setIsLanguageMenuOpen(false);
-    languageTriggerRef.current?.focus();
-  };
-
-  const moveBetweenLanguageOptions = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
-      return;
-    }
-
-    event.preventDefault();
-    const options = Array.from(
-      languageMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [],
-    );
-    const currentIndex = options.indexOf(event.currentTarget);
-    const nextIndex =
-      event.key === 'Home'
-        ? 0
-        : event.key === 'End'
-          ? options.length - 1
-          : (currentIndex + (event.key === 'ArrowDown' ? 1 : -1) + options.length) %
-            options.length;
-
-    options[nextIndex]?.focus();
-  };
 
   const startSsoLogin = () => {
     const state = crypto.randomUUID();
@@ -129,57 +58,7 @@ export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPagePr
   return (
     <main className="auth-shell">
       <nav className="language-nav" aria-label={text.languageLabel}>
-        <div className="language-menu" ref={languageMenuRef}>
-          <button
-            ref={languageTriggerRef}
-            type="button"
-            className="language-trigger"
-            aria-label={`${text.languageLabel}: ${selectedLanguage.label}`}
-            aria-haspopup="listbox"
-            aria-expanded={isLanguageMenuOpen}
-            aria-controls="language-options"
-            onClick={() => setIsLanguageMenuOpen((isOpen) => !isOpen)}
-          >
-            <span className="language-name">{selectedLanguage.label}</span>
-            <svg
-              className={`language-chevron${isLanguageMenuOpen ? ' is-open' : ''}`}
-              viewBox="0 0 20 20"
-              aria-hidden="true"
-            >
-              <path d="m5.75 7.5 4.25 4.25 4.25-4.25" />
-            </svg>
-          </button>
-
-          {isLanguageMenuOpen ? (
-            <div
-              id="language-options"
-              className="language-options"
-              role="listbox"
-              aria-label={text.languageLabel}
-            >
-              {languageOptions.map((option) => {
-                const isSelected = option.value === language;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className="language-option"
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => selectLanguage(option.value)}
-                    onKeyDown={moveBetweenLanguageOptions}
-                  >
-                    <span className="language-option-copy">{option.label}</span>
-                    <svg className="language-check" viewBox="0 0 20 20" aria-hidden="true">
-                      {isSelected ? <path d="m4.5 10.25 3.5 3.5 7.5-7.5" /> : null}
-                    </svg>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
+        <LanguageSelector value={language} label={text.languageLabel} onChange={setLanguage} />
       </nav>
 
       <section className="auth-panel" aria-labelledby="authentication-title">
