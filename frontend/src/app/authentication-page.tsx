@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { SSO_STATE_KEY } from '../lib/sso-session';
 
 type Language = 'th' | 'en' | 'zh-CN' | 'ja';
 
@@ -114,6 +115,17 @@ export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPagePr
     options[nextIndex]?.focus();
   };
 
+  const startSsoLogin = () => {
+    const state = crypto.randomUUID();
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    const loginUrl = new URL(ssoLoginUrl);
+
+    sessionStorage.setItem(SSO_STATE_KEY, state);
+    loginUrl.searchParams.set('redirect_uri', redirectUri);
+    loginUrl.searchParams.set('state', state);
+    window.location.assign(loginUrl.toString());
+  };
+
   return (
     <main className="auth-shell">
       <nav className="language-nav" aria-label={text.languageLabel}>
@@ -187,12 +199,12 @@ export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPagePr
 
         <div className="personnel-access">
           <h2>{text.personnelHeading}</h2>
-          <a className="sso-link" href={ssoLoginUrl}>
+          <button className="sso-link" type="button" onClick={startSsoLogin}>
             <span>{text.signIn}</span>
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M7 4.75 12.25 10 7 15.25" />
             </svg>
-          </a>
+          </button>
           <p className="access-note">{text.accessNote}</p>
         </div>
       </section>
