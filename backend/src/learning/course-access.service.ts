@@ -56,6 +56,7 @@ export interface EligibleCourseSummary {
   title: string;
   description: string | null;
   publishedAt: Date | null;
+  coverAssetId: string | null;
   enrollments: number;
   enrolled: boolean;
   progress: number;
@@ -95,6 +96,7 @@ export class CourseAccessService {
             title: true,
             description: true,
             publishedAt: true,
+            coverAsset: { select: { id: true, status: true } },
             quizzes: {
               where: { quizType: { in: [QuizType.PRE_TEST, QuizType.POST_TEST] } },
               select: {
@@ -133,6 +135,8 @@ export class CourseAccessService {
               title: version.title,
               description: version.description,
               publishedAt: version.publishedAt,
+              coverAssetId:
+                version.coverAsset?.status === AssetStatus.READY ? version.coverAsset.id : null,
               enrollments: course._count.enrollments,
               enrolled: course.enrollments.length > 0,
               progress: this.progressFor(version.quizzes, course.enrollments.length > 0),

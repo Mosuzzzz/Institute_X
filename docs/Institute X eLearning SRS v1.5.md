@@ -120,6 +120,8 @@ Teacher → Request Permission → Approver
 | FR-CM-10 | The currently published Version may remain available while a newer Version is under review. |
 | FR-CM-11 | An authorized Teacher shall assign at least one Category when creating a Course. |
 | FR-CM-12 | The owning authorized Teacher shall be able to replace a Course's Category assignments. |
+| FR-CM-13 | A Teacher shall be able to upload, replace, or remove one cover image for an owned Draft Course Version. |
+| FR-CM-14 | An eligible Student shall be able to view the cover image of a published Course without completing its Pre-Test. |
 
 ---
 

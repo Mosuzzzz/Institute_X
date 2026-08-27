@@ -317,6 +317,7 @@ describe('CourseAccessService', () => {
               title: 'Network Fundamentals',
               description: 'Introduction',
               publishedAt: new Date('2026-08-25T00:00:00.000Z'),
+              coverAsset: { id: 'cover-id', status: AssetStatus.READY },
               quizzes: [
                 { quizType: QuizType.PRE_TEST, attempts: [{ result: QuizResult.COMPLETED }] },
                 { quizType: QuizType.POST_TEST, attempts: [{ result: QuizResult.PASS }] },
@@ -337,6 +338,7 @@ describe('CourseAccessService', () => {
           title: 'Network Fundamentals',
           description: 'Introduction',
           publishedAt: new Date('2026-08-25T00:00:00.000Z'),
+          coverAssetId: 'cover-id',
           enrollments: 25,
           enrolled: true,
           progress: 100,

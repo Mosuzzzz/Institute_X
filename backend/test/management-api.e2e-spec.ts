@@ -24,9 +24,13 @@ describe('Management REST API', () => {
   };
   const media = {
     initializeUpload: jest.fn(),
+    initializeCoverUpload: jest.fn(),
     completeUpload: jest.fn(),
+    completeCoverUpload: jest.fn(),
+    createCoverViewUrl: jest.fn(),
     createStudentViewUrl: jest.fn(),
     deleteDraftAsset: jest.fn(),
+    deleteDraftCover: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -147,6 +151,29 @@ describe('Management REST API', () => {
       })
       .expect(400);
     expect(media.initializeUpload).not.toHaveBeenCalled();
+  });
+
+  it('POST /course-versions/:id/cover/uploads initializes one private image cover', async () => {
+    media.initializeCoverUpload.mockResolvedValue({
+      assetId: 'cover-id',
+      uploadUrl: 'https://storage.example/signed-cover-upload',
+      expiresAt: '2026-08-27T01:00:00.000Z',
+    });
+
+    await request(app.getHttpServer() as Server)
+      .post('/api/course-versions/11111111-1111-4111-8111-111111111111/cover/uploads')
+      .set('x-test-role', UserRole.TEACHER)
+      .send({
+        fileName: 'cover.webp',
+        mimeType: 'image/webp',
+        sizeBytes: 250_000,
+      })
+      .expect(201)
+      .expect({
+        assetId: 'cover-id',
+        uploadUrl: 'https://storage.example/signed-cover-upload',
+        expiresAt: '2026-08-27T01:00:00.000Z',
+      });
   });
 
   it('POST /media/:id/complete verifies a Teacher upload', async () => {

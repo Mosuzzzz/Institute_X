@@ -17,6 +17,7 @@ describe('database schema contract', () => {
     'CourseVersionReview',
     'ContentItem',
     'MediaAsset',
+    'CourseCoverAsset',
     'Quiz',
     'Question',
     'QuestionOption',
@@ -127,10 +128,7 @@ describe('database schema contract', () => {
 
   it('seeds all vocational education level and field combinations idempotently', () => {
     const migration = readFileSync(
-      resolve(
-        __dirname,
-        '../prisma/migrations/202608260002_seed_vocational_majors/migration.sql',
-      ),
+      resolve(__dirname, '../prisma/migrations/202608260002_seed_vocational_majors/migration.sql'),
       'utf8',
     );
 
@@ -151,10 +149,10 @@ describe('database schema contract', () => {
     );
 
     expect(migration).toContain('UPDATE "public"."users"');
-    expect(migration).toContain("WHERE legacy_major.\"major_code\" = 'CS'");
-    expect(migration).toContain("replacement_major.\"major_code\" = 'BTECH-ICT'");
+    expect(migration).toContain('WHERE legacy_major."major_code" = \'CS\'');
+    expect(migration).toContain('replacement_major."major_code" = \'BTECH-ICT\'');
     expect(migration).toContain('DELETE FROM "public"."majors"');
-    expect(migration).toContain("WHERE \"major_code\" = 'CS'");
+    expect(migration).toContain('WHERE "major_code" = \'CS\'');
     expect(migration.indexOf('UPDATE "public"."users"')).toBeLessThan(
       migration.indexOf('DELETE FROM "public"."majors"'),
     );
@@ -201,24 +199,27 @@ describe('database schema contract', () => {
 
     expect(migration).toContain('DELETE FROM "public"."course_categories"');
     expect(migration).toContain('DELETE FROM "public"."categories"');
-    expect(migration).toContain("WHERE \"slug\" = 'uncategorized'");
+    expect(migration).toContain('WHERE "slug" = \'uncategorized\'');
   });
 
   it('normalizes Category and Major canonical names to English', () => {
     const migration = readFileSync(
-      resolve(
-        __dirname,
-        '../prisma/migrations/202608260007_english_reference_names/migration.sql',
-      ),
+      resolve(__dirname, '../prisma/migrations/202608260007_english_reference_names/migration.sql'),
       'utf8',
     );
 
     expect(migration).toContain("WHEN 'mathematics' THEN 'Mathematics'");
     expect(migration).toContain("WHEN 'japanese' THEN 'Japanese'");
     expect(migration).toContain("WHEN 'technology' THEN 'Technology'");
-    expect(migration).toContain("WHEN 'VOC-ICT' THEN 'Vocational Certificate (Voc. Cert.) — Information and Communication Technology'");
-    expect(migration).toContain("WHEN 'HVC-ICT' THEN 'Higher Vocational Certificate (High Voc. Cert.) — Information and Communication Technology'");
-    expect(migration).toContain("WHEN 'BTECH-ICT' THEN 'Bachelor of Technology (B.Tech.) — Information and Communication Technology'");
+    expect(migration).toContain(
+      "WHEN 'VOC-ICT' THEN 'Vocational Certificate (Voc. Cert.) — Information and Communication Technology'",
+    );
+    expect(migration).toContain(
+      "WHEN 'HVC-ICT' THEN 'Higher Vocational Certificate (High Voc. Cert.) — Information and Communication Technology'",
+    );
+    expect(migration).toContain(
+      "WHEN 'BTECH-ICT' THEN 'Bachelor of Technology (B.Tech.) — Information and Communication Technology'",
+    );
     expect(migration).toContain('UPDATE "public"."categories"');
     expect(migration).toContain('UPDATE "public"."majors"');
   });

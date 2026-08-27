@@ -106,19 +106,53 @@ describe('PreTestService', () => {
 
   it('prevents another attempt after a submitted Pre-Test', async () => {
     prisma.quiz.findUnique.mockResolvedValue(quiz);
-    db.quizAttempt.findFirst.mockResolvedValue({ id: 'completed-attempt' });
+    db.quizAttempt.findFirst.mockResolvedValue({
+      id: 'completed-attempt',
+      submittedAt: new Date(),
+    });
 
     await expect(service.start(student, 'quiz-id')).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('prevents a second attempt even when the first attempt is still open', async () => {
+  it('resumes the same open attempt with its persisted presentation order', async () => {
     prisma.quiz.findUnique.mockResolvedValue(quiz);
-    db.quizAttempt.findFirst.mockResolvedValue({ id: 'open-attempt', submittedAt: null });
+    db.quizAttempt.findFirst.mockResolvedValue({
+      id: 'open-attempt',
+      submittedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      presentedQuestions: [
+        { displayPosition: 1, question: quiz.questions[1] },
+        { displayPosition: 2, question: quiz.questions[0] },
+      ],
+      presentedOptions: [
+        { questionId: 'question-2', displayPosition: 1, option: quiz.questions[1].options[1] },
+        { questionId: 'question-2', displayPosition: 2, option: quiz.questions[1].options[0] },
+        { questionId: 'question-1', displayPosition: 1, option: quiz.questions[0].options[1] },
+        { questionId: 'question-1', displayPosition: 2, option: quiz.questions[0].options[0] },
+      ],
+    });
 
-    await expect(service.start(student, 'quiz-id')).rejects.toBeInstanceOf(ConflictException);
-    expect(db.quizAttempt.findFirst).toHaveBeenCalledWith({
-      where: { quizId: 'quiz-id', studentId: 'student-id' },
-      select: { id: true },
+    await expect(service.start(student, 'quiz-id')).resolves.toEqual({
+      attemptId: 'open-attempt',
+      expiresAt: expect.any(Date),
+      questions: [
+        {
+          id: 'question-2',
+          questionText: 'Question 2',
+          options: [
+            { id: 'option-2b', optionText: 'B' },
+            { id: 'option-2a', optionText: 'A' },
+          ],
+        },
+        {
+          id: 'question-1',
+          questionText: 'Question 1',
+          options: [
+            { id: 'option-1b', optionText: 'B' },
+            { id: 'option-1a', optionText: 'A' },
+          ],
+        },
+      ],
     });
     expect(db.quizAttempt.create).not.toHaveBeenCalled();
   });

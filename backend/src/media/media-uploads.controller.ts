@@ -6,6 +6,7 @@ import { OidcAuthGuard } from '../auth/oidc-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { InitializeUploadDto } from './dto/initialize-upload.dto';
+import { InitializeCoverUploadDto } from './dto/initialize-cover-upload.dto';
 import { MediaService } from './media.service';
 
 @ApiTags('media')
@@ -24,5 +25,16 @@ export class MediaUploadsController {
     @Body() input: InitializeUploadDto,
   ): ReturnType<MediaService['initializeUpload']> {
     return this.media.initializeUpload(user, versionId, input);
+  }
+
+  @Post(':versionId/cover/uploads')
+  @Roles(UserRole.TEACHER)
+  @ApiCreatedResponse({ description: 'Private Course cover upload reserved' })
+  initializeCover(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('versionId', new ParseUUIDPipe({ version: '4' })) versionId: string,
+    @Body() input: InitializeCoverUploadDto,
+  ): ReturnType<MediaService['initializeCoverUpload']> {
+    return this.media.initializeCoverUpload(user, versionId, input);
   }
 }

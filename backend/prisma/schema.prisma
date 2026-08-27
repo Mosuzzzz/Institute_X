@@ -188,10 +188,25 @@ model CourseVersion {
   reviews       CourseVersionReview[]
   contentItems  ContentItem[]
   quizzes       Quiz[]
+  coverAsset    CourseCoverAsset?
 
   @@unique([courseId, versionNumber])
   @@index([courseId, status])
   @@map("course_versions")
+}
+
+model CourseCoverAsset {
+  id         String        @id @default(uuid()) @map("asset_id") @db.Uuid
+  versionId  String        @unique @map("version_id") @db.Uuid
+  fileName   String        @map("file_name") @db.VarChar(255)
+  mimeType   String        @map("mime_type") @db.VarChar(255)
+  storageKey String        @unique @map("storage_key") @db.VarChar(1024)
+  sizeBytes  BigInt        @map("size_bytes")
+  status     AssetStatus   @default(PENDING)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  version    CourseVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@map("course_cover_assets")
 }
 
 model CourseVersionReview {

@@ -22,6 +22,12 @@ export default function CreateCourseClient() {
   const submit = async (formData: FormData) => {
     setSaving(true); setError(null);
     try {
+      const categoryIds = formData.getAll('category');
+      if (categoryIds.length === 0) {
+        setError('Choose at least one Category.');
+        setSaving(false);
+        return;
+      }
       const majorIds = eligibilityMode === 'OPEN' ? [] : formData.getAll('major');
       if (eligibilityMode === 'LIMITED' && majorIds.length === 0) {
         setError('Choose at least one eligible Major for a LIMITED Course.');
@@ -33,7 +39,7 @@ export default function CreateCourseClient() {
         body: JSON.stringify({
           title: formData.get('title'),
           description: formData.get('description'),
-          categoryIds: formData.getAll('category'),
+          categoryIds,
           eligibilityMode,
           majorIds,
         }),

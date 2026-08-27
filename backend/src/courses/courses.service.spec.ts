@@ -27,6 +27,50 @@ describe('CoursesService', () => {
     service = new CoursesService(prisma as never);
   });
 
+  describe('getOwnedDetail', () => {
+    it('selects JSON-safe media fields without BigInt sizeBytes', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'teacher-id',
+        eligibilityMode: 'OPEN',
+        allowedMajors: [],
+        categories: [],
+        versions: [
+          {
+            title: 'Course title',
+            description: 'Course description',
+            contentItems: [],
+            coverAsset: null,
+            quizzes: [],
+          },
+        ],
+      });
+
+      await service.getOwnedDetail({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id');
+
+      expect(db.course.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            versions: expect.objectContaining({
+              include: expect.objectContaining({
+                coverAsset: {
+                  select: expect.not.objectContaining({ sizeBytes: true }),
+                },
+                contentItems: expect.objectContaining({
+                  include: {
+                    mediaAsset: {
+                      select: expect.not.objectContaining({ sizeBytes: true }),
+                    },
+                  },
+                }),
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+  });
+
   describe('createCourse', () => {
     const input = {
       title: 'Network Fundamentals',

@@ -57,7 +57,16 @@ type OwnedCourseDetail = Prisma.CourseGetPayload<{
     categories: { include: { category: true } };
     versions: {
       include: {
-        contentItems: { include: { mediaAsset: true } };
+        contentItems: {
+          include: {
+            mediaAsset: {
+              select: { id: true; fileName: true; mimeType: true; status: true };
+            };
+          };
+        };
+        coverAsset: {
+          select: { id: true; fileName: true; mimeType: true; status: true };
+        };
         quizzes: { include: { questions: { include: { options: true } } } };
         reviews: true;
       };
@@ -115,7 +124,17 @@ export class CoursesService {
         versions: {
           orderBy: { versionNumber: 'desc' },
           include: {
-            contentItems: { orderBy: { position: 'asc' }, include: { mediaAsset: true } },
+            contentItems: {
+              orderBy: { position: 'asc' },
+              include: {
+                mediaAsset: {
+                  select: { id: true, fileName: true, mimeType: true, status: true },
+                },
+              },
+            },
+            coverAsset: {
+              select: { id: true, fileName: true, mimeType: true, status: true },
+            },
             quizzes: { include: { questions: { include: { options: true } } } },
             reviews: { orderBy: { submissionNumber: 'desc' }, take: 1 },
           },

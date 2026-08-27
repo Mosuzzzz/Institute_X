@@ -49,6 +49,30 @@ interface PreTestResultRecord {
   submittedAt: Date;
 }
 
+const resumableAttemptSelect = {
+  id: true,
+  expiresAt: true,
+  submittedAt: true,
+  presentedQuestions: {
+    orderBy: { displayPosition: 'asc' as const },
+    select: {
+      displayPosition: true,
+      question: { select: { id: true, questionText: true } },
+    },
+  },
+  presentedOptions: {
+    select: {
+      questionId: true,
+      displayPosition: true,
+      option: { select: { id: true, optionText: true } },
+    },
+  },
+} satisfies Prisma.QuizAttemptSelect;
+
+type ResumableAttempt = Prisma.QuizAttemptGetPayload<{
+  select: typeof resumableAttemptSelect;
+}>;
+
 @Injectable()
 export class PreTestService {
   constructor(
@@ -106,16 +130,22 @@ export class PreTestService {
       : null;
 
     try {
-      const attempt = await this.prisma.$transaction(
+      const attemptResult = await this.prisma.$transaction(
         async (tx) => {
           const existing = await tx.quizAttempt.findFirst({
             where: { quizId, studentId: student.id },
-            select: { id: true },
+            select: resumableAttemptSelect,
           });
           if (existing) {
-            throw new ConflictException('Pre-Test may be attempted only once');
+            if (existing.submittedAt) {
+              throw new ConflictException('Pre-Test may be attempted only once');
+            }
+            if (existing.expiresAt && existing.expiresAt.getTime() < Date.now()) {
+              throw new ConflictException('Pre-Test time limit has expired');
+            }
+            return { kind: 'existing', attempt: existing } as const;
           }
-          return tx.quizAttempt.create({
+          const created = await tx.quizAttempt.create({
             data: {
               quizId,
               studentId: student.id,
@@ -137,12 +167,17 @@ export class PreTestService {
               },
             },
           });
+          return { kind: 'created', attempt: created } as const;
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
 
+      if (attemptResult.kind === 'existing') {
+        return this.toStartedAttempt(attemptResult.attempt);
+      }
+
       return {
-        attemptId: attempt.id,
+        attemptId: attemptResult.attempt.id,
         expiresAt,
         questions: presented.map((question) => ({
           id: question.id,
@@ -155,10 +190,53 @@ export class PreTestService {
       };
     } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        const existing = await this.prisma.quizAttempt.findFirst({
+          where: { quizId, studentId: student.id },
+          select: resumableAttemptSelect,
+        });
+        if (existing && !existing.submittedAt) {
+          if (existing.expiresAt && existing.expiresAt.getTime() < Date.now()) {
+            throw new ConflictException('Pre-Test time limit has expired');
+          }
+          return this.toStartedAttempt(existing);
+        }
         throw new ConflictException('Pre-Test attempt started concurrently');
       }
       throw error;
     }
+  }
+
+  private toStartedAttempt(attempt: ResumableAttempt): StartedPreTest {
+    const optionsByQuestion = new Map<string, Array<{ id: string; optionText: string }>>();
+    for (const presented of attempt.presentedOptions) {
+      const options = optionsByQuestion.get(presented.questionId) ?? [];
+      options.push({
+        id: presented.option.id,
+        optionText: presented.option.optionText,
+      });
+      optionsByQuestion.set(presented.questionId, options);
+    }
+    for (const options of optionsByQuestion.values()) {
+      options.sort((left, right) => {
+        const leftPosition = attempt.presentedOptions.find(
+          (item) => item.option.id === left.id,
+        )?.displayPosition;
+        const rightPosition = attempt.presentedOptions.find(
+          (item) => item.option.id === right.id,
+        )?.displayPosition;
+        return (leftPosition ?? 0) - (rightPosition ?? 0);
+      });
+    }
+
+    return {
+      attemptId: attempt.id,
+      expiresAt: attempt.expiresAt,
+      questions: attempt.presentedQuestions.map(({ question }) => ({
+        id: question.id,
+        questionText: question.questionText,
+        options: optionsByQuestion.get(question.id) ?? [],
+      })),
+    };
   }
 
   async submit(

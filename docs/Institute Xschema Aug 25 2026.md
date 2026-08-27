@@ -180,6 +180,21 @@ Unique (`version_id`, `position`). `text_body` is required for `TEXT` and null f
 
 The application transactionally enforces a maximum sum of 1,073,741,824 bytes (1 GiB) for all non-deleted assets across all Versions of a Course. Objects are private; Students receive short-lived authorized view/stream URLs only.
 
+### `course_cover_assets`
+
+| Column | Type | Constraints |
+|---|---|---|
+| `asset_id` | UUID | PK |
+| `version_id` | UUID | NOT NULL, UNIQUE, FK → `course_versions.version_id` |
+| `file_name` | VARCHAR(255) | NOT NULL |
+| `mime_type` | VARCHAR(255) | NOT NULL; JPEG, PNG, or WebP |
+| `storage_key` | VARCHAR(1024) | NOT NULL, UNIQUE |
+| `size_bytes` | BIGINT | NOT NULL, maximum 10 MiB |
+| `status` | `ASSET_STATUS` | NOT NULL, default `PENDING` |
+| `created_at` | TIMESTAMPTZ | NOT NULL, default now |
+
+A Version has at most one cover image. Cover images are separate from ordered learning content, use private object storage, and are exposed only through authorized short-lived URLs.
+
 ### `quizzes`
 
 | Column | Type | Constraints |
@@ -308,6 +323,7 @@ erDiagram
     course_versions ||--o{ course_version_reviews : reviewed
     course_versions ||--o{ content_items : contains
     content_items ||--o| media_assets : has
+    course_versions ||--o| course_cover_assets : presents
     course_versions ||--o{ quizzes : assesses
     quizzes ||--o{ questions : contains
     questions ||--o{ question_options : offers
@@ -351,7 +367,7 @@ erDiagram
 | Teacher authorization | `teacher_permission_requests` |
 | Eligibility | `courses`, `course_allowed_majors` |
 | Approval/publication | `course_versions`, `course_version_reviews` |
-| Learning content | `content_items`, `media_assets` |
+| Learning content and Course covers | `content_items`, `media_assets`, `course_cover_assets` |
 | Enrollment/popularity | `course_enrollments` |
 | Assessments/timers | `quizzes`, `questions`, `question_options` |
 | Attempts/randomization/grading | `quiz_attempts`, `quiz_attempt_questions`, `quiz_attempt_options`, `quiz_attempt_answers` |
@@ -362,3 +378,4 @@ erDiagram
 | Migration | Purpose |
 |---|---|
 | `202608260001_add_course_categories` | Add Category tables, seed `Uncategorized`, and backfill existing Courses |
+| `202608270002_add_course_cover_assets` | Add one private cover image asset per Course Version |

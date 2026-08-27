@@ -18,6 +18,13 @@ describe('MediaService', () => {
   const db = {
     courseVersion: { findUnique: jest.fn() },
     mediaAsset: { aggregate: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+    courseCoverAsset: {
+      aggregate: jest.fn(),
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
     contentItem: { create: jest.fn(), delete: jest.fn() },
   };
   const prisma = {
@@ -36,6 +43,7 @@ describe('MediaService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((operation) => operation(db));
+    db.courseCoverAsset.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
     service = new MediaService(prisma as never, storage);
   });
 
@@ -84,6 +92,46 @@ describe('MediaService', () => {
       expect.objectContaining({
         assetId: 'asset-id',
         uploadUrl: 'https://storage.example/signed-upload',
+      }),
+    );
+  });
+
+  it('reserves one image cover without creating a learning content item', async () => {
+    db.courseVersion.findUnique.mockResolvedValue({
+      courseId: 'course-id',
+      status: CourseVersionStatus.DRAFT,
+      course: { teacherId: 'teacher-id' },
+    });
+    db.mediaAsset.aggregate.mockResolvedValue({ _sum: { sizeBytes: 100n } });
+    db.courseCoverAsset.create.mockResolvedValue({
+      id: 'cover-id',
+      storageKey: 'courses/course-id/covers/private-key',
+    });
+    storage.createUploadUrl.mockResolvedValue({
+      url: 'https://storage.example/signed-cover-upload',
+      expiresAt: new Date('2026-08-27T01:00:00Z'),
+    });
+
+    const result = await service.initializeCoverUpload(teacher, 'version-id', {
+      fileName: 'cover.webp',
+      mimeType: 'image/webp',
+      sizeBytes: 250_000,
+    });
+
+    expect(db.courseCoverAsset.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        versionId: 'version-id',
+        fileName: 'cover.webp',
+        mimeType: 'image/webp',
+        sizeBytes: 250_000,
+        status: AssetStatus.PENDING,
+      }),
+    });
+    expect(db.contentItem.create).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({
+        assetId: 'cover-id',
+        uploadUrl: 'https://storage.example/signed-cover-upload',
       }),
     );
   });
@@ -150,14 +198,45 @@ describe('MediaService', () => {
       },
     });
     storage.headObject.mockResolvedValue({ sizeBytes: 1_000, mimeType: 'video/mp4' });
-    db.mediaAsset.update.mockResolvedValue({ id: 'asset-id', status: AssetStatus.READY });
+    db.mediaAsset.update.mockResolvedValue({
+      id: 'asset-id',
+      status: AssetStatus.READY,
+      sizeBytes: 1_000n,
+    });
 
-    await service.completeUpload(teacher, 'asset-id');
+    const result = await service.completeUpload(teacher, 'asset-id');
 
     expect(db.mediaAsset.update).toHaveBeenCalledWith({
       where: { id: 'asset-id' },
       data: { status: AssetStatus.READY },
     });
+    expect(result.sizeBytes).toBe(1_000);
+    expect(() => JSON.stringify(result)).not.toThrow();
+  });
+
+  it('returns a JSON-safe Course cover after completion', async () => {
+    db.courseCoverAsset.findUnique.mockResolvedValue({
+      id: 'cover-id',
+      storageKey: 'course-covers/private-key',
+      sizeBytes: 250_000n,
+      mimeType: 'image/webp',
+      status: AssetStatus.PENDING,
+      version: {
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+      },
+    });
+    storage.headObject.mockResolvedValue({ sizeBytes: 250_000, mimeType: 'image/webp' });
+    db.courseCoverAsset.update.mockResolvedValue({
+      id: 'cover-id',
+      status: AssetStatus.READY,
+      sizeBytes: 250_000n,
+    });
+
+    const result = await service.completeCoverUpload(teacher, 'cover-id');
+
+    expect(result.sizeBytes).toBe(250_000);
+    expect(() => JSON.stringify(result)).not.toThrow();
   });
 
   it('denies a view URL before Pre-Test completion', async () => {
