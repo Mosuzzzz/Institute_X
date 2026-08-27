@@ -83,20 +83,20 @@ export default function LanguageSelector({
   };
 
   return (
-    <div className={`language-menu${className ? ` ${className}` : ''}`} ref={menuRef}>
+    <div className={`relative w-[132px] text-ink ${className}`} ref={menuRef}>
       <button
         ref={triggerRef}
         type="button"
-        className="language-trigger"
+        className="flex min-h-12 w-full cursor-pointer items-center justify-end gap-1 rounded-control border border-transparent bg-transparent px-0.5 py-2.5 text-left text-[0.95rem] leading-[1.4] font-normal text-inherit transition-colors duration-150 hover:text-action-hover focus-visible:border-focus focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--focus)_35%,transparent)] motion-reduce:transition-none forced-colors:border-[CanvasText] forced-colors:focus-visible:outline-[Highlight]"
         aria-label={`${label}: ${selectedLanguage.label}`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-controls={optionsId}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className="language-name">{selectedLanguage.label}</span>
+        <span className="truncate whitespace-nowrap">{selectedLanguage.label}</span>
         <svg
-          className={`language-chevron${isOpen ? ' is-open' : ''}`}
+          className={`h-[18px] w-[18px] fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.7] transition-transform duration-150 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`}
           viewBox="0 0 20 20"
           aria-hidden="true"
         >
@@ -105,21 +105,21 @@ export default function LanguageSelector({
       </button>
 
       {isOpen ? (
-        <div id={optionsId} className="language-options" role="listbox" aria-label={label}>
+        <div id={optionsId} className="absolute top-[calc(100%+8px)] right-0 z-[60] grid max-h-[min(280px,calc(100svh-88px))] w-full gap-[3px] overflow-y-auto rounded-control border border-line bg-surface p-1.5 shadow-[0_12px_28px_rgb(25_35_45_/_14%)] forced-colors:border-[CanvasText]" role="listbox" aria-label={label}>
           {languageOptions.map((option) => {
             const isSelected = option.value === value;
             return (
               <button
                 key={option.value}
                 type="button"
-                className="language-option"
+                className={`grid min-h-11 cursor-pointer grid-cols-[minmax(0,1fr)_20px] items-center gap-2.5 rounded-sm border border-transparent bg-transparent px-2.5 py-2 text-left text-ink hover:bg-[#f2f5f8] focus-visible:border-focus focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--focus)_35%,transparent)] forced-colors:border-[CanvasText] forced-colors:focus-visible:outline-[Highlight] ${isSelected ? 'bg-[#edf5fc] text-action-hover' : ''}`}
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => selectLanguage(option.value)}
                 onKeyDown={moveBetweenOptions}
               >
-                <span className="language-option-copy">{option.label}</span>
-                <svg className="language-check" viewBox="0 0 20 20" aria-hidden="true">
+                <span className="block min-w-0 truncate whitespace-nowrap text-[0.925rem] font-normal">{option.label}</span>
+                <svg className="h-5 w-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:2]" viewBox="0 0 20 20" aria-hidden="true">
                   {isSelected ? <path d="m4.5 10.25 3.5 3.5 7.5-7.5" /> : null}
                 </svg>
               </button>

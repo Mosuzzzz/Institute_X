@@ -58,7 +58,7 @@ export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPagePr
 
   return (
     <main className="auth-shell">
-      <nav className="language-nav" aria-label={text.languageLabel}>
+      <nav className="fixed top-[clamp(18px,3vw,34px)] right-[clamp(18px,3vw,42px)] z-10 max-[560px]:top-4 max-[560px]:right-4" aria-label={text.languageLabel}>
         <LanguageSelector value={language} label={text.languageLabel} onChange={setLanguage} />
       </nav>
 

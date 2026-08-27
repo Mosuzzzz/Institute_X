@@ -117,7 +117,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
             <strong>{shell.courseAuthoring}</strong>
           </div>
           <nav aria-label="Teacher account">
-            <LanguageSelector className="teacher-language-menu" value={language} label={text.selectLanguage} onChange={setLanguage} />
+            <LanguageSelector className="max-[700px]:w-[104px]" value={language} label={text.selectLanguage} onChange={setLanguage} />
             <ProfileMenu
               profile={profile}
               roleLabel={text.teacherAccount}

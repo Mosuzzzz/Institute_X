@@ -16,6 +16,15 @@ const studentCopy = {
   ja: { enrolled: '受講中のコース', myLearning: 'マイラーニング', noEnrolled: '受講中のコースはありません', enterCourse: 'カタログからコースを選んで学習を始めましょう。', progress: '登録状況と評価結果に基づく進捗です。', results: '検索結果', allCourses: 'すべてのコース', catalog: 'コースカタログ', eligible: '件の受講可能コース', noMatch: '一致するコースはありません', tryAgain: '別の検索語またはカテゴリーをお試しください。', classroom: 'あなたの教室', continueLearning: '学習を続ける', viewLearning: 'マイラーニングを見る', chooseCourse: '下のコースを選んで学習を始めましょう。', eligibleProgramme: 'あなたの専攻で受講可能', learnNext: '次に学ぶこと', courses: 'コース', noPublished: 'あなたの専攻で受講できる公開コースはまだありません。' },
 } as const;
 
+const studentMain =
+  'mx-auto w-[min(calc(100%-48px),1720px)] pt-[clamp(54px,6vw,96px)] pb-[70px] max-[820px]:w-[min(calc(100%-36px),760px)] max-[820px]:pt-11 max-[540px]:w-[min(calc(100%-28px),500px)] max-[540px]:pt-9';
+const eyebrow =
+  'mb-2 text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase';
+const emptyState =
+  'my-5 border border-dashed border-[#c9cfd8] bg-white p-7 leading-[1.55] text-[#667182]';
+const courseGrid =
+  'grid grid-cols-5 gap-[clamp(18px,1.6vw,30px)] max-[1180px]:grid-cols-3 max-[820px]:grid-cols-2 max-[540px]:grid-cols-1 max-[540px]:gap-11';
+
 function toStudentCourse(course: EligibleCourseDto, language: ReturnType<typeof useAppLanguage>[0]): StudentCourse {
   const categoryRecord = course.categories[0];
   const category = categoryRecord ? translateCategory(categoryRecord, language) : 'General';
@@ -38,17 +47,82 @@ export default function StudentCatalogClient({ mode, category, query }: { mode: 
   const [language] = useAppLanguage();
   const text = studentCopy[language];
   const { data, error, loading } = useBackendQuery<EligibleCourseDto[]>('courses');
-  if (!data) return <main className="student-main"><ApiState loading={loading} error={error} /></main>;
+  if (!data) return <main className={studentMain}><ApiState loading={loading} error={error} /></main>;
   const normalizedQuery = query?.trim().toLowerCase();
   const allCourses = data.map((course) => toStudentCourse(course, language));
   const enrolled = allCourses.filter((course) => course.progress !== undefined);
   const visible = allCourses.filter((course) => (!category || course.categorySlug === category) && (!normalizedQuery || `${course.title} ${course.instructor} ${course.category}`.toLowerCase().includes(normalizedQuery)));
 
-  if (mode === 'learning') return <main className="student-main learning-page"><header className="catalog-heading"><p className="eyebrow">{text.enrolled}</p><h1>{text.myLearning}</h1></header>{enrolled.length ? <div className="learning-grid">{enrolled.map((course) => <CourseCard key={course.id} course={course} />)}</div> : <section className="catalog-empty"><h2>{text.noEnrolled}</h2><p>{text.enterCourse}</p></section>}<p className="demo-note">{text.progress}</p></main>;
+  if (mode === 'learning') {
+    return (
+      <main className={`${studentMain} min-h-[calc(100svh-158px)]`}>
+        <header className="mb-11">
+          <p className={eyebrow}>{text.enrolled}</p>
+          <h1 className="text-[clamp(2rem,3vw,3.15rem)] tracking-[-0.035em] text-[#20243a] uppercase max-[540px]:text-[2rem]">{text.myLearning}</h1>
+        </header>
+        {enrolled.length ? (
+          <div className="grid w-[min(100%,860px)] grid-cols-2 gap-x-[22px] gap-y-[54px] max-[820px]:grid-cols-1">
+            {enrolled.map((course) => <CourseCard key={course.id} course={course} variant="learning" />)}
+          </div>
+        ) : (
+          <section className="border-t border-[#d9dce7] py-16">
+            <h2 className="text-2xl tracking-[-0.035em] text-[#20243a]">{text.noEnrolled}</h2>
+            <p className="mt-2 text-[#747b92]">{text.enterCourse}</p>
+          </section>
+        )}
+        <p className="mt-12 text-xs text-[#747b92]">{text.progress}</p>
+      </main>
+    );
+  }
+
   if (mode === 'catalog') {
     const selectedCategory = data.flatMap((course) => course.categories).find((item) => item.slug === category);
     const title = normalizedQuery ? `${text.results} “${query}”` : selectedCategory ? translateCategory(selectedCategory, language) : text.allCourses;
-    return <main className="student-main catalog-page"><header className="catalog-heading"><p className="eyebrow">{text.catalog}</p><h1>{title}</h1><p>{visible.length} {text.eligible}</p></header>{visible.length ? <div className="course-grid catalog-grid">{visible.map((course) => <CourseCard key={course.id} course={course} />)}</div> : <section className="catalog-empty"><h2>{text.noMatch}</h2><p>{text.tryAgain}</p></section>}<p className="demo-note">Live data from <code>GET /api/courses</code>.</p></main>;
+    return (
+      <main className={`${studentMain} min-h-[calc(100svh-158px)]`}>
+        <header className="mb-11">
+          <p className={eyebrow}>{text.catalog}</p>
+          <h1 className="text-[clamp(2rem,3vw,3.15rem)] tracking-[-0.035em] text-[#20243a] max-[540px]:text-[2rem]">{title}</h1>
+          <p className="mt-2.5 text-[#747b92]">{visible.length} {text.eligible}</p>
+        </header>
+        {visible.length ? (
+          <div className={`${courseGrid} gap-y-16`}>{visible.map((course) => <CourseCard key={course.id} course={course} />)}</div>
+        ) : (
+          <section className="border-t border-[#d9dce7] py-16">
+            <h2 className="text-2xl tracking-[-0.035em] text-[#20243a]">{text.noMatch}</h2>
+            <p className="mt-2 text-[#747b92]">{text.tryAgain}</p>
+          </section>
+        )}
+        <p className="mt-12 text-xs text-[#747b92]">Live data from <code>GET /api/courses</code>.</p>
+      </main>
+    );
   }
-  return <main className="student-main"><section className="continue-section" aria-labelledby="continue-heading"><div className="section-heading-row"><div><p className="eyebrow">{text.classroom}</p><h1 id="continue-heading">{text.continueLearning}</h1></div><Link href="/student/learning">{text.viewLearning}</Link></div>{enrolled.length ? <div className="continue-grid">{enrolled.slice(0, 2).map((course) => <CourseCard key={course.id} course={course} />)}</div> : <p className="api-empty">{text.chooseCourse}</p>}</section><section className="recommend-section" aria-labelledby="next-heading"><div className="section-title-stack"><p className="eyebrow">{text.eligibleProgramme}</p><h2 id="next-heading">{text.learnNext}</h2><p>{text.courses}</p></div>{allCourses.length ? <div className="course-grid">{allCourses.slice(0, 5).map((course) => <CourseCard key={course.id} course={course} />)}</div> : <p className="api-empty">{text.noPublished}</p>}</section><p className="demo-note">Live catalog and enrollment data from the Institute X API.</p></main>;
+
+  return (
+    <main className={studentMain}>
+      <section aria-labelledby="continue-heading">
+        <div className="mb-[34px] flex items-end justify-between gap-6 max-[540px]:items-start">
+          <div>
+            <p className={eyebrow}>{text.classroom}</p>
+            <h1 className="text-[clamp(2rem,3vw,3.15rem)] tracking-[-0.035em] text-[#20243a] uppercase max-[540px]:text-[2rem]" id="continue-heading">{text.continueLearning}</h1>
+          </div>
+          <Link className="font-bold text-[#073d78] no-underline hover:underline hover:underline-offset-5 max-[540px]:text-[0.78rem]" href="/student/learning">{text.viewLearning}</Link>
+        </div>
+        {enrolled.length ? (
+          <div className="grid grid-cols-[repeat(2,minmax(0,540px))] gap-[26px] max-[820px]:grid-cols-1">
+            {enrolled.slice(0, 2).map((course) => <CourseCard key={course.id} course={course} variant="continue" />)}
+          </div>
+        ) : <p className={emptyState}>{text.chooseCourse}</p>}
+      </section>
+      <section className="mt-[clamp(70px,8vw,120px)]" aria-labelledby="next-heading">
+        <div className="mb-7">
+          <p className={eyebrow}>{text.eligibleProgramme}</p>
+          <h2 className="text-[clamp(1.8rem,2.5vw,2.7rem)] tracking-[-0.035em] text-[#20243a]" id="next-heading">{text.learnNext}</h2>
+          <p className="mt-[26px] text-[1.4rem] font-bold">{text.courses}</p>
+        </div>
+        {allCourses.length ? <div className={courseGrid}>{allCourses.slice(0, 5).map((course) => <CourseCard key={course.id} course={course} />)}</div> : <p className={emptyState}>{text.noPublished}</p>}
+      </section>
+      <p className="mt-12 text-xs text-[#747b92]">Live catalog and enrollment data from the Institute X API.</p>
+    </main>
+  );
 }

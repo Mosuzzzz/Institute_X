@@ -76,7 +76,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
         <footer><p>System authority</p><strong>{profile?.name ?? profile?.username ?? 'Owner'}</strong><span>{profile?.email}</span></footer>
       </aside>
       <div className="teacher-workspace">
-        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>{shell.systemOversight}</strong></div><nav aria-label={text.ownerAccount}><LanguageSelector className="teacher-language-menu" value={language} label={text.selectLanguage} onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel={text.ownerAccount} fallbackName="Owner" onSignOut={signOut} logoutLabel={text.logout} logoutHint={text.logoutHint} accountLabel={text.account} /></nav></header>
+        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>{shell.systemOversight}</strong></div><nav aria-label={text.ownerAccount}><LanguageSelector className="max-[700px]:w-[104px]" value={language} label={text.selectLanguage} onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel={text.ownerAccount} fallbackName="Owner" onSignOut={signOut} logoutLabel={text.logout} logoutHint={text.logoutHint} accountLabel={text.account} /></nav></header>
         {children}
       </div>
       {mobileNavOpen ? <button className="teacher-nav-scrim" type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} /> : null}

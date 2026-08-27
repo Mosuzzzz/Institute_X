@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
-import { Kanit, Noto_Sans_JP, Noto_Sans_SC } from 'next/font/google';
+import { Noto_Sans_JP, Noto_Sans_SC } from 'next/font/google';
 import type { ReactNode } from 'react';
+import '@fontsource/kanit/300.css';
+import '@fontsource/kanit/400.css';
+import '@fontsource/kanit/500.css';
+import '@fontsource/kanit/600.css';
+import '@fontsource/kanit/700.css';
+import '@fontsource/kanit/800.css';
 import './globals.css';
-
-const kanit = Kanit({
-  subsets: ['latin', 'thai'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  display: 'swap',
-  variable: '--font-kanit',
-});
 
 const notoSansChinese = Noto_Sans_SC({
   display: 'swap',
@@ -35,9 +34,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html
       lang="th"
-      className={`${kanit.variable} ${notoSansChinese.variable} ${notoSansJapanese.variable}`}
+      className={`${notoSansChinese.variable} ${notoSansJapanese.variable}`}
     >
-      <body>{children}</body>
+      <body className="bg-canvas font-sans text-ink antialiased">{children}</body>
     </html>
   );
 }

@@ -88,27 +88,27 @@ export default function StudentShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="student-shell">
-      <header className="student-header">
-        <Link className="student-brand" href="/student" aria-label="Institute X student home">
-          <Image src="/logoX.png" alt="" width={52} height={52} priority />
+    <div className="min-h-svh bg-white text-[#20243a] motion-reduce:[&_*]:transition-none">
+      <header className="relative z-20 grid min-h-24 grid-cols-[72px_minmax(260px,820px)_minmax(320px,1fr)] items-center gap-[clamp(22px,4vw,64px)] border-b border-[#d9dce7] bg-white px-[clamp(24px,3vw,58px)] py-3.5 max-[1180px]:grid-cols-[54px_minmax(220px,1fr)_auto] max-[1180px]:gap-[18px] max-[1180px]:px-6 max-[820px]:min-h-0 max-[820px]:grid-cols-[48px_minmax(0,1fr)] max-[820px]:px-[18px] max-[820px]:pt-3 max-[820px]:pb-4">
+        <Link className="grid h-[52px] w-[52px] place-items-center max-[820px]:h-11 max-[820px]:w-11" href="/student" aria-label="Institute X student home">
+          <Image className="h-[42px] w-[42px] object-contain max-[820px]:h-[38px] max-[820px]:w-[38px]" src="/logoX.png" alt="" width={52} height={52} priority />
         </Link>
 
-        <form className="student-search" action="/student/courses" role="search">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+        <form className="grid h-[58px] grid-cols-[24px_minmax(0,1fr)] items-center gap-3 rounded-[30px] border border-[#ccd1df] bg-[#f5f7fa] px-[22px] focus-within:border-focus focus-within:shadow-[0_0_0_3px_rgb(23_125_209_/_14%)] max-[820px]:col-span-full max-[820px]:row-start-2 max-[820px]:h-[50px]" action="/student/courses" role="search">
+          <svg className="w-[22px] fill-none stroke-[#747b92] [stroke-width:1.7]" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="6.5" />
             <path d="m16 16 4 4" />
           </svg>
-          <label className="visually-hidden" htmlFor="course-search">Search courses</label>
-          <input id="course-search" name="q" type="search" placeholder={text.search} />
+          <label className="sr-only" htmlFor="course-search">Search courses</label>
+          <input className="w-full border-0 bg-transparent text-base text-[#20243a] outline-0 placeholder:text-[#82899d]" id="course-search" name="q" type="search" placeholder={text.search} />
         </form>
 
-        <nav className="student-actions" aria-label="Student account">
-          <Link className={pathname === '/student/learning' ? 'is-active' : ''} href="/student/learning">
+        <nav className="flex items-center justify-end gap-[clamp(18px,2.4vw,38px)] max-[1180px]:gap-4 max-[820px]:col-start-2 max-[820px]:row-start-1" aria-label="Student account">
+          <Link className={`whitespace-nowrap text-[0.95rem] text-[#20243a] no-underline hover:text-[#073d78] hover:underline hover:underline-offset-[6px] max-[820px]:text-[0.85rem] max-[540px]:hidden ${pathname === '/student/learning' ? 'text-[#073d78] underline underline-offset-[6px]' : ''}`} href="/student/learning">
             {text.myLearning}
           </Link>
           <LanguageSelector
-            className="student-language-menu"
+            className="max-[820px]:w-24 max-[820px]:[&_button:first-child]:text-[0.84rem]"
             value={language}
             label={text.selectLanguage}
             onChange={setLanguage}
@@ -126,9 +126,9 @@ export default function StudentShell({ children }: { children: ReactNode }) {
       </header>
 
       {!pathname.startsWith('/student/courses/') ? (
-        <nav className="category-nav" aria-label="Course categories">
-          <div className="category-track">
-            {categories.map((category) => <Link key={category.key} href={category.href}>{category.label}</Link>)}
+        <nav className="sticky top-0 z-15 overflow-x-auto border-b border-[#e5e7ef] bg-white shadow-[0_7px_15px_rgb(31_42_68_/_5%)] [scrollbar-width:thin]" aria-label="Course categories">
+          <div className="flex min-h-[62px] w-max min-w-full items-center justify-center gap-[clamp(20px,2vw,38px)] px-7 max-[820px]:min-h-[54px] max-[820px]:justify-start max-[820px]:px-[18px]">
+            {categories.map((category) => <Link className="whitespace-nowrap text-[0.9rem] text-[#353a4d] no-underline hover:text-[#073d78] hover:underline hover:underline-offset-[7px] focus-visible:text-[#073d78] focus-visible:underline focus-visible:underline-offset-[7px]" key={category.key} href={category.href}>{category.label}</Link>)}
           </div>
         </nav>
       ) : null}

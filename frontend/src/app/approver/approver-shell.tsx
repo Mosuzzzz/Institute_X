@@ -74,7 +74,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
         <footer><p>Review authority</p><strong>{profile?.name ?? profile?.username ?? 'Approver'}</strong><span>{profile?.email}</span></footer>
       </aside>
       <div className="teacher-workspace">
-        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>{shell.approvalOperations}</strong></div><nav aria-label={text.approverAccount}><LanguageSelector className="teacher-language-menu" value={language} label={text.selectLanguage} onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel={text.approverAccount} fallbackName="Approver" onSignOut={signOut} logoutLabel={text.logout} logoutHint={text.logoutHint} accountLabel={text.account} /></nav></header>
+        <header className="teacher-topbar"><button className="teacher-menu-button" type="button" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}><span /><span /><span /></button><div><p>Institute X</p><strong>{shell.approvalOperations}</strong></div><nav aria-label={text.approverAccount}><LanguageSelector className="max-[700px]:w-[104px]" value={language} label={text.selectLanguage} onChange={setLanguage} /><ProfileMenu profile={profile} roleLabel={text.approverAccount} fallbackName="Approver" onSignOut={signOut} logoutLabel={text.logout} logoutHint={text.logoutHint} accountLabel={text.account} /></nav></header>
         {children}
       </div>
       {mobileNavOpen ? <button className="teacher-nav-scrim" type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} /> : null}

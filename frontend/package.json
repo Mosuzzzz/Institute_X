@@ -16,11 +16,17 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@fontsource/kanit": "^5.3.0",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.3.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.3",
+    "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3"
+  },
+  "optionalDependencies": {
+    "lightningcss-darwin-arm64": "^1.32.0"
   }
 }
