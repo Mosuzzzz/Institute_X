@@ -31,6 +31,7 @@ describe('CoursesService', () => {
     const input = {
       title: 'Network Fundamentals',
       description: 'Introduction to networking',
+      eligibilityMode: 'LIMITED' as const,
       majorIds: ['major-it', 'major-electronics'],
       categoryIds: ['category-technology'],
     };
@@ -55,6 +56,7 @@ describe('CoursesService', () => {
       expect(db.course.create).toHaveBeenCalledWith({
         data: {
           teacherId: 'teacher-id',
+          eligibilityMode: 'LIMITED',
           allowedMajors: {
             create: [{ majorId: 'major-it' }, { majorId: 'major-electronics' }],
           },
@@ -73,6 +75,29 @@ describe('CoursesService', () => {
         include: { allowedMajors: true, categories: true, versions: true },
       });
       expect(result).toEqual(expect.objectContaining({ id: 'course-id' }));
+    });
+
+    it('creates an OPEN Course without requiring eligible Majors', async () => {
+      db.teacherPermissionRequest.findFirst.mockResolvedValue({
+        status: TeacherPermissionStatus.APPROVED,
+      });
+      db.category.count.mockResolvedValue(1);
+      db.course.create.mockResolvedValue({ id: 'course-id', allowedMajors: [] });
+
+      await service.createCourse(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        { ...input, eligibilityMode: 'OPEN', majorIds: [] },
+      );
+
+      expect(db.major.count).not.toHaveBeenCalled();
+      expect(db.course.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eligibilityMode: 'OPEN',
+            allowedMajors: { create: [] },
+          }),
+        }),
+      );
     });
 
     it('denies a Teacher without effective approved permission', async () => {

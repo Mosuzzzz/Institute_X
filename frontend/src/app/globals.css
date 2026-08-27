@@ -361,7 +361,6 @@ h2 {
 .status-submitted { color: #185578; background: #e5f3fa; border-color: #89bdd7; }
 .status-published { color: #176044; background: #e8f5ef; border-color: #86c5a9; }
 .status-rejected { color: #8b343b; background: #fae9eb; border-color: #d99da2; }
-.teacher-demo-note { margin-top: 42px; color: var(--teacher-muted); font-size: .72rem; }
 
 .teacher-filterbar { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 24px; padding: 10px 0; border-top: 1px solid var(--teacher-line); border-bottom: 1px solid var(--teacher-line); }
 .teacher-filterbar label { width: min(100%, 360px); }

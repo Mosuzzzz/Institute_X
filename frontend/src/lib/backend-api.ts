@@ -52,6 +52,7 @@ export type CategoryDto = { id: string; slug: string; name: string };
 
 export type EligibleCourseDto = {
   courseId: string;
+  eligibilityMode: 'OPEN' | 'LIMITED';
   versionId: string;
   title: string;
   description: string | null;
@@ -96,6 +97,7 @@ export type TeacherPermissionDto = {
 
 export type TeacherCourseDto = {
   id: string;
+  eligibilityMode: 'OPEN' | 'LIMITED';
   createdAt: string;
   categories: Array<{ category: CategoryDto }>;
   versions: Array<{

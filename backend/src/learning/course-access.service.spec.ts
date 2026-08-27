@@ -35,6 +35,7 @@ describe('CourseAccessService', () => {
   const accessibleCourse = {
     id: 'course-id',
     archivedAt: null,
+    eligibilityMode: 'LIMITED',
     allowedMajors: [{ majorId: 'major-it' }],
     versions: [
       {
@@ -130,6 +131,20 @@ describe('CourseAccessService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(db.courseEnrollment.upsert).not.toHaveBeenCalled();
     expect(db.courseAccessEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('allows a Student into an OPEN Course without a matching Major', async () => {
+    prisma.course.findUnique.mockResolvedValue({
+      ...accessibleCourse,
+      eligibilityMode: 'OPEN',
+      allowedMajors: [],
+    });
+    db.courseEnrollment.upsert.mockResolvedValue({ id: 'enrollment-id' });
+    db.courseAccessEvent.create.mockResolvedValue({ id: 'event-id' });
+
+    await expect(
+      service.enterCourse({ ...student, majorId: 'major-business' }, 'course-id'),
+    ).resolves.toEqual(expect.objectContaining({ versionId: 'published-version' }));
   });
 
   it('denies an inactive Student', async () => {
@@ -295,12 +310,13 @@ describe('CourseAccessService', () => {
       prisma.course.findMany.mockResolvedValue([
         {
           id: 'course-id',
+          eligibilityMode: 'LIMITED',
           versions: [
             {
               id: 'version-id',
               title: 'Network Fundamentals',
               description: 'Introduction',
-            publishedAt: new Date('2026-08-25T00:00:00.000Z'),
+              publishedAt: new Date('2026-08-25T00:00:00.000Z'),
               quizzes: [
                 { quizType: QuizType.PRE_TEST, attempts: [{ result: QuizResult.COMPLETED }] },
                 { quizType: QuizType.POST_TEST, attempts: [{ result: QuizResult.PASS }] },
@@ -316,6 +332,7 @@ describe('CourseAccessService', () => {
       await expect(service.listEligibleCourses(student)).resolves.toEqual([
         {
           courseId: 'course-id',
+          eligibilityMode: 'LIMITED',
           versionId: 'version-id',
           title: 'Network Fundamentals',
           description: 'Introduction',
@@ -330,7 +347,13 @@ describe('CourseAccessService', () => {
         expect.objectContaining({
           where: {
             archivedAt: null,
-            allowedMajors: { some: { majorId: 'major-it' } },
+            OR: [
+              { eligibilityMode: 'OPEN' },
+              {
+                eligibilityMode: 'LIMITED',
+                allowedMajors: { some: { majorId: 'major-it' } },
+              },
+            ],
             versions: { some: { status: CourseVersionStatus.PUBLISHED } },
           },
         }),

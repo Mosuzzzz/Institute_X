@@ -8,6 +8,7 @@ import {
   AccountStatus,
   AssetStatus,
   ContentType,
+  CourseEligibilityMode,
   CourseVersionStatus,
   QuizResult,
   QuizType,
@@ -50,6 +51,7 @@ export interface PublishedCourseContent {
 
 export interface EligibleCourseSummary {
   courseId: string;
+  eligibilityMode: CourseEligibilityMode;
   versionId: string;
   title: string;
   description: string | null;
@@ -72,12 +74,19 @@ export class CourseAccessService {
     const courses = await this.prisma.course.findMany({
       where: {
         archivedAt: null,
-        allowedMajors: { some: { majorId: student.majorId! } },
+        OR: [
+          { eligibilityMode: CourseEligibilityMode.OPEN },
+          {
+            eligibilityMode: CourseEligibilityMode.LIMITED,
+            allowedMajors: { some: { majorId: student.majorId! } },
+          },
+        ],
         versions: { some: { status: CourseVersionStatus.PUBLISHED } },
         ...(categoryId ? { categories: { some: { categoryId } } } : {}),
       },
       select: {
         id: true,
+        eligibilityMode: true,
         versions: {
           where: { status: CourseVersionStatus.PUBLISHED },
           take: 1,
@@ -119,6 +128,7 @@ export class CourseAccessService {
         ? [
             {
               courseId: course.id,
+              eligibilityMode: course.eligibilityMode,
               versionId: version.id,
               title: version.title,
               description: version.description,
@@ -139,10 +149,14 @@ export class CourseAccessService {
   ): number {
     if (!enrolled) return 0;
     const preTestCompleted = quizzes.some(
-      (quiz) => quiz.quizType === QuizType.PRE_TEST && quiz.attempts.some((attempt) => attempt.result === QuizResult.COMPLETED),
+      (quiz) =>
+        quiz.quizType === QuizType.PRE_TEST &&
+        quiz.attempts.some((attempt) => attempt.result === QuizResult.COMPLETED),
     );
     const postTestPassed = quizzes.some(
-      (quiz) => quiz.quizType === QuizType.POST_TEST && quiz.attempts.some((attempt) => attempt.result === QuizResult.PASS),
+      (quiz) =>
+        quiz.quizType === QuizType.POST_TEST &&
+        quiz.attempts.some((attempt) => attempt.result === QuizResult.PASS),
     );
     return postTestPassed ? 100 : preTestCompleted ? 50 : 10;
   }
@@ -154,6 +168,7 @@ export class CourseAccessService {
       select: {
         id: true,
         archivedAt: true,
+        eligibilityMode: true,
         allowedMajors: { select: { majorId: true } },
         versions: {
           where: { status: CourseVersionStatus.PUBLISHED },
@@ -185,7 +200,7 @@ export class CourseAccessService {
     if (!course || course.archivedAt !== null || !publishedVersion) {
       throw new NotFoundException('Published Course was not found');
     }
-    if (!course.allowedMajors.some((allowed) => allowed.majorId === student.majorId)) {
+    if (!this.isEligible(course, student.majorId)) {
       throw new ForbiddenException('Student Major is not eligible for this Course');
     }
 
@@ -221,6 +236,7 @@ export class CourseAccessService {
       where: { id: courseId },
       select: {
         archivedAt: true,
+        eligibilityMode: true,
         allowedMajors: { select: { majorId: true } },
         enrollments: {
           where: { studentId: student.id },
@@ -276,7 +292,7 @@ export class CourseAccessService {
     if (!course || course.archivedAt !== null || !version) {
       throw new NotFoundException('Published Course was not found');
     }
-    if (!course.allowedMajors.some((allowed) => allowed.majorId === student.majorId)) {
+    if (!this.isEligible(course, student.majorId)) {
       throw new ForbiddenException('Student Major is not eligible for this Course');
     }
     if (course.enrollments.length === 0) {
@@ -319,5 +335,18 @@ export class CourseAccessService {
     if (!student.majorId) {
       throw new UnprocessableEntityException('Student Major is required');
     }
+  }
+
+  private isEligible(
+    course: {
+      eligibilityMode: CourseEligibilityMode;
+      allowedMajors: Array<{ majorId: string }>;
+    },
+    majorId: string | null,
+  ): boolean {
+    return (
+      course.eligibilityMode === CourseEligibilityMode.OPEN ||
+      course.allowedMajors.some((allowed) => allowed.majorId === majorId)
+    );
   }
 }

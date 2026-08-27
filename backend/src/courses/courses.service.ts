@@ -6,6 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
+  CourseEligibilityMode,
   CourseVersion,
   CourseVersionStatus,
   Prisma,
@@ -22,6 +23,7 @@ export interface CourseActor {
 export interface CreateCourseInput {
   title: string;
   description?: string;
+  eligibilityMode: CourseEligibilityMode;
   majorIds: string[];
   categoryIds: string[];
 }
@@ -128,20 +130,37 @@ export class CoursesService {
     const checks = latest
       ? {
           details: Boolean(latest.title.trim() && latest.description?.trim()),
-          majors: course.allowedMajors.length > 0,
+          majors:
+            course.eligibilityMode === CourseEligibilityMode.OPEN ||
+            course.allowedMajors.length > 0,
           categories: course.categories.length > 0,
           content: latest.contentItems.length > 0,
-          preTest: latest.quizzes.some((quiz) => quiz.quizType === 'PRE_TEST' && quiz.questions.length > 0),
-          postTest: latest.quizzes.some((quiz) => quiz.quizType === 'POST_TEST' && quiz.questions.length > 0),
+          preTest: latest.quizzes.some(
+            (quiz) => quiz.quizType === 'PRE_TEST' && quiz.questions.length > 0,
+          ),
+          postTest: latest.quizzes.some(
+            (quiz) => quiz.quizType === 'POST_TEST' && quiz.questions.length > 0,
+          ),
         }
-      : { details: false, majors: false, categories: false, content: false, preTest: false, postTest: false };
+      : {
+          details: false,
+          majors: false,
+          categories: false,
+          content: false,
+          preTest: false,
+          postTest: false,
+        };
     const passed = Object.values(checks).filter(Boolean).length;
-    return { ...course, readiness: Math.round((passed / Object.keys(checks).length) * 100), checks };
+    return {
+      ...course,
+      readiness: Math.round((passed / Object.keys(checks).length) * 100),
+      checks,
+    };
   }
 
   async createCourse(actor: CourseActor, input: CreateCourseInput): Promise<CreatedCourse> {
     this.requireTeacher(actor);
-    this.validateMajorIds(input.majorIds);
+    this.validateMajorIds(input.eligibilityMode, input.majorIds);
     this.validateCategoryIds(input.categoryIds);
     const title = input.title.trim();
     if (!title) {
@@ -158,11 +177,13 @@ export class CoursesService {
         throw new ForbiddenException('Approved Teacher permission is required');
       }
 
-      const majorCount = await tx.major.count({
-        where: { id: { in: input.majorIds } },
-      });
-      if (majorCount !== input.majorIds.length) {
-        throw new UnprocessableEntityException('One or more eligible Majors are unknown');
+      if (input.eligibilityMode === CourseEligibilityMode.LIMITED) {
+        const majorCount = await tx.major.count({
+          where: { id: { in: input.majorIds } },
+        });
+        if (majorCount !== input.majorIds.length) {
+          throw new UnprocessableEntityException('One or more eligible Majors are unknown');
+        }
       }
 
       const categoryCount = await tx.category.count({
@@ -175,6 +196,7 @@ export class CoursesService {
       return tx.course.create({
         data: {
           teacherId: actor.id,
+          eligibilityMode: input.eligibilityMode,
           allowedMajors: {
             create: input.majorIds.map((majorId) => ({ majorId })),
           },
@@ -325,8 +347,11 @@ export class CoursesService {
     return { courseId, categoryIds };
   }
 
-  private validateMajorIds(majorIds: string[]): void {
-    if (majorIds.length === 0) {
+  private validateMajorIds(eligibilityMode: CourseEligibilityMode, majorIds: string[]): void {
+    if (eligibilityMode === CourseEligibilityMode.OPEN && majorIds.length > 0) {
+      throw new UnprocessableEntityException('OPEN Courses must not restrict eligible Majors');
+    }
+    if (eligibilityMode === CourseEligibilityMode.LIMITED && majorIds.length === 0) {
       throw new UnprocessableEntityException('At least one eligible Major is required');
     }
     if (new Set(majorIds).size !== majorIds.length) {

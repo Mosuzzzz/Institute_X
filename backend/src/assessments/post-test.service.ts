@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  CourseEligibilityMode,
   CourseVersionStatus,
   QuizResult,
   QuizType,
@@ -61,6 +62,7 @@ export class PostTestService {
           include: {
             course: {
               select: {
+                eligibilityMode: true,
                 allowedMajors: { select: { majorId: true } },
                 enrollments: {
                   where: { studentId: student.id },
@@ -95,9 +97,8 @@ export class PostTestService {
       throw new NotFoundException('Published Post-Test was not found');
     }
     if (
-      !quiz.version.course.allowedMajors.some(
-        (allowed) => allowed.majorId === student.majorId,
-      )
+      quiz.version.course.eligibilityMode !== CourseEligibilityMode.OPEN &&
+      !quiz.version.course.allowedMajors.some((allowed) => allowed.majorId === student.majorId)
     ) {
       throw new ForbiddenException('Student Major is not eligible for this Course');
     }
@@ -240,7 +241,13 @@ export class PostTestService {
           version: {
             status: CourseVersionStatus.PUBLISHED,
             course: {
-              allowedMajors: { some: { majorId: student.majorId! } },
+              OR: [
+                { eligibilityMode: CourseEligibilityMode.OPEN },
+                {
+                  eligibilityMode: CourseEligibilityMode.LIMITED,
+                  allowedMajors: { some: { majorId: student.majorId! } },
+                },
+              ],
               enrollments: { some: { studentId: student.id } },
             },
           },

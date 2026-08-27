@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 import {
   clearSsoSession,
@@ -23,6 +23,7 @@ const subscribeToSession = () => () => undefined;
 
 export default function StudentShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [language, setLanguage] = useAppLanguage();
   const text = commonCopy[language];
@@ -41,6 +42,8 @@ export default function StudentShell({ children }: { children: ReactNode }) {
     { key: 'all', label: text.all, href: '/student/courses' },
     ...(categoriesQuery.data?.map((category) => ({ key: category.slug, label: translateCategory(category, language), href: `/student/courses?category=${encodeURIComponent(category.slug)}` })) ?? []),
   ];
+  const activeCategory =
+    pathname === '/student/courses' ? searchParams.get('category') ?? 'all' : null;
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -89,7 +92,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-svh bg-white text-[#20243a] motion-reduce:[&_*]:transition-none">
-      <header className="relative z-20 grid min-h-24 grid-cols-[72px_minmax(260px,820px)_minmax(320px,1fr)] items-center gap-[clamp(22px,4vw,64px)] border-b border-[#d9dce7] bg-white px-[clamp(24px,3vw,58px)] py-3.5 max-[1180px]:grid-cols-[54px_minmax(220px,1fr)_auto] max-[1180px]:gap-[18px] max-[1180px]:px-6 max-[820px]:min-h-0 max-[820px]:grid-cols-[48px_minmax(0,1fr)] max-[820px]:px-[18px] max-[820px]:pt-3 max-[820px]:pb-4">
+      <header className="relative z-40 grid min-h-24 grid-cols-[72px_minmax(260px,820px)_minmax(320px,1fr)] items-center gap-[clamp(22px,4vw,64px)] border-b border-[#d9dce7] bg-white px-[clamp(24px,3vw,58px)] py-3.5 max-[1180px]:grid-cols-[54px_minmax(220px,1fr)_auto] max-[1180px]:gap-[18px] max-[1180px]:px-6 max-[820px]:min-h-0 max-[820px]:grid-cols-[48px_minmax(0,1fr)] max-[820px]:px-[18px] max-[820px]:pt-3 max-[820px]:pb-4">
         <Link className="grid h-[52px] w-[52px] place-items-center max-[820px]:h-11 max-[820px]:w-11" href="/student" aria-label="Institute X student home">
           <Image className="h-[42px] w-[42px] object-contain max-[820px]:h-[38px] max-[820px]:w-[38px]" src="/logoX.png" alt="" width={52} height={52} priority />
         </Link>
@@ -126,9 +129,21 @@ export default function StudentShell({ children }: { children: ReactNode }) {
       </header>
 
       {!pathname.startsWith('/student/courses/') ? (
-        <nav className="sticky top-0 z-15 overflow-x-auto border-b border-[#e5e7ef] bg-white shadow-[0_7px_15px_rgb(31_42_68_/_5%)] [scrollbar-width:thin]" aria-label="Course categories">
+        <nav className="isolate sticky top-0 z-[30] overflow-x-auto border-b border-[#e5e7ef] bg-white shadow-[0_7px_15px_rgb(31_42_68_/_5%)] [scrollbar-width:thin]" aria-label="Course categories">
           <div className="flex min-h-[62px] w-max min-w-full items-center justify-center gap-[clamp(20px,2vw,38px)] px-7 max-[820px]:min-h-[54px] max-[820px]:justify-start max-[820px]:px-[18px]">
-            {categories.map((category) => <Link className="whitespace-nowrap text-[0.9rem] text-[#353a4d] no-underline hover:text-[#073d78] hover:underline hover:underline-offset-[7px] focus-visible:text-[#073d78] focus-visible:underline focus-visible:underline-offset-[7px]" key={category.key} href={category.href}>{category.label}</Link>)}
+            {categories.map((category) => {
+              const isActive = activeCategory === category.key;
+              return (
+                <Link
+                  className={`relative z-10 inline-flex min-h-11 touch-manipulation items-center whitespace-nowrap px-1 text-[0.9rem] no-underline hover:text-[#073d78] hover:underline hover:underline-offset-[7px] focus-visible:text-[#073d78] focus-visible:underline focus-visible:underline-offset-[7px] ${isActive ? 'font-semibold text-[#073d78] underline underline-offset-[7px]' : 'text-[#353a4d]'}`}
+                  key={category.key}
+                  href={category.href}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {category.label}
+                </Link>
+              );
+            })}
           </div>
         </nav>
       ) : null}

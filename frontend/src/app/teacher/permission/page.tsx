@@ -28,7 +28,6 @@ export default function TeacherPermissionPage() {
       <section className="permission-timeline"><header><div className="permission-mark">{data?.status === 'APPROVED' ? '✓' : '·'}</div><div><p>Current status</p><h2>{data?.status ?? 'Not requested'}</h2><span>{data ? `Requested ${new Date(data.requestedAt).toLocaleDateString('en-GB')}` : 'No permission request found'}</span></div></header><div className="permission-details"><div><span>Request message</span><p>{data?.requestMessage ?? 'Submit a request to begin the approval process.'}</p></div><div><span>Approver comment</span><p>{data?.reviewComment ?? 'No review comment yet.'}</p></div></div></section>
       {actionError ? <p className="form-help" role="alert">{actionError}</p> : null}
       <aside className="permission-guidance"><h2>What this permission allows</h2><ul><li>Create a Course and its first Draft Version</li><li>Manage owned Course content and assessments</li><li>Submit Course Versions for Approver review</li><li>View analytics for owned Courses</li></ul></aside>
-      <p className="teacher-demo-note">Live data from the Teacher permission API.</p>
     </main>
   );
 }

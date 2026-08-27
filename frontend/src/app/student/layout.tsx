@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import StudentShell from './student-shell';
 
 export const metadata: Metadata = {
@@ -8,5 +8,18 @@ export const metadata: Metadata = {
 };
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
-  return <StudentShell>{children}</StudentShell>;
+  return (
+    <Suspense
+      fallback={
+        <main className="callback-shell">
+          <section className="callback-panel" aria-live="polite">
+            <span className="callback-spinner" aria-hidden="true" />
+            <h1>Loading student workspace…</h1>
+          </section>
+        </main>
+      }
+    >
+      <StudentShell>{children}</StudentShell>
+    </Suspense>
+  );
 }

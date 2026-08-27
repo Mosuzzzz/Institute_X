@@ -8,6 +8,7 @@ import {
 import {
   AssetStatus,
   ContentType,
+  CourseEligibilityMode,
   CourseVersionStatus,
   Prisma,
   QuizType,
@@ -212,7 +213,7 @@ export class CourseVersionsService {
   }
 
   private validateSubmission(version: {
-    course: { allowedMajors: unknown[] };
+    course: { eligibilityMode: CourseEligibilityMode; allowedMajors: unknown[] };
     contentItems: Array<{
       contentType: ContentType;
       mediaAsset: { status: AssetStatus } | null;
@@ -222,7 +223,10 @@ export class CourseVersionsService {
       questions: Array<{ options: Array<{ isCorrect: boolean }> }>;
     }>;
   }): void {
-    if (version.course.allowedMajors.length === 0) {
+    if (
+      version.course.eligibilityMode !== CourseEligibilityMode.OPEN &&
+      version.course.allowedMajors.length === 0
+    ) {
       throw new UnprocessableEntityException('At least one eligible Major is required');
     }
     if (version.contentItems.length === 0) {

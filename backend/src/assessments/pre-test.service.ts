@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  CourseEligibilityMode,
   CourseVersionStatus,
   Prisma,
   QuizResult,
@@ -64,6 +65,7 @@ export class PreTestService {
           include: {
             course: {
               select: {
+                eligibilityMode: true,
                 allowedMajors: { select: { majorId: true } },
                 enrollments: {
                   where: { studentId: student.id },
@@ -83,9 +85,8 @@ export class PreTestService {
       throw new NotFoundException('Published Pre-Test was not found');
     }
     if (
-      !quiz.version.course.allowedMajors.some(
-        (allowed) => allowed.majorId === student.majorId,
-      )
+      quiz.version.course.eligibilityMode !== CourseEligibilityMode.OPEN &&
+      !quiz.version.course.allowedMajors.some((allowed) => allowed.majorId === student.majorId)
     ) {
       throw new ForbiddenException('Student Major is not eligible for this Course');
     }
@@ -244,7 +245,13 @@ export class PreTestService {
           version: {
             status: CourseVersionStatus.PUBLISHED,
             course: {
-              allowedMajors: { some: { majorId: student.majorId! } },
+              OR: [
+                { eligibilityMode: CourseEligibilityMode.OPEN },
+                {
+                  eligibilityMode: CourseEligibilityMode.LIMITED,
+                  allowedMajors: { some: { majorId: student.majorId! } },
+                },
+              ],
               enrollments: { some: { studentId: student.id } },
             },
           },

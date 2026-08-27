@@ -8,6 +8,7 @@ import '@fontsource/kanit/600.css';
 import '@fontsource/kanit/700.css';
 import '@fontsource/kanit/800.css';
 import './globals.css';
+import AppFooter from './app-footer';
 
 const notoSansChinese = Noto_Sans_SC({
   display: 'swap',
@@ -36,7 +37,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       lang="th"
       className={`${notoSansChinese.variable} ${notoSansJapanese.variable}`}
     >
-      <body className="bg-canvas font-sans text-ink antialiased">{children}</body>
+      <body className="bg-canvas font-sans text-ink antialiased">
+        {children}
+        <AppFooter />
+      </body>
     </html>
   );
 }

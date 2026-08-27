@@ -1,7 +1,7 @@
 # Institute X E-Learning Database Schema
 
-**Schema version:** 1.2
-**Updated:** August 26, 2026
+**Schema version:** 1.3
+**Updated:** August 27, 2026
 **Database:** PostgreSQL  
 **Source of truth:** Institute X E-Learning SRS v1.5
 
@@ -9,7 +9,7 @@
 
 - Institute SSO only; no local passwords.
 - Exactly one role per user: `STUDENT`, `TEACHER`, `APPROVER`, or `OWNER`.
-- Course eligibility is based only on Major.
+- Course eligibility is `OPEN` for every active Student or `LIMITED` to selected Majors.
 - Teachers require approved permission before creating Courses.
 - Published Versions are immutable; approval automatically publishes a submitted Version.
 - Pre-Test: one completed attempt and no passing threshold. Post-Test: unlimited attempts and 80% to pass.
@@ -26,6 +26,7 @@
 | `ACCOUNT_STATUS` | `ACTIVE`, `INACTIVE` |
 | `TEACHER_PERMISSION_STATUS` | `PENDING`, `APPROVED`, `REJECTED`, `REVOKED` |
 | `COURSE_VERSION_STATUS` | `DRAFT`, `SUBMITTED`, `REJECTED`, `PUBLISHED`, `SUPERSEDED` |
+| `COURSE_ELIGIBILITY_MODE` | `OPEN`, `LIMITED` |
 | `CONTENT_TYPE` | `TEXT`, `VIDEO`, `AUDIO`, `IMAGE`, `DOCUMENT` |
 | `ASSET_STATUS` | `PENDING`, `READY`, `FAILED`, `DELETED` |
 | `QUIZ_TYPE` | `PRE_TEST`, `POST_TEST` |
@@ -83,6 +84,7 @@ Partial unique index on `teacher_id` where `status = PENDING`. Only a `TEACHER` 
 |---|---|---|
 | `course_id` | UUID | PK |
 | `teacher_id` | UUID | NOT NULL, FK → `users.user_id` |
+| `eligibility_mode` | `COURSE_ELIGIBILITY_MODE` | NOT NULL, default `LIMITED` |
 | `created_at` | TIMESTAMPTZ | NOT NULL, default now |
 | `archived_at` | TIMESTAMPTZ | NULL |
 
@@ -105,7 +107,7 @@ Categories are Owner-managed taxonomy labels; authenticated users may list them.
 | `course_id` | UUID | PK part, FK → `courses.course_id` |
 | `major_id` | UUID | PK part, FK → `majors.major_id` |
 
-Primary key: (`course_id`, `major_id`). Every submitted Course must have at least one eligible Major.
+Primary key: (`course_id`, `major_id`). `OPEN` Courses have no rows in this table. Every `LIMITED` Course must have at least one eligible Major before submission.
 
 ### `course_categories`
 
@@ -327,7 +329,7 @@ erDiagram
 3. Approval atomically supersedes the current publication and publishes the new Version.
 4. Published and superseded Versions are immutable.
 5. Concurrent uploads cannot make a Course exceed 1 GiB.
-6. A Student must be active, Major-eligible, and enrolled before starting the Pre-Test.
+6. A Student must be active, eligible under the Course's `OPEN`/`LIMITED` mode, and enrolled before starting the Pre-Test.
 7. Content remains locked until the Student submits the single Pre-Test attempt.
 8. Post-Test attempts start only after content is unlocked.
 9. The server calculates all scores/results and never trusts client-provided totals.

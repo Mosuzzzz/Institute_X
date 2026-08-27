@@ -34,6 +34,11 @@ enum CourseVersionStatus {
   SUPERSEDED
 }
 
+enum CourseEligibilityMode {
+  OPEN
+  LIMITED
+}
+
 enum ContentType {
   TEXT
   VIDEO
@@ -120,16 +125,17 @@ model TeacherPermissionRequest {
 }
 
 model Course {
-  id            String               @id @default(uuid()) @map("course_id") @db.Uuid
-  teacherId     String               @map("teacher_id") @db.Uuid
-  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz
-  archivedAt    DateTime?            @map("archived_at") @db.Timestamptz
-  teacher       User                 @relation(fields: [teacherId], references: [id])
-  allowedMajors CourseAllowedMajor[]
-  categories    CourseCategory[]
-  versions      CourseVersion[]
-  enrollments   CourseEnrollment[]
-  accessEvents  CourseAccessEvent[]
+  id              String                @id @default(uuid()) @map("course_id") @db.Uuid
+  teacherId       String                @map("teacher_id") @db.Uuid
+  eligibilityMode CourseEligibilityMode @default(LIMITED) @map("eligibility_mode")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  archivedAt      DateTime?             @map("archived_at") @db.Timestamptz
+  teacher         User                  @relation(fields: [teacherId], references: [id])
+  allowedMajors   CourseAllowedMajor[]
+  categories      CourseCategory[]
+  versions        CourseVersion[]
+  enrollments     CourseEnrollment[]
+  accessEvents    CourseAccessEvent[]
 
   @@index([teacherId])
   @@map("courses")

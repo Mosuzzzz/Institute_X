@@ -212,7 +212,13 @@ describe('PostTestService', () => {
             version: {
               status: CourseVersionStatus.PUBLISHED,
               course: {
-                allowedMajors: { some: { majorId: 'major-it' } },
+                OR: [
+                  { eligibilityMode: 'OPEN' },
+                  {
+                    eligibilityMode: 'LIMITED',
+                    allowedMajors: { some: { majorId: 'major-it' } },
+                  },
+                ],
                 enrollments: { some: { studentId: 'student-id' } },
               },
             },

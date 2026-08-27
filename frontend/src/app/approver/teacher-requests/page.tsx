@@ -29,7 +29,6 @@ export default function TeacherRequestsPage() {
       {actionError ? <p className="form-help" role="alert">{actionError}</p> : null}
       <section className="permission-request-list" aria-label="Pending Teacher permission requests">{data.map((request, index) => <article key={request.id}><header><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{request.teacher?.fullName}</h2><p>{request.teacher?.universityEmail}</p></div><time>{formatWaiting(request.requestedAt)}</time></header><blockquote>{request.requestMessage ?? 'No request message supplied.'}</blockquote><footer><span>Requested {formatSubmitted(request.requestedAt)}</span><div><button type="button" disabled={busyId === request.id} onClick={() => void decide(request.id, 'REJECTED')}>Reject</button><button type="button" disabled={busyId === request.id} onClick={() => void decide(request.id, 'APPROVED')}>{busyId === request.id ? 'Saving…' : 'Approve'}</button></div></footer></article>)}</section>
       {!data.length ? <p className="api-empty">No pending Teacher permission requests.</p> : null}
-      <p className="teacher-demo-note">Decisions are saved through <code>PATCH /api/teacher-permissions/:id/review</code>.</p>
     </main>
   );
 }

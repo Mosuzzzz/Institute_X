@@ -31,7 +31,6 @@ export default function OwnerOverviewPage() {
         <article className="owner-panel owner-outcome-panel"><header><div><p className="eyebrow">Assessment health</p><h2>Post-Test outcomes</h2></div></header><strong>{passRate.toFixed(1)}%</strong><p>Pass rate across recorded Post-Test attempts.</p><div className="owner-outcome-track"><span style={{ width: `${passRate}%` }} /></div><dl><div><dt>Pass</dt><dd>{data.postTestResults.pass.toLocaleString()}</dd></div><div><dt>Not pass</dt><dd>{data.postTestResults.notPass.toLocaleString()}</dd></div></dl></article>
       </section>
       <section className="owner-popular-section"><div className="teacher-section-heading"><div><p className="eyebrow">Course demand</p><h2>Most enrolled courses</h2></div><Link href="/owner/courses">Course portfolio →</Link></div>{data.popularCourses.length ? <div className="owner-course-table"><header><span>Course</span><span>Source</span><span>Enrollments</span><span>Rank</span></header>{data.popularCourses.slice(0, 5).map((course, index) => <div key={course.courseId}><span className="owner-rank">{String(index + 1).padStart(2, '0')}</span><div><strong>{course.title}</strong><small>{course.courseId}</small></div><span>Institute X</span><b>{course.enrollments}</b><div className="owner-table-progress"><small>#{index + 1}</small></div></div>)}</div> : <p className="api-empty">No course enrollments recorded yet.</p>}</section>
-      <p className="teacher-demo-note">Live data from <code>GET /api/owner/dashboard</code>.</p>
     </main>
   );
 }

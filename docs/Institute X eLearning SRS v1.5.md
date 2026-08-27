@@ -131,27 +131,31 @@ All Courses are free.
 |---|---|
 | FR-COST-01 | All Courses shall be free for eligible Students. |
 | FR-COST-02 | The system shall not require payment, purchase, or subscription. |
-| FR-CA-01 | The system shall validate a Student's Major before granting Course access. |
-| FR-CA-02 | A Teacher shall be able to specify one or more eligible Majors. |
-| FR-CA-03 | A Course may allow multiple Majors. |
-| FR-CA-04 | A Student whose Major is eligible shall be allowed to continue. |
-| FR-CA-05 | A Student whose Major is not eligible shall be denied access. |
+| FR-CA-01 | A Teacher shall choose `OPEN` or `LIMITED` Student eligibility when creating a Course. |
+| FR-CA-02 | An `OPEN` Course shall not require the Teacher to select Majors and shall allow every active Student. |
+| FR-CA-03 | A `LIMITED` Course shall require one or more eligible Majors. |
+| FR-CA-04 | A Student whose Major is eligible for a `LIMITED` Course shall be allowed to continue. |
+| FR-CA-05 | A Student whose Major is not eligible for a `LIMITED` Course shall be denied access. |
 | FR-CA-06 | The system shall not use Course passwords. |
 | FR-CA-07 | The system shall not use paid Course locks. |
 | FR-CA-08 | When an eligible Student first enters a published Course, the system shall create one Enrollment for that Student and Course. |
 | FR-CA-09 | Repeat Course visits shall not create duplicate Enrollments. |
 
 ```text
-Student → Select Course → Check Major
-                           /       \
-                        Invalid    Valid
-                           ↓         ↓
-                          Deny    Continue
+Student → Select Course → Check eligibility mode
+                              /            \
+                           OPEN          LIMITED
+                             ↓              ↓
+                         Continue       Check Major
+                                         /      \
+                                      Invalid   Valid
+                                         ↓        ↓
+                                        Deny   Continue
 ```
 
 ### 7.1 Course Categories and Catalog Filtering
 
-Categories are reusable, Owner-managed taxonomy labels. A Course may belong to one or more Categories. The catalog may filter Courses by Category while preserving publication, account-status, and Major-eligibility rules.
+Categories are reusable, Owner-managed taxonomy labels. A Course may belong to one or more Categories. The catalog may filter Courses by Category while preserving publication, account-status, and `OPEN`/`LIMITED` eligibility rules.
 
 | ID | Requirement |
 |---|---|
@@ -159,7 +163,7 @@ Categories are reusable, Owner-managed taxonomy labels. A Course may belong to o
 | FR-CAT-02 | Authenticated users shall be able to list Categories. |
 | FR-CAT-03 | Course creation shall reject missing, unknown, or duplicate Category IDs. |
 | FR-CAT-04 | A Student shall be able to filter the eligible Course catalog by Category. |
-| FR-CAT-05 | Category filtering shall not bypass Major eligibility, publication, or archive rules. |
+| FR-CAT-05 | Category filtering shall not bypass Course eligibility mode, publication, or archive rules. |
 
 ---
 
@@ -354,7 +358,7 @@ The Owner dashboard shall include:
 | BR-04 | Teacher approval is required before Course creation. |
 | BR-05 | All Courses are free. |
 | BR-06 | Courses do not use passwords, paid locks, purchases, or subscriptions. |
-| BR-07 | Course eligibility is validated by Student Major. |
+| BR-07 | `OPEN` Courses allow every active Student; `LIMITED` Courses validate the Student Major. |
 | BR-08 | Course Versions require Approver review before publication. |
 | BR-09 | Rejected Versions must be corrected and resubmitted. |
 | BR-10 | Approved Versions are automatically published. |

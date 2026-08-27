@@ -9,6 +9,7 @@ import {
   AccountStatus,
   AssetStatus,
   ContentType,
+  CourseEligibilityMode,
   CourseVersionStatus,
   MediaAsset,
   Prisma,
@@ -253,7 +254,8 @@ export class MediaService {
     const version = asset.contentItem.version;
     if (
       version.course.enrollments.length === 0 ||
-      !version.course.allowedMajors.some((allowed) => allowed.majorId === student.majorId)
+      (version.course.eligibilityMode !== CourseEligibilityMode.OPEN &&
+        !version.course.allowedMajors.some((allowed) => allowed.majorId === student.majorId))
     ) {
       throw new ForbiddenException('Student is not eligible for this Course');
     }
