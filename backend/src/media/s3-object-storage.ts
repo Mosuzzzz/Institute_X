@@ -1,4 +1,5 @@
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -61,6 +62,20 @@ export class S3ObjectStorage extends ObjectStorage {
   async deleteObject(storageKey: string): Promise<void> {
     await this.client.send(
       new DeleteObjectCommand({ Bucket: this.config.bucket, Key: storageKey }),
+    );
+  }
+
+  async copyObject(sourceStorageKey: string, destinationStorageKey: string): Promise<void> {
+    const encodedSource = sourceStorageKey
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+    await this.client.send(
+      new CopyObjectCommand({
+        Bucket: this.config.bucket,
+        CopySource: `${this.config.bucket}/${encodedSource}`,
+        Key: destinationStorageKey,
+      }),
     );
   }
 

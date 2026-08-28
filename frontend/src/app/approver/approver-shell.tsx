@@ -19,11 +19,13 @@ import ProfileMenu from '../profile-menu';
 const subscribeToSession = () => () => undefined;
 const navigation = [
   { href: '/approver', label: 'reviewOverview', icon: 'grid' },
+  { href: '/approver/courses', label: 'allCourses', icon: 'courses' },
   { href: '/approver/teacher-requests', label: 'teacherRequests', icon: 'users' },
   { href: '/approver/course-reviews', label: 'courseReviews', icon: 'review' },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
+  if (icon === 'courses') return <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M4 5.5v16M8 7h8M8 11h7" /></svg>;
   if (icon === 'users') return <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3.5 19c.4-4 2.2-6 5.5-6s5.1 2 5.5 6M16 6a3 3 0 0 1 0 6M17 14c2.2.5 3.4 2.1 3.5 5" /></svg>;
   if (icon === 'review') return <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 13l2 2 4-4" /></svg>;
   return <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><rect x="14" y="14" width="6" height="6" /></svg>;

@@ -10,9 +10,15 @@ import {
   MaxLength,
   Min,
   MinLength,
+  IsUUID,
 } from 'class-validator';
 
 export class InitializeUploadDto {
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID('4')
+  sectionId?: string;
+
   @ApiProperty({
     enum: [ContentType.VIDEO, ContentType.AUDIO, ContentType.IMAGE, ContentType.DOCUMENT],
   })

@@ -61,6 +61,9 @@ export default function CourseCard({
         >
           {course.instructor}
         </p>
+        {!isContinue ? (
+          <p className="mt-1.5 text-[0.78rem] text-[#59647a]">{course.language}</p>
+        ) : null}
       </div>
       {course.progress === undefined ? (
         <div className="mt-[18px] flex gap-3" aria-label="Course access">

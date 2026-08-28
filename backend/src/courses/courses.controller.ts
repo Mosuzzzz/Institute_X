@@ -1,8 +1,20 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -27,6 +39,15 @@ export class CoursesController {
   @ApiOkResponse({ description: 'Authenticated Teacher Courses and latest Version states' })
   mine(@CurrentUser() user: CurrentUserValue): ReturnType<CoursesService['listOwned']> {
     return this.courses.listOwned(user);
+  }
+
+  @Get('approver/catalog')
+  @Roles(UserRole.APPROVER)
+  @ApiOkResponse({ description: 'All non-archived published Courses for Approvers' })
+  approverCatalog(
+    @CurrentUser() user: CurrentUserValue,
+  ): ReturnType<CoursesService['listPublishedForApprover']> {
+    return this.courses.listPublishedForApprover(user);
   }
 
   @Get(':courseId')
@@ -69,5 +90,16 @@ export class CoursesController {
     @Body() input: ReplaceCourseCategoriesDto,
   ): ReturnType<CoursesService['replaceCategories']> {
     return this.courses.replaceCategories(user, courseId, input.categoryIds);
+  }
+
+  @Delete(':courseId')
+  @HttpCode(204)
+  @Roles(UserRole.TEACHER, UserRole.APPROVER)
+  @ApiNoContentResponse({ description: 'Course archived and removed from active catalogs' })
+  delete(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+  ): ReturnType<CoursesService['archiveCourse']> {
+    return this.courses.archiveCourse(user, courseId);
   }
 }

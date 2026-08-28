@@ -48,6 +48,7 @@ describe('PreTestService', () => {
         id: 'question-1',
         questionText: 'Question 1',
         points: 1,
+        imageAsset: { id: 'question-image-1', status: 'READY' },
         options: [
           { id: 'option-1a', optionText: 'A', isCorrect: true },
           { id: 'option-1b', optionText: 'B', isCorrect: false },
@@ -101,6 +102,9 @@ describe('PreTestService', () => {
         ],
       }),
     );
+    expect(result.questions[1]).toEqual(
+      expect.objectContaining({ imageAssetId: 'question-image-1' }),
+    );
     expect(JSON.stringify(result)).not.toContain('isCorrect');
   });
 
@@ -139,6 +143,7 @@ describe('PreTestService', () => {
         {
           id: 'question-2',
           questionText: 'Question 2',
+          imageAssetId: null,
           options: [
             { id: 'option-2b', optionText: 'B' },
             { id: 'option-2a', optionText: 'A' },
@@ -147,6 +152,7 @@ describe('PreTestService', () => {
         {
           id: 'question-1',
           questionText: 'Question 1',
+          imageAssetId: 'question-image-1',
           options: [
             { id: 'option-1b', optionText: 'B' },
             { id: 'option-1a', optionText: 'A' },

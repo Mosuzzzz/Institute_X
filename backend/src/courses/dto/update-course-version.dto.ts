@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateCourseVersionDto {
   @ApiPropertyOptional({ example: 'Updated Network Fundamentals' })
@@ -14,4 +14,13 @@ export class UpdateCourseVersionDto {
   @IsString()
   @MaxLength(10_000)
   description?: string | null;
+
+  @ApiPropertyOptional({
+    enum: ['th', 'en', 'zh-CN', 'ja'],
+    description: 'Primary language used to teach this Course',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['th', 'en', 'zh-CN', 'ja'])
+  languageCode?: string;
 }

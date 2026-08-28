@@ -15,11 +15,13 @@ describe('database schema contract', () => {
     'CourseAllowedMajor',
     'CourseVersion',
     'CourseVersionReview',
+    'CourseSection',
     'ContentItem',
     'MediaAsset',
     'CourseCoverAsset',
     'Quiz',
     'Question',
+    'QuestionImageAsset',
     'QuestionOption',
     'CourseEnrollment',
     'QuizAttempt',
@@ -29,6 +31,22 @@ describe('database schema contract', () => {
     'CourseAccessEvent',
   ])('defines the %s model', (modelName) => {
     expect(modelNames).toContain(modelName);
+  });
+
+  it('stores one private image asset per assessment question', () => {
+    const question = Prisma.dmmf.datamodel.models.find((model) => model.name === 'Question');
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        '../prisma/migrations/202608270003_add_question_image_assets/migration.sql',
+      ),
+      'utf8',
+    );
+
+    expect(question?.fields.map((field) => field.name)).toContain('imageAsset');
+    expect(migration).toContain('CREATE TABLE "public"."question_image_assets"');
+    expect(migration).toContain('UNIQUE ("question_id")');
+    expect(migration).toContain('ON DELETE CASCADE');
   });
 
   it('defines exactly the four mutually exclusive user roles from the SRS', () => {
@@ -53,6 +71,33 @@ describe('database schema contract', () => {
     expect(eligibility?.fields.map((field) => field.name)).not.toEqual(
       expect.arrayContaining(['educationLevel', 'yearLevel']),
     );
+  });
+
+  it('stores the primary language on every Course Version', () => {
+    const version = Prisma.dmmf.datamodel.models.find(
+      (model) => model.name === 'CourseVersion',
+    );
+    const migration = readFileSync(
+      resolve(__dirname, '../prisma/migrations/202608280001_add_course_language/migration.sql'),
+      'utf8',
+    );
+
+    expect(version?.fields.map((field) => field.name)).toContain('languageCode');
+    expect(migration).toContain('"language_code" VARCHAR(10) NOT NULL DEFAULT \'th\'');
+  });
+
+  it('stores ordered Sections containing Course lectures', () => {
+    const section = Prisma.dmmf.datamodel.models.find(
+      (model) => model.name === 'CourseSection',
+    );
+    const content = Prisma.dmmf.datamodel.models.find(
+      (model) => model.name === 'ContentItem',
+    );
+
+    expect(section?.fields.map((field) => field.name)).toEqual(
+      expect.arrayContaining(['versionId', 'title', 'position', 'contentItems']),
+    );
+    expect(content?.fields.map((field) => field.name)).toContain('sectionId');
   });
 
   it('stores the institutional username separately from the display name', () => {

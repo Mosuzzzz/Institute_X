@@ -5,6 +5,7 @@ import { ContentService } from './content.service';
 describe('ContentService', () => {
   const prisma = {
     courseVersion: { findUnique: jest.fn() },
+    courseSection: { create: jest.fn(), findFirst: jest.fn() },
     contentItem: {
       create: jest.fn(),
       findUnique: jest.fn(),
@@ -40,6 +41,44 @@ describe('ContentService', () => {
         textBody: 'Introduction',
         position: 1,
       },
+    });
+  });
+
+  it('creates an ordered Section in an owned Draft', async () => {
+    prisma.courseVersion.findUnique.mockResolvedValue({
+      status: CourseVersionStatus.DRAFT,
+      course: { teacherId: 'teacher-id' },
+    });
+    prisma.courseSection.create.mockResolvedValue({ id: 'section-id' });
+
+    await service.createSection(
+      { id: 'teacher-id', role: UserRole.TEACHER },
+      'version-id',
+      { title: 'Section 1', position: 1 },
+    );
+
+    expect(prisma.courseSection.create).toHaveBeenCalledWith({
+      data: { versionId: 'version-id', title: 'Section 1', position: 1 },
+    });
+  });
+
+  it('adds a text lecture to the selected Section', async () => {
+    prisma.courseVersion.findUnique.mockResolvedValue({
+      status: CourseVersionStatus.DRAFT,
+      course: { teacherId: 'teacher-id' },
+    });
+    prisma.courseSection.findFirst.mockResolvedValue({ id: 'section-id' });
+    prisma.contentItem.create.mockResolvedValue({ id: 'content-id' });
+
+    await service.addText({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id', {
+      title: 'Lecture 1',
+      textBody: 'Introduction',
+      position: 1,
+      sectionId: 'section-id',
+    });
+
+    expect(prisma.contentItem.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ sectionId: 'section-id' }),
     });
   });
 

@@ -14,6 +14,7 @@ import {
   CourseVersionStatus,
   MediaAsset,
   Prisma,
+  QuestionImageAsset,
   QuizResult,
   QuizType,
   UserRole,
@@ -37,6 +38,7 @@ interface StudentActor {
 }
 
 interface InitializeUploadInput {
+  sectionId?: string;
   contentType: ContentType;
   title?: string;
   fileName: string;
@@ -110,6 +112,15 @@ export class MediaService {
         if (version.status !== CourseVersionStatus.DRAFT) {
           throw new ConflictException('Only a Draft Version may be changed');
         }
+        if (input.sectionId) {
+          const section = await tx.courseSection.findFirst({
+            where: { id: input.sectionId, versionId },
+            select: { id: true },
+          });
+          if (!section) {
+            throw new UnprocessableEntityException('Section does not belong to this Version');
+          }
+        }
 
         const total = await tx.mediaAsset.aggregate({
           where: {
@@ -126,6 +137,7 @@ export class MediaService {
           return await tx.contentItem.create({
             data: {
               versionId,
+              ...(input.sectionId ? { sectionId: input.sectionId } : {}),
               contentType: input.contentType,
               title: input.title?.trim() || null,
               textBody: null,
@@ -244,6 +256,57 @@ export class MediaService {
     return { assetId: cover.id, uploadUrl: signed.url, expiresAt: signed.expiresAt };
   }
 
+  async initializeQuestionImageUpload(
+    actor: TeacherActor,
+    questionId: string,
+    input: InitializeCoverUploadInput,
+  ): Promise<InitializedUpload> {
+    this.validateCoverUpload(actor, input);
+    const question = await this.prisma.question.findUnique({
+      where: { id: questionId },
+      include: {
+        quiz: {
+          include: { version: { include: { course: { select: { teacherId: true } } } } },
+        },
+      },
+    });
+    if (!question) throw new NotFoundException('Question was not found');
+    if (question.quiz.version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may upload a question image');
+    }
+    if (question.quiz.version.status !== CourseVersionStatus.DRAFT) {
+      throw new ConflictException('Only a Draft question may be changed');
+    }
+
+    const storageKey = `question-images/${randomUUID()}`;
+    let asset: QuestionImageAsset;
+    try {
+      asset = await this.prisma.questionImageAsset.create({
+        data: {
+          questionId,
+          fileName: input.fileName.trim(),
+          mimeType: input.mimeType,
+          storageKey,
+          sizeBytes: input.sizeBytes,
+          status: AssetStatus.PENDING,
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('This question already has an image');
+      }
+      throw error;
+    }
+
+    try {
+      const signed = await this.storage.createUploadUrl(storageKey, input.mimeType, input.sizeBytes);
+      return { assetId: asset.id, uploadUrl: signed.url, expiresAt: signed.expiresAt };
+    } catch (error: unknown) {
+      await this.prisma.questionImageAsset.delete({ where: { id: asset.id } });
+      throw error;
+    }
+  }
+
   async completeCoverUpload(
     actor: TeacherActor,
     assetId: string,
@@ -277,6 +340,45 @@ export class MediaService {
     return { ...updated, sizeBytes: Number(updated.sizeBytes) };
   }
 
+  async completeQuestionImageUpload(
+    actor: TeacherActor,
+    assetId: string,
+  ): Promise<JsonSafeAsset<QuestionImageAsset>> {
+    if (actor.role !== UserRole.TEACHER) {
+      throw new ForbiddenException('TEACHER role is required');
+    }
+    const asset = await this.prisma.questionImageAsset.findUnique({
+      where: { id: assetId },
+      include: {
+        question: {
+          include: {
+            quiz: { include: { version: { include: { course: true } } } },
+          },
+        },
+      },
+    });
+    if (!asset) throw new NotFoundException('Question image was not found');
+    if (asset.question.quiz.version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may complete this image upload');
+    }
+    if (asset.question.quiz.version.status !== CourseVersionStatus.DRAFT) {
+      throw new ConflictException('Only a Draft question image may be completed');
+    }
+    const stored = await this.storage.headObject(asset.storageKey);
+    if (stored.sizeBytes !== Number(asset.sizeBytes) || stored.mimeType !== asset.mimeType) {
+      await this.prisma.questionImageAsset.update({
+        where: { id: assetId },
+        data: { status: AssetStatus.FAILED },
+      });
+      throw new UnprocessableEntityException('Uploaded question image metadata does not match');
+    }
+    const updated = await this.prisma.questionImageAsset.update({
+      where: { id: assetId },
+      data: { status: AssetStatus.READY },
+    });
+    return { ...updated, sizeBytes: Number(updated.sizeBytes) };
+  }
+
   async deleteDraftCover(actor: TeacherActor, assetId: string): Promise<void> {
     if (actor.role !== UserRole.TEACHER) {
       throw new ForbiddenException('TEACHER role is required');
@@ -296,6 +398,86 @@ export class MediaService {
     await this.prisma.courseCoverAsset.delete({ where: { id: assetId } });
   }
 
+  async deleteDraftQuestionImage(actor: TeacherActor, assetId: string): Promise<void> {
+    if (actor.role !== UserRole.TEACHER) {
+      throw new ForbiddenException('TEACHER role is required');
+    }
+    const asset = await this.prisma.questionImageAsset.findUnique({
+      where: { id: assetId },
+      include: {
+        question: {
+          include: {
+            quiz: { include: { version: { include: { course: true } } } },
+          },
+        },
+      },
+    });
+    if (!asset) throw new NotFoundException('Question image was not found');
+    if (asset.question.quiz.version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may delete this question image');
+    }
+    if (asset.question.quiz.version.status !== CourseVersionStatus.DRAFT) {
+      throw new ConflictException('Only a Draft question image may be deleted');
+    }
+    await this.storage.deleteObject(asset.storageKey);
+    await this.prisma.questionImageAsset.delete({ where: { id: assetId } });
+  }
+
+  async createQuestionImageViewUrl(
+    actor: CoverViewer,
+    assetId: string,
+  ): Promise<SignedStorageUrl> {
+    const asset = await this.prisma.questionImageAsset.findUnique({
+      where: { id: assetId },
+      include: {
+        question: {
+          include: {
+            quiz: {
+              include: {
+                version: {
+                  include: {
+                    course: {
+                      include: {
+                        allowedMajors: true,
+                        enrollments: { where: { studentId: actor.id } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!asset || asset.status !== AssetStatus.READY) {
+      throw new NotFoundException('Question image was not found');
+    }
+
+    const version = asset.question.quiz.version;
+    if (actor.role === UserRole.TEACHER) {
+      if (version.course.teacherId !== actor.id) {
+        throw new ForbiddenException('Only the owning Teacher may view this question image');
+      }
+    } else if (actor.role === UserRole.APPROVER) {
+      if (version.status !== CourseVersionStatus.SUBMITTED) {
+        throw new ForbiddenException('Only a submitted question image may be reviewed');
+      }
+    } else if (actor.role === UserRole.STUDENT && actor.accountStatus === AccountStatus.ACTIVE) {
+      if (
+        version.status !== CourseVersionStatus.PUBLISHED ||
+        version.course.enrollments.length === 0 ||
+        (version.course.eligibilityMode !== CourseEligibilityMode.OPEN &&
+          !version.course.allowedMajors.some((item) => item.majorId === actor.majorId))
+      ) {
+        throw new ForbiddenException('Question image access is not allowed');
+      }
+    } else {
+      throw new ForbiddenException('Question image access is not allowed');
+    }
+    return this.storage.createViewUrl(asset.storageKey);
+  }
+
   async createCoverViewUrl(actor: CoverViewer, assetId: string): Promise<SignedStorageUrl> {
     const asset = await this.prisma.courseCoverAsset.findUnique({
       where: { id: assetId },
@@ -312,6 +494,13 @@ export class MediaService {
     if (actor.role === UserRole.TEACHER) {
       if (asset.version.course.teacherId !== actor.id) {
         throw new ForbiddenException('Only the owning Teacher may view this cover');
+      }
+    } else if (actor.role === UserRole.APPROVER) {
+      if (
+        asset.version.status !== CourseVersionStatus.PUBLISHED &&
+        asset.version.status !== CourseVersionStatus.SUBMITTED
+      ) {
+        throw new ForbiddenException('Course cover access is not allowed');
       }
     } else if (actor.role === UserRole.STUDENT && actor.accountStatus === AccountStatus.ACTIVE) {
       if (

@@ -9,10 +9,16 @@ import { MediaController } from './media.controller';
 import { MediaUploadsController } from './media-uploads.controller';
 import { S3ObjectStorage } from './s3-object-storage';
 import { CourseCoversController } from './course-covers.controller';
+import { QuestionImagesController } from './question-images.controller';
 
 @Module({
   imports: [ConfigModule, AuthModule],
-  controllers: [MediaController, MediaUploadsController, CourseCoversController],
+  controllers: [
+    MediaController,
+    MediaUploadsController,
+    CourseCoversController,
+    QuestionImagesController,
+  ],
   providers: [
     MediaService,
     {

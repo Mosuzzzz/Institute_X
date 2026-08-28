@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { backendApi, type QuizSubmissionDto, type StartedQuizDto } from '../../../../../lib/backend-api';
 import ApiState from '../../../../api-state';
+import QuestionImage from '../../../../question-image';
 
 export default function AssessmentClient({ quizType, quizId }: { quizType: string; quizId: string }) {
   const isPostTest = quizType === 'post-test';
@@ -86,6 +87,18 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
               <span className="text-[0.7rem] font-extrabold text-[#0b5b73]">{String(index + 1).padStart(2, '0')}</span>
               {question.questionText}
             </legend>
+            {question.imageAssetId ? (
+              <QuestionImage
+                assetId={question.imageAssetId}
+                alt={`${question.questionText} illustration`}
+                className="mb-3 max-h-[440px] w-full bg-[#f6f8fa] object-contain"
+                fallback={
+                  <p className="bg-[#f6f8fa] p-4 text-sm text-[#697586]">
+                    Loading question image…
+                  </p>
+                }
+              />
+            ) : null}
             {question.options.map((option) => (
               <label className="flex cursor-pointer items-center gap-3 border border-[#e1e5ea] px-[15px] py-[13px] text-[#4e5969] has-checked:border-[#76a0b5] has-checked:bg-[#edf4f8] has-checked:text-[#073d78]" key={option.id}>
                 <input className="accent-[#073d78]" type="radio" name={question.id} value={option.id} checked={answers[question.id] === option.id} onChange={() => setAnswers((current) => ({ ...current, [question.id]: option.id }))} />

@@ -30,7 +30,9 @@ enum CourseVersionStatus {
   DRAFT
   SUBMITTED
   REJECTED
+  APPROVED
   PUBLISHED
+  UNPUBLISHED
   SUPERSEDED
 }
 
@@ -179,6 +181,7 @@ model CourseVersion {
   versionNumber Int                   @map("version_number")
   title         String                @db.VarChar(255)
   description   String?
+  languageCode  String                @default("th") @map("language_code") @db.VarChar(10)
   status        CourseVersionStatus   @default(DRAFT)
   submittedAt   DateTime?             @map("submitted_at") @db.Timestamptz
   publishedAt   DateTime?             @map("published_at") @db.Timestamptz
@@ -187,6 +190,7 @@ model CourseVersion {
   course        Course                @relation(fields: [courseId], references: [id])
   reviews       CourseVersionReview[]
   contentItems  ContentItem[]
+  sections      CourseSection[]
   quizzes       Quiz[]
   coverAsset    CourseCoverAsset?
 
@@ -225,9 +229,24 @@ model CourseVersionReview {
   @@map("course_version_reviews")
 }
 
+model CourseSection {
+  id           String        @id @default(uuid()) @map("section_id") @db.Uuid
+  versionId    String        @map("version_id") @db.Uuid
+  title        String        @db.VarChar(255)
+  position     Int
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  version      CourseVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
+
+  @@unique([versionId, position])
+  @@map("course_sections")
+}
+
 model ContentItem {
   id          String        @id @default(uuid()) @map("content_item_id") @db.Uuid
   versionId   String        @map("version_id") @db.Uuid
+  sectionId   String?       @map("section_id") @db.Uuid
   contentType ContentType   @map("content_type")
   title       String?       @db.VarChar(255)
   textBody    String?       @map("text_body")
@@ -235,9 +254,11 @@ model ContentItem {
   createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz
   version     CourseVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  section     CourseSection? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   mediaAsset  MediaAsset?
 
   @@unique([versionId, position])
+  @@index([sectionId])
   @@map("content_items")
 }
 
@@ -280,6 +301,7 @@ model Question {
   points           Decimal               @db.Decimal(10, 2)
   position         Int
   quiz             Quiz                  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  imageAsset       QuestionImageAsset?
   options          QuestionOption[]
   attemptQuestions QuizAttemptQuestion[]
   attemptOptions   QuizAttemptOption[]
@@ -287,6 +309,20 @@ model Question {
 
   @@unique([quizId, position])
   @@map("questions")
+}
+
+model QuestionImageAsset {
+  id         String      @id @default(uuid()) @map("asset_id") @db.Uuid
+  questionId String      @unique @map("question_id") @db.Uuid
+  fileName   String      @map("file_name") @db.VarChar(255)
+  mimeType   String      @map("mime_type") @db.VarChar(255)
+  storageKey String      @unique @map("storage_key") @db.VarChar(1024)
+  sizeBytes  BigInt      @map("size_bytes")
+  status     AssetStatus @default(PENDING)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  question   Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_image_assets")
 }
 
 model QuestionOption {

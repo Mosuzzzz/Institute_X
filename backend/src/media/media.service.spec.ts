@@ -25,6 +25,13 @@ describe('MediaService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    question: { findUnique: jest.fn() },
+    questionImageAsset: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
     contentItem: { create: jest.fn(), delete: jest.fn() },
   };
   const prisma = {
@@ -35,6 +42,7 @@ describe('MediaService', () => {
     createUploadUrl: jest.fn(),
     createViewUrl: jest.fn(),
     headObject: jest.fn(),
+    copyObject: jest.fn(),
     deleteObject: jest.fn(),
   };
   const teacher = { id: 'teacher-id', role: UserRole.TEACHER };
@@ -134,6 +142,75 @@ describe('MediaService', () => {
         uploadUrl: 'https://storage.example/signed-cover-upload',
       }),
     );
+  });
+
+  it('reserves one private image upload for an owned Draft question', async () => {
+    db.question.findUnique.mockResolvedValue({
+      quiz: {
+        version: {
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id' },
+        },
+      },
+    });
+    db.questionImageAsset.create.mockResolvedValue({
+      id: 'question-image-id',
+      storageKey: 'question-images/private-key',
+    });
+    storage.createUploadUrl.mockResolvedValue({
+      url: 'https://storage.example/signed-question-image-upload',
+      expiresAt: new Date('2026-08-27T01:00:00Z'),
+    });
+
+    const result = await service.initializeQuestionImageUpload(teacher, 'question-id', {
+      fileName: 'diagram.png',
+      mimeType: 'image/png',
+      sizeBytes: 500_000,
+    });
+
+    expect(db.questionImageAsset.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        questionId: 'question-id',
+        fileName: 'diagram.png',
+        mimeType: 'image/png',
+        sizeBytes: 500_000,
+        status: AssetStatus.PENDING,
+      }),
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        assetId: 'question-image-id',
+        uploadUrl: 'https://storage.example/signed-question-image-upload',
+      }),
+    );
+  });
+
+  it('marks a question image READY and returns JSON-safe metadata', async () => {
+    db.questionImageAsset.findUnique.mockResolvedValue({
+      id: 'question-image-id',
+      storageKey: 'question-images/private-key',
+      sizeBytes: 500_000n,
+      mimeType: 'image/png',
+      question: {
+        quiz: {
+          version: {
+            status: CourseVersionStatus.DRAFT,
+            course: { teacherId: 'teacher-id' },
+          },
+        },
+      },
+    });
+    storage.headObject.mockResolvedValue({ sizeBytes: 500_000, mimeType: 'image/png' });
+    db.questionImageAsset.update.mockResolvedValue({
+      id: 'question-image-id',
+      status: AssetStatus.READY,
+      sizeBytes: 500_000n,
+    });
+
+    const result = await service.completeQuestionImageUpload(teacher, 'question-image-id');
+
+    expect(result.sizeBytes).toBe(500_000);
+    expect(() => JSON.stringify(result)).not.toThrow();
   });
 
   it('rejects an individual file above 1 GiB', async () => {
@@ -237,6 +314,29 @@ describe('MediaService', () => {
 
     expect(result.sizeBytes).toBe(250_000);
     expect(() => JSON.stringify(result)).not.toThrow();
+  });
+
+  it('allows an Approver to view a published Course cover', async () => {
+    db.courseCoverAsset.findUnique.mockResolvedValue({
+      id: 'cover-id',
+      storageKey: 'course-covers/private-key',
+      status: AssetStatus.READY,
+      version: {
+        status: CourseVersionStatus.PUBLISHED,
+        course: { teacherId: 'teacher-id', allowedMajors: [] },
+      },
+    });
+    storage.createViewUrl.mockResolvedValue({
+      url: 'https://storage.example/signed-cover-view',
+      expiresAt: new Date('2026-08-27T01:00:00Z'),
+    });
+
+    await expect(
+      service.createCoverViewUrl(
+        { id: 'approver-id', role: UserRole.APPROVER },
+        'cover-id',
+      ),
+    ).resolves.toEqual(expect.objectContaining({ url: 'https://storage.example/signed-cover-view' }));
   });
 
   it('denies a view URL before Pre-Test completion', async () => {

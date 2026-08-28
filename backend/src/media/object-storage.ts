@@ -19,5 +19,7 @@ export abstract class ObjectStorage {
 
   abstract headObject(storageKey: string): Promise<StoredObjectMetadata>;
 
+  abstract copyObject(sourceStorageKey: string, destinationStorageKey: string): Promise<void>;
+
   abstract deleteObject(storageKey: string): Promise<void>;
 }

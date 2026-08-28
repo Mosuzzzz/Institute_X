@@ -1,0 +1,1 @@
+ALTER TYPE "public"."CourseVersionStatus" ADD VALUE 'APPROVED' BEFORE 'PUBLISHED';

@@ -57,6 +57,7 @@ describe('PostTestService', () => {
         id: 'question-1',
         questionText: 'Question 1',
         points: 1,
+        imageAsset: { id: 'question-image-1', status: 'READY' },
         options: [
           { id: 'option-1a', optionText: 'A', isCorrect: true },
           { id: 'option-1b', optionText: 'B', isCorrect: false },
@@ -85,6 +86,9 @@ describe('PostTestService', () => {
       }),
     });
     expect(result.attemptId).toBe('attempt-id');
+    expect(result.questions[0]).toEqual(
+      expect.objectContaining({ imageAssetId: 'question-image-1' }),
+    );
     expect(JSON.stringify(result)).not.toContain('isCorrect');
   });
 

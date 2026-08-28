@@ -9,14 +9,21 @@ import { QuizAuthoringService } from './quiz-authoring.service';
 describe('QuizAuthoringService', () => {
   const prisma = {
     courseVersion: { findUnique: jest.fn() },
-    quiz: { create: jest.fn(), findUnique: jest.fn() },
-    question: { create: jest.fn() },
+    quiz: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
+    question: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn(),
+    },
   };
+  const storage = { deleteObject: jest.fn() };
   let service: QuizAuthoringService;
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new QuizAuthoringService(prisma as never);
+    service = new QuizAuthoringService(prisma as never, storage as never);
   });
 
   describe('createQuiz', () => {
@@ -169,6 +176,208 @@ describe('QuizAuthoringService', () => {
       await expect(
         service.addQuestion({ id: 'other-id', role: UserRole.TEACHER }, 'quiz-id', input),
       ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('updateQuiz', () => {
+    it('updates an owned Draft Quiz title and duration', async () => {
+      prisma.quiz.findUnique.mockResolvedValue({
+        version: {
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id' },
+        },
+      });
+      prisma.quiz.update.mockResolvedValue({ id: 'quiz-id' });
+
+      await service.updateQuiz(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'quiz-id',
+        { title: 'Updated Pre-test', durationSeconds: 1200 },
+      );
+
+      expect(prisma.quiz.update).toHaveBeenCalledWith({
+        where: { id: 'quiz-id' },
+        data: { title: 'Updated Pre-test', durationSeconds: 1200 },
+      });
+    });
+  });
+
+  describe('updateQuestion', () => {
+    it('atomically replaces an owned Draft question and its answer options', async () => {
+      const input = {
+        questionText: 'Updated question?',
+        points: 2,
+        position: 1,
+        options: [
+          { optionText: 'Correct', isCorrect: true, position: 1 },
+          { optionText: 'Wrong', isCorrect: false, position: 2 },
+        ],
+      };
+      prisma.question.findUnique.mockResolvedValue({
+        quiz: {
+          version: {
+            status: CourseVersionStatus.DRAFT,
+            course: { teacherId: 'teacher-id' },
+          },
+        },
+      });
+      prisma.question.update.mockResolvedValue({ id: 'question-id', options: input.options });
+
+      await service.updateQuestion(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'question-id',
+        input,
+      );
+
+      expect(prisma.question.update).toHaveBeenCalledWith({
+        where: { id: 'question-id' },
+        data: {
+          questionText: 'Updated question?',
+          questionType: QuestionType.MULTIPLE_CHOICE,
+          points: 2,
+          position: 1,
+          options: {
+            deleteMany: {},
+            create: input.options,
+          },
+        },
+        include: { options: true },
+      });
+    });
+
+    it('does not update a question in a Published Version', async () => {
+      prisma.question.findUnique.mockResolvedValue({
+        quiz: {
+          version: {
+            status: CourseVersionStatus.PUBLISHED,
+            course: { teacherId: 'teacher-id' },
+          },
+        },
+      });
+
+      await expect(
+        service.updateQuestion(
+          { id: 'teacher-id', role: UserRole.TEACHER },
+          'question-id',
+          {
+            questionText: 'No',
+            points: 1,
+            position: 1,
+            options: [
+              { optionText: 'A', isCorrect: true, position: 1 },
+              { optionText: 'B', isCorrect: false, position: 2 },
+            ],
+          },
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('clearQuestions', () => {
+    it('clears every question and stored image from an owned Draft Quiz', async () => {
+      prisma.quiz.findUnique.mockResolvedValue({
+        version: {
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id' },
+        },
+        questions: [
+          { imageAsset: { storageKey: 'question-images/one' } },
+          { imageAsset: null },
+        ],
+      });
+      prisma.question.deleteMany.mockResolvedValue({ count: 2 });
+
+      await service.clearQuestions(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'quiz-id',
+      );
+
+      expect(storage.deleteObject).toHaveBeenCalledWith('question-images/one');
+      expect(prisma.question.deleteMany).toHaveBeenCalledWith({ where: { quizId: 'quiz-id' } });
+    });
+  });
+
+  describe('deleteQuestion', () => {
+    it('removes one owned Draft question and its stored image', async () => {
+      prisma.question.findUnique.mockResolvedValue({
+        quiz: {
+          version: {
+            status: CourseVersionStatus.DRAFT,
+            course: { teacherId: 'teacher-id' },
+          },
+        },
+        imageAsset: { storageKey: 'question-images/one' },
+      });
+      prisma.question.delete.mockResolvedValue({ id: 'question-id' });
+
+      await service.deleteQuestion(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'question-id',
+      );
+
+      expect(storage.deleteObject).toHaveBeenCalledWith('question-images/one');
+      expect(prisma.question.delete).toHaveBeenCalledWith({
+        where: { id: 'question-id' },
+      });
+    });
+
+    it('does not remove another Teacher question', async () => {
+      prisma.question.findUnique.mockResolvedValue({
+        quiz: {
+          version: {
+            status: CourseVersionStatus.DRAFT,
+            course: { teacherId: 'owner-id' },
+          },
+        },
+        imageAsset: null,
+      });
+
+      await expect(
+        service.deleteQuestion(
+          { id: 'other-id', role: UserRole.TEACHER },
+          'question-id',
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.question.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteQuiz', () => {
+    it('removes an owned Draft Quiz and its stored question images', async () => {
+      prisma.quiz.findUnique.mockResolvedValue({
+        version: {
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id' },
+        },
+        questions: [{ imageAsset: { storageKey: 'question-images/one' } }],
+      });
+      prisma.quiz.delete.mockResolvedValue({ id: 'quiz-id' });
+
+      await service.deleteQuiz(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'quiz-id',
+      );
+
+      expect(storage.deleteObject).toHaveBeenCalledWith('question-images/one');
+      expect(prisma.quiz.delete).toHaveBeenCalledWith({ where: { id: 'quiz-id' } });
+    });
+
+    it('does not remove a Quiz after the Version leaves Draft', async () => {
+      prisma.quiz.findUnique.mockResolvedValue({
+        version: {
+          status: CourseVersionStatus.SUBMITTED,
+          course: { teacherId: 'teacher-id' },
+        },
+        questions: [],
+      });
+
+      await expect(
+        service.deleteQuiz(
+          { id: 'teacher-id', role: UserRole.TEACHER },
+          'quiz-id',
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.quiz.delete).not.toHaveBeenCalled();
     });
   });
 });

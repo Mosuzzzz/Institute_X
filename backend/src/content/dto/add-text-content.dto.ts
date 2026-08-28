@@ -1,7 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, MinLength } from 'class-validator';
 
 export class AddTextContentDto {
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID('4')
+  sectionId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

@@ -5,6 +5,7 @@ import type { CategoryDto, EligibleCourseDto } from "../../lib/backend-api";
 import { useBackendQuery } from "../../lib/use-backend-query";
 import { useAppLanguage } from "../../lib/language";
 import { translateCategory } from "../../lib/reference-translations";
+import { courseLanguageLabel } from "../../lib/course-language";
 import ApiState from "../api-state";
 import CourseCard from "./course-card";
 import type { StudentCourse } from "./course-data";
@@ -129,6 +130,7 @@ function toStudentCourse(
     instructor: course.description ?? "Institute X learning programme",
     category,
     categorySlug: categoryRecord?.slug,
+    language: courseLanguageLabel(course.languageCode, language),
     availability: course.eligibilityMode,
     accent: palette[course.title.length % palette.length],
     mark: mark || "IX",

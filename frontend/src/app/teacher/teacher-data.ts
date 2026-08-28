@@ -1,4 +1,4 @@
-export type TeacherCourseStatus = 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'REJECTED';
+export type TeacherCourseStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'PUBLISHED' | 'UNPUBLISHED' | 'REJECTED';
 
 export type TeacherCourse = {
   id: string;
@@ -7,6 +7,7 @@ export type TeacherCourse = {
   status: TeacherCourseStatus;
   updated: string;
   category: string;
+  language: string;
   completion: number;
   note: string;
 };
@@ -19,6 +20,7 @@ export const teacherCourses: TeacherCourse[] = [
     status: 'DRAFT',
     updated: '26 Aug 2026',
     category: 'IT & Software',
+    language: 'English',
     completion: 64,
     note: 'Add Post-Test questions before submission.',
   },
@@ -29,6 +31,7 @@ export const teacherCourses: TeacherCourse[] = [
     status: 'SUBMITTED',
     updated: '24 Aug 2026',
     category: 'IT & Software',
+    language: 'English',
     completion: 100,
     note: 'Waiting for Approver review.',
   },
@@ -39,6 +42,7 @@ export const teacherCourses: TeacherCourse[] = [
     status: 'PUBLISHED',
     updated: '18 Aug 2026',
     category: 'Design',
+    language: 'English',
     completion: 100,
     note: 'Published and available to eligible Students.',
   },
@@ -49,6 +53,7 @@ export const teacherCourses: TeacherCourse[] = [
     status: 'REJECTED',
     updated: '12 Aug 2026',
     category: 'IT & Software',
+    language: 'English',
     completion: 82,
     note: 'Revision requested: clarify the final assessment.',
   },

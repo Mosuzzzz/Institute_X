@@ -211,6 +211,15 @@ describeDatabase('PostgreSQL integration', () => {
 
     await expect(
       prisma.courseVersion.findUniqueOrThrow({ where: { id: draft.id } }),
+    ).resolves.toMatchObject({ status: CourseVersionStatus.APPROVED });
+    await expect(
+      prisma.courseVersion.findUniqueOrThrow({ where: { id: versionId } }),
+    ).resolves.toMatchObject({ status: CourseVersionStatus.PUBLISHED });
+
+    await versions.republish({ id: teacherId, role: UserRole.TEACHER }, draft.id);
+
+    await expect(
+      prisma.courseVersion.findUniqueOrThrow({ where: { id: draft.id } }),
     ).resolves.toMatchObject({ status: CourseVersionStatus.PUBLISHED });
     await expect(
       prisma.courseVersion.findUniqueOrThrow({ where: { id: versionId } }),

@@ -15,7 +15,12 @@ import { CourseVersionsService } from './course-versions.service';
 
 describe('CourseVersionsService', () => {
   const db = {
-    courseVersion: { findUnique: jest.fn(), findMany: jest.fn(), updateMany: jest.fn() },
+    courseVersion: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+    },
     courseVersionReview: {
       aggregate: jest.fn(),
       create: jest.fn(),
@@ -116,6 +121,28 @@ describe('CourseVersionsService', () => {
     expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
   });
 
+  it('rejects submission while a question image is not READY', async () => {
+    db.courseVersion.findUnique.mockResolvedValue({
+      ...validDraft,
+      quizzes: [
+        {
+          quizType: QuizType.PRE_TEST,
+          questions: [
+            {
+              imageAsset: { status: AssetStatus.PENDING },
+              options: [{ isCorrect: true }, { isCorrect: false }],
+            },
+          ],
+        },
+      ],
+    });
+
+    await expect(
+      service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
+  });
+
   it('rejects an optional Post-Test that has no valid questions', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       ...validDraft,
@@ -138,15 +165,13 @@ describe('CourseVersionsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('approves and atomically publishes a submitted Version', async () => {
+  it('approves a submitted Version without publishing it automatically', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       id: 'version-id',
       courseId: 'course-id',
       status: CourseVersionStatus.SUBMITTED,
     });
-    db.courseVersion.updateMany
-      .mockResolvedValueOnce({ count: 1 })
-      .mockResolvedValueOnce({ count: 1 });
+    db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
     db.courseVersionReview.updateMany.mockResolvedValue({ count: 1 });
 
     await service.review(
@@ -156,16 +181,10 @@ describe('CourseVersionsService', () => {
     );
 
     expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
-      where: {
-        courseId: 'course-id',
-        status: CourseVersionStatus.PUBLISHED,
-      },
-      data: { status: CourseVersionStatus.SUPERSEDED },
-    });
-    expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
       where: { id: 'version-id', status: CourseVersionStatus.SUBMITTED },
-      data: expect.objectContaining({ status: CourseVersionStatus.PUBLISHED }),
+      data: { status: 'APPROVED' },
     });
+    expect(db.courseVersion.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it('requires a comment when rejecting', async () => {
@@ -250,6 +269,150 @@ describe('CourseVersionsService', () => {
     });
   });
 
+  describe('unpublish', () => {
+    it('allows the owning Teacher to unpublish a published Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        status: CourseVersionStatus.PUBLISHED,
+        course: { teacherId: 'teacher-id' },
+      });
+      db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.unpublish(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'version-id',
+      );
+
+      expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
+        where: { id: 'version-id', status: CourseVersionStatus.PUBLISHED },
+        data: { status: 'UNPUBLISHED' },
+      });
+    });
+
+    it('denies unpublishing another Teacher Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        status: CourseVersionStatus.PUBLISHED,
+        course: { teacherId: 'owner-id' },
+      });
+
+      await expect(
+        service.unpublish(
+          { id: 'other-id', role: UserRole.TEACHER },
+          'version-id',
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does not unpublish a Draft Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+      });
+
+      await expect(
+        service.unpublish(
+          { id: 'teacher-id', role: UserRole.TEACHER },
+          'version-id',
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('republish', () => {
+    it('publishes an approved Version and supersedes the currently published Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'approved-version-id',
+        courseId: 'course-id',
+        status: 'APPROVED',
+        course: { teacherId: 'teacher-id' },
+      });
+      db.courseVersion.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 1 });
+
+      await service.republish(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'approved-version-id',
+      );
+
+      expect(db.courseVersion.updateMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          courseId: 'course-id',
+          status: CourseVersionStatus.PUBLISHED,
+        },
+        data: { status: CourseVersionStatus.SUPERSEDED },
+      });
+      expect(db.courseVersion.updateMany).toHaveBeenNthCalledWith(2, {
+        where: { id: 'approved-version-id', status: 'APPROVED' },
+        data: {
+          status: CourseVersionStatus.PUBLISHED,
+          publishedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('allows the owning Teacher to publish an unpublished Version again', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        courseId: 'course-id',
+        status: CourseVersionStatus.UNPUBLISHED,
+        course: { teacherId: 'teacher-id' },
+      });
+      db.courseVersion.findFirst.mockResolvedValue(null);
+      db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.republish(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'version-id',
+      );
+
+      expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
+        where: { id: 'version-id', status: CourseVersionStatus.UNPUBLISHED },
+        data: {
+          status: CourseVersionStatus.PUBLISHED,
+          publishedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('does not replace a newer published Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'old-version-id',
+        courseId: 'course-id',
+        status: CourseVersionStatus.UNPUBLISHED,
+        course: { teacherId: 'teacher-id' },
+      });
+      db.courseVersion.findFirst.mockResolvedValue({ id: 'new-version-id' });
+
+      await expect(
+        service.republish(
+          { id: 'teacher-id', role: UserRole.TEACHER },
+          'old-version-id',
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('denies publishing another Teacher Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        courseId: 'course-id',
+        status: CourseVersionStatus.UNPUBLISHED,
+        course: { teacherId: 'owner-id' },
+      });
+
+      await expect(
+        service.republish(
+          { id: 'other-id', role: UserRole.TEACHER },
+          'version-id',
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
   describe('listSubmitted', () => {
     it('returns the oldest submitted Versions to an Approver', async () => {
       db.courseVersion.findMany.mockResolvedValue([{ id: 'version-id' }]);
@@ -272,7 +435,18 @@ describe('CourseVersionsService', () => {
               mediaAsset: { select: { id: true, fileName: true, mimeType: true, status: true } },
             },
           },
-          quizzes: { include: { questions: { include: { options: true } } } },
+          quizzes: {
+            include: {
+              questions: {
+                include: {
+                  options: true,
+                  imageAsset: {
+                    select: { id: true, fileName: true, mimeType: true, status: true },
+                  },
+                },
+              },
+            },
+          },
           reviews: { where: { decision: null }, take: 1 },
         },
         orderBy: { submittedAt: 'asc' },

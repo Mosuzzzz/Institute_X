@@ -39,6 +39,7 @@ export default function CreateCourseClient() {
         body: JSON.stringify({
           title: formData.get('title'),
           description: formData.get('description'),
+          languageCode: language,
           categoryIds,
           eligibilityMode,
           majorIds,

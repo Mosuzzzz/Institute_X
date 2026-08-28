@@ -57,6 +57,7 @@ export async function backendApi<T>(
 }
 
 export type CategoryDto = { id: string; slug: string; name: string };
+export type CourseLanguageCode = "th" | "en" | "zh-CN" | "ja";
 
 export type EligibleCourseDto = {
   courseId: string;
@@ -64,12 +65,31 @@ export type EligibleCourseDto = {
   versionId: string;
   title: string;
   description: string | null;
+  languageCode: CourseLanguageCode;
   publishedAt: string | null;
   coverAssetId: string | null;
   enrollments: number;
   enrolled: boolean;
   progress: number;
   categories: CategoryDto[];
+};
+
+export type ApproverCourseDto = {
+  courseId: string;
+  eligibilityMode: "OPEN" | "LIMITED";
+  versionId: string;
+  title: string;
+  description: string | null;
+  languageCode: CourseLanguageCode;
+  publishedAt: string | null;
+  coverAssetId: string | null;
+  enrollments: number;
+  categories: CategoryDto[];
+  teacher: {
+    id: string;
+    fullName: string;
+    universityEmail: string;
+  };
 };
 
 export type CourseEntryDto = {
@@ -83,12 +103,14 @@ export type PublishedCourseContentDto = {
   versionId: string;
   title: string;
   description: string | null;
+  languageCode: CourseLanguageCode;
   contentItems: Array<{
     id: string;
     contentType: string;
     title: string | null;
     textBody: string | null;
     position: number;
+    section: { id: string; title: string; position: number } | null;
     media: {
       assetId: string;
       fileName: string;
@@ -119,7 +141,8 @@ export type TeacherCourseDto = {
     versionNumber: number;
     title: string;
     description: string | null;
-    status: "DRAFT" | "SUBMITTED" | "PUBLISHED" | "REJECTED" | "SUPERSEDED";
+    languageCode: CourseLanguageCode;
+    status: "DRAFT" | "SUBMITTED" | "APPROVED" | "PUBLISHED" | "UNPUBLISHED" | "REJECTED" | "SUPERSEDED";
     updatedAt: string;
     reviews: Array<{ reviewComment: string | null }>;
   }>;
@@ -136,6 +159,11 @@ export type TeacherCourseDetailDto = TeacherCourseDto & {
   allowedMajors: Array<{ major: MajorDto }>;
   versions: Array<
     TeacherCourseDto["versions"][number] & {
+      sections: Array<{
+        id: string;
+        title: string;
+        position: number;
+      }>;
       coverAsset: {
         id: string;
         fileName: string;
@@ -145,8 +173,10 @@ export type TeacherCourseDetailDto = TeacherCourseDto & {
       contentItems: Array<{
         id: string;
         title: string | null;
+        textBody: string | null;
         contentType: string;
         position: number;
+        sectionId: string | null;
         mediaAsset: {
           id: string;
           fileName: string;
@@ -164,6 +194,12 @@ export type TeacherCourseDetailDto = TeacherCourseDto & {
           questionText: string;
           points: string | number;
           position: number;
+          imageAsset: {
+            id: string;
+            fileName: string;
+            mimeType: string;
+            status: "PENDING" | "READY" | "FAILED" | "DELETED";
+          } | null;
           options: Array<{
             id: string;
             optionText: string;
@@ -210,9 +246,12 @@ export type StartedQuizDto = {
   questions: Array<{
     id: string;
     questionText: string;
+    imageAssetId: string | null;
     options: Array<{ id: string; optionText: string }>;
   }>;
 };
+
+export type CreatedQuestionDto = { id: string };
 
 export type QuizSubmissionDto = {
   score: number;

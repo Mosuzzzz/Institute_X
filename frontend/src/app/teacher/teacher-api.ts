@@ -1,6 +1,7 @@
 import type { TeacherCourseDto } from '../../lib/backend-api';
 import type { Language } from '../../lib/language';
 import { translateCategory } from '../../lib/reference-translations';
+import { courseLanguageLabel } from '../../lib/course-language';
 import type { TeacherCourse } from './teacher-data';
 
 export function toTeacherCourse(course: TeacherCourseDto, language: Language = 'en'): TeacherCourse {
@@ -13,7 +14,8 @@ export function toTeacherCourse(course: TeacherCourseDto, language: Language = '
     status,
     updated: new Date(latest?.updatedAt ?? course.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     category: course.categories[0] ? translateCategory(course.categories[0].category, language) : 'Uncategorised',
-    completion: status === 'PUBLISHED' || status === 'SUBMITTED' ? 100 : 50,
+    language: courseLanguageLabel(latest?.languageCode ?? 'th', language),
+    completion: status === 'APPROVED' || status === 'PUBLISHED' || status === 'UNPUBLISHED' || status === 'SUBMITTED' ? 100 : 50,
     note: latest?.reviews[0]?.reviewComment ?? 'Course data loaded from the backend.',
   };
 }

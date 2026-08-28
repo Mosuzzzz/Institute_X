@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   backendApi,
   type CourseEntryDto,
@@ -10,8 +10,11 @@ import {
   type SignedViewUrlDto,
 } from '../../../../lib/backend-api';
 import ApiState from '../../../api-state';
+import { useAppLanguage } from '../../../../lib/language';
+import { courseLanguageLabel } from '../../../../lib/course-language';
 
 export default function CourseClient({ courseId }: { courseId: string }) {
+  const [language] = useAppLanguage();
   const [course, setCourse] = useState<EligibleCourseDto | null>(null);
   const [entry, setEntry] = useState<CourseEntryDto | null>(null);
   const [content, setContent] = useState<PublishedCourseContentDto | null>(null);
@@ -158,6 +161,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
           <dl className="mt-9 flex flex-wrap gap-x-20 gap-y-[30px]">
             <div className="grid gap-[5px]"><dt className="text-[0.72rem] tracking-[0.08em] text-[#747b92] uppercase">Enrollment</dt><dd className="m-0">Active</dd></div>
             <div className="grid gap-[5px]"><dt className="text-[0.72rem] tracking-[0.08em] text-[#747b92] uppercase">Content</dt><dd className="m-0">{entry.contentUnlocked ? 'Unlocked' : 'Pre-Test required'}</dd></div>
+            <div className="grid gap-[5px]"><dt className="text-[0.72rem] tracking-[0.08em] text-[#747b92] uppercase">Language</dt><dd className="m-0">{courseLanguageLabel(course.languageCode, language)}</dd></div>
           </dl>
           {entry.contentUnlocked && entry.postTestId ? <Link className="mt-7 inline-flex text-[0.82rem] font-bold text-[#073d78] no-underline" href={`/student/assessments/post-test/${entry.postTestId}`}>Take Post-Test →</Link> : null}
         </div>
@@ -170,7 +174,13 @@ export default function CourseClient({ courseId }: { courseId: string }) {
         {content ? (
           <ol className="m-0 list-none p-0">
             {content.contentItems.map((item, index) => (
-              <li className="border-b border-[#d9dce7]" key={item.id}>
+              <Fragment key={item.id}>
+              {(index === 0 || content.contentItems[index - 1]?.section?.id !== item.section?.id) ? (
+                <li className="border-b border-[#d9dce7] bg-[#e8edf3] px-7 py-3 text-xs font-bold tracking-[0.08em] text-[#435166] uppercase">
+                  {item.section ? `Section ${item.section.position}: ${item.section.title}` : "General"}
+                </li>
+              ) : null}
+              <li className="border-b border-[#d9dce7]">
                 <button
                   aria-pressed={selectedItem?.id === item.id}
                   className="grid w-full cursor-pointer gap-1.5 border-0 bg-transparent px-7 py-[23px] text-left text-[#20243a] hover:bg-[#eef1f6] aria-pressed:bg-[#e8eef5] focus-visible:-outline-offset-4 focus-visible:outline-3 focus-visible:outline-focus"
@@ -182,6 +192,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                   <small className="text-[#747b92]">{item.contentType}{item.media ? ` · ${item.media.fileName}` : ''}</small>
                 </button>
               </li>
+              </Fragment>
             ))}
           </ol>
         ) : (

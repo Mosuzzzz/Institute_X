@@ -56,10 +56,32 @@ export class CourseVersionsController {
     return this.versions.reopenRejected(user, versionId);
   }
 
+  @Post(':versionId/unpublish')
+  @HttpCode(204)
+  @Roles(UserRole.TEACHER)
+  @ApiNoContentResponse({ description: 'Published Version removed from active catalogs' })
+  unpublish(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('versionId', new ParseUUIDPipe({ version: '4' })) versionId: string,
+  ): ReturnType<CourseVersionsService['unpublish']> {
+    return this.versions.unpublish(user, versionId);
+  }
+
+  @Post(':versionId/publish')
+  @HttpCode(204)
+  @Roles(UserRole.TEACHER)
+  @ApiNoContentResponse({ description: 'Unpublished Version returned to active catalogs' })
+  publish(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('versionId', new ParseUUIDPipe({ version: '4' })) versionId: string,
+  ): ReturnType<CourseVersionsService['republish']> {
+    return this.versions.republish(user, versionId);
+  }
+
   @Patch(':versionId/review')
   @HttpCode(204)
   @Roles(UserRole.APPROVER)
-  @ApiNoContentResponse({ description: 'Version reviewed; approval auto-publishes' })
+  @ApiNoContentResponse({ description: 'Version reviewed; approved Versions await Teacher publication' })
   review(
     @CurrentUser() user: CurrentUserValue,
     @Param('versionId', new ParseUUIDPipe({ version: '4' })) versionId: string,

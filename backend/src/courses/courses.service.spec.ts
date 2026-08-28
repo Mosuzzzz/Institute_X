@@ -12,9 +12,25 @@ describe('CoursesService', () => {
     teacherPermissionRequest: { findFirst: jest.fn() },
     major: { count: jest.fn() },
     category: { count: jest.fn() },
-    course: { create: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
+    course: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      updateMany: jest.fn(),
+    },
     courseCategory: { createMany: jest.fn(), deleteMany: jest.fn() },
-    courseVersion: { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() },
+    courseSection: { create: jest.fn() },
+    contentItem: { updateMany: jest.fn() },
+    courseVersion: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+  };
+  const storage = {
+    copyObject: jest.fn(),
+    deleteObject: jest.fn(),
   };
   const prisma = {
     ...db,
@@ -24,10 +40,25 @@ describe('CoursesService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new CoursesService(prisma as never);
+    service = new CoursesService(prisma as never, storage as never);
   });
 
   describe('getOwnedDetail', () => {
+    it('treats an archived Course as deleted', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'teacher-id',
+        archivedAt: new Date('2026-08-27T00:00:00Z'),
+        allowedMajors: [],
+        categories: [],
+        versions: [],
+      });
+
+      await expect(
+        service.getOwnedDetail({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
     it('selects JSON-safe media fields without BigInt sizeBytes', async () => {
       db.course.findUnique.mockResolvedValue({
         id: 'course-id',
@@ -75,6 +106,7 @@ describe('CoursesService', () => {
     const input = {
       title: 'Network Fundamentals',
       description: 'Introduction to networking',
+      languageCode: 'en',
       eligibilityMode: 'LIMITED' as const,
       majorIds: ['major-it', 'major-electronics'],
       categoryIds: ['category-technology'],
@@ -112,6 +144,7 @@ describe('CoursesService', () => {
               versionNumber: 1,
               title: input.title,
               description: input.description,
+              languageCode: 'en',
               status: CourseVersionStatus.DRAFT,
             },
           },
@@ -233,11 +266,12 @@ describe('CoursesService', () => {
 
       await service.updateDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id', {
         title: 'Updated title',
+        languageCode: 'ja',
       });
 
       expect(db.courseVersion.update).toHaveBeenCalledWith({
         where: { id: 'version-id' },
-        data: { title: 'Updated title' },
+        data: { title: 'Updated title', languageCode: 'ja' },
       });
     });
 
@@ -281,6 +315,115 @@ describe('CoursesService', () => {
   });
 
   describe('createRevision', () => {
+    it('copies the old content, assessments, cover, and question images into the Draft', async () => {
+      db.course.findUnique.mockResolvedValue({
+        teacherId: 'teacher-id',
+        versions: [
+          {
+            versionNumber: 1,
+            title: 'Published title',
+            description: 'Published description',
+            languageCode: 'th',
+            status: CourseVersionStatus.PUBLISHED,
+            coverAsset: {
+              fileName: 'cover.webp',
+              mimeType: 'image/webp',
+              storageKey: 'course-covers/old-cover',
+              sizeBytes: 100n,
+              status: 'READY',
+            },
+            contentItems: [
+              {
+                contentType: 'VIDEO',
+                title: 'Lesson',
+                textBody: null,
+                position: 1,
+                mediaAsset: {
+                  fileName: 'lesson.mp4',
+                  mimeType: 'video/mp4',
+                  storageKey: 'courses/old-video',
+                  sizeBytes: 200n,
+                  status: 'READY',
+                },
+              },
+            ],
+            quizzes: [
+              {
+                quizType: 'PRE_TEST',
+                title: 'Pre-test',
+                durationSeconds: 600,
+                randomizeQuestions: true,
+                randomizeOptions: true,
+                questions: [
+                  {
+                    questionText: 'Question?',
+                    questionType: 'MULTIPLE_CHOICE',
+                    points: 1,
+                    position: 1,
+                    imageAsset: {
+                      fileName: 'question.webp',
+                      mimeType: 'image/webp',
+                      storageKey: 'question-images/old-image',
+                      sizeBytes: 50n,
+                      status: 'READY',
+                    },
+                    options: [
+                      { optionText: 'Yes', isCorrect: true, position: 1 },
+                      { optionText: 'No', isCorrect: false, position: 2 },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      db.courseVersion.create.mockResolvedValue({ id: 'draft-id' });
+
+      await service.createRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id');
+
+      expect(storage.copyObject).toHaveBeenCalledTimes(3);
+      expect(storage.copyObject).toHaveBeenCalledWith(
+        'course-covers/old-cover',
+        expect.stringMatching(/^course-covers\//),
+      );
+      expect(db.courseVersion.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          coverAsset: { create: expect.objectContaining({ fileName: 'cover.webp' }) },
+          contentItems: {
+            create: [
+              expect.objectContaining({
+                title: 'Lesson',
+                mediaAsset: { create: expect.objectContaining({ fileName: 'lesson.mp4' }) },
+              }),
+            ],
+          },
+          quizzes: {
+            create: [
+              expect.objectContaining({
+                quizType: 'PRE_TEST',
+                questions: {
+                  create: [
+                    expect.objectContaining({
+                      questionText: 'Question?',
+                      imageAsset: {
+                        create: expect.objectContaining({ fileName: 'question.webp' }),
+                      },
+                      options: {
+                        create: expect.arrayContaining([
+                          expect.objectContaining({ optionText: 'Yes' }),
+                        ]),
+                      },
+                    }),
+                  ],
+                },
+              }),
+            ],
+          },
+        }),
+      });
+    });
+
     it('creates the next Draft from published metadata without changing the published Version', async () => {
       db.course.findUnique.mockResolvedValue({
         teacherId: 'teacher-id',
@@ -315,10 +458,73 @@ describe('CoursesService', () => {
           versionNumber: 3,
           title: 'Published title',
           description: 'Published description',
+          languageCode: 'th',
           status: CourseVersionStatus.DRAFT,
         },
       });
       expect(db.courseVersion.update).not.toHaveBeenCalled();
+    });
+
+    it('copies Sections and reconnects their Lectures in the new Draft', async () => {
+      db.course.findUnique.mockResolvedValue({
+        teacherId: 'teacher-id',
+        versions: [
+          {
+            versionNumber: 1,
+            title: 'Published title',
+            description: 'Published description',
+            languageCode: 'en',
+            status: CourseVersionStatus.PUBLISHED,
+            contentItems: [],
+            sections: [
+              {
+                title: 'Section 1',
+                position: 1,
+                contentItems: [
+                  {
+                    contentType: 'TEXT',
+                    title: 'Lecture 1',
+                    textBody: 'Introduction',
+                    position: 1,
+                    mediaAsset: null,
+                  },
+                  {
+                    contentType: 'TEXT',
+                    title: 'Lecture 2',
+                    textBody: 'Practice',
+                    position: 2,
+                    mediaAsset: null,
+                  },
+                ],
+              },
+            ],
+            quizzes: [],
+          },
+        ],
+      });
+      db.courseVersion.create.mockResolvedValue({ id: 'draft-id' });
+      db.courseSection.create.mockResolvedValue({ id: 'new-section-id' });
+      db.contentItem.updateMany.mockResolvedValue({ count: 2 });
+
+      await service.createRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id');
+
+      expect(db.courseVersion.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          contentItems: {
+            create: [
+              expect.objectContaining({ title: 'Lecture 1', position: 1 }),
+              expect.objectContaining({ title: 'Lecture 2', position: 2 }),
+            ],
+          },
+        }),
+      });
+      expect(db.courseSection.create).toHaveBeenCalledWith({
+        data: { versionId: 'draft-id', title: 'Section 1', position: 1 },
+      });
+      expect(db.contentItem.updateMany).toHaveBeenCalledWith({
+        where: { versionId: 'draft-id', position: { in: [1, 2] } },
+        data: { sectionId: 'new-section-id' },
+      });
     });
 
     it('prevents multiple active revisions', async () => {
@@ -342,12 +548,83 @@ describe('CoursesService', () => {
       expect(db.courseVersion.create).not.toHaveBeenCalled();
     });
 
+    it('creates a Draft revision from an unpublished Version', async () => {
+      db.course.findUnique.mockResolvedValue({
+        teacherId: 'teacher-id',
+        versions: [
+          {
+            id: 'unpublished-id',
+            versionNumber: 2,
+            title: 'Unpublished title',
+            description: 'Needs correction',
+            status: 'UNPUBLISHED',
+          },
+        ],
+      });
+      db.courseVersion.create.mockResolvedValue({
+        id: 'draft-id',
+        versionNumber: 3,
+        status: CourseVersionStatus.DRAFT,
+      });
+
+      await service.createRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id');
+
+      expect(db.courseVersion.create).toHaveBeenCalledWith({
+        data: {
+          courseId: 'course-id',
+          versionNumber: 3,
+          title: 'Unpublished title',
+          description: 'Needs correction',
+          languageCode: 'th',
+          status: CourseVersionStatus.DRAFT,
+        },
+      });
+    });
+
     it('denies revision creation by another Teacher', async () => {
       db.course.findUnique.mockResolvedValue({ teacherId: 'owner-id', versions: [] });
 
       await expect(
         service.createRevision({ id: 'other-id', role: UserRole.TEACHER }, 'course-id'),
       ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('cancelRevision', () => {
+    it('deletes an owned Draft revision and its copied objects', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'draft-id',
+        versionNumber: 2,
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+        coverAsset: { storageKey: 'course-covers/copied' },
+        contentItems: [{ mediaAsset: { storageKey: 'courses/copied' } }],
+        quizzes: [{ questions: [{ imageAsset: { storageKey: 'question-images/copied' } }] }],
+      });
+      db.courseVersion.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.cancelRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id');
+
+      expect(db.courseVersion.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'draft-id', status: CourseVersionStatus.DRAFT },
+      });
+      expect(storage.deleteObject).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not cancel the original Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'draft-id',
+        versionNumber: 1,
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+        coverAsset: null,
+        contentItems: [],
+        quizzes: [],
+      });
+
+      await expect(
+        service.cancelRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id'),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 
@@ -359,7 +636,7 @@ describe('CoursesService', () => {
         service.listOwned({ id: 'teacher-id', role: UserRole.TEACHER }),
       ).resolves.toEqual([{ id: 'course-id', versions: [] }]);
       expect(db.course.findMany).toHaveBeenCalledWith({
-        where: { teacherId: 'teacher-id' },
+        where: { teacherId: 'teacher-id', archivedAt: null },
         include: {
           allowedMajors: {
             include: { major: { select: { id: true, code: true, name: true } } },
@@ -407,6 +684,103 @@ describe('CoursesService', () => {
           { courseId: 'course-id', categoryId: 'category-b' },
         ],
       });
+    });
+  });
+
+  describe('archiveCourse', () => {
+    it('allows a Teacher to delete only their own Course', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'teacher-id',
+        archivedAt: null,
+      });
+      db.course.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.archiveCourse({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id');
+
+      expect(db.course.updateMany).toHaveBeenCalledWith({
+        where: { id: 'course-id', archivedAt: null },
+        data: { archivedAt: expect.any(Date) },
+      });
+    });
+
+    it('denies a Teacher deleting another Teacher Course', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'owner-teacher-id',
+        archivedAt: null,
+      });
+
+      await expect(
+        service.archiveCourse({ id: 'other-teacher-id', role: UserRole.TEACHER }, 'course-id'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(db.course.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('allows an Approver to delete any Course', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'teacher-id',
+        archivedAt: null,
+      });
+      db.course.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.archiveCourse({ id: 'approver-id', role: UserRole.APPROVER }, 'course-id');
+
+      expect(db.course.updateMany).toHaveBeenCalledWith({
+        where: { id: 'course-id', archivedAt: null },
+        data: { archivedAt: expect.any(Date) },
+      });
+    });
+  });
+
+  describe('listPublishedForApprover', () => {
+    it('returns every non-archived published Course without Major filtering', async () => {
+      db.course.findMany.mockResolvedValue([
+        {
+          id: 'course-id',
+          eligibilityMode: 'LIMITED',
+          teacher: { id: 'teacher-id', fullName: 'Test Teacher' },
+          categories: [{ category: { id: 'category-id', slug: 'english', name: 'English' } }],
+          versions: [
+            {
+              id: 'version-id',
+              title: 'English Course',
+              description: 'Description',
+              languageCode: 'en',
+              publishedAt: new Date('2026-08-27T00:00:00Z'),
+              coverAsset: { id: 'cover-id', status: 'READY' },
+            },
+          ],
+          _count: { enrollments: 5 },
+        },
+      ]);
+
+      await expect(
+        service.listPublishedForApprover({ id: 'approver-id', role: UserRole.APPROVER }),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          courseId: 'course-id',
+          title: 'English Course',
+          languageCode: 'en',
+          coverAssetId: 'cover-id',
+          enrollments: 5,
+        }),
+      ]);
+      expect(db.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            archivedAt: null,
+            versions: { some: { status: CourseVersionStatus.PUBLISHED } },
+          },
+        }),
+      );
+    });
+
+    it('denies the Approver catalog to Teachers', async () => {
+      await expect(
+        service.listPublishedForApprover({ id: 'teacher-id', role: UserRole.TEACHER }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
 });

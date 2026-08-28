@@ -34,12 +34,14 @@ export interface PublishedCourseContent {
   versionId: string;
   title: string;
   description: string | null;
+  languageCode: string;
   contentItems: Array<{
     id: string;
     contentType: ContentType;
     title: string | null;
     textBody: string | null;
     position: number;
+    section: { id: string; title: string; position: number } | null;
     media: {
       assetId: string;
       fileName: string;
@@ -55,6 +57,7 @@ export interface EligibleCourseSummary {
   versionId: string;
   title: string;
   description: string | null;
+  languageCode: string;
   publishedAt: Date | null;
   coverAssetId: string | null;
   enrollments: number;
@@ -95,6 +98,7 @@ export class CourseAccessService {
             id: true,
             title: true,
             description: true,
+            languageCode: true,
             publishedAt: true,
             coverAsset: { select: { id: true, status: true } },
             quizzes: {
@@ -134,6 +138,7 @@ export class CourseAccessService {
               versionId: version.id,
               title: version.title,
               description: version.description,
+              languageCode: version.languageCode,
               publishedAt: version.publishedAt,
               coverAssetId:
                 version.coverAsset?.status === AssetStatus.READY ? version.coverAsset.id : null,
@@ -209,10 +214,9 @@ export class CourseAccessService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.courseEnrollment.upsert({
-        where: { courseId_studentId: { courseId, studentId: student.id } },
-        create: { courseId, studentId: student.id },
-        update: {},
+      await tx.courseEnrollment.createMany({
+        data: [{ courseId, studentId: student.id }],
+        skipDuplicates: true,
       });
       await tx.courseAccessEvent.create({
         data: { courseId, studentId: student.id },
@@ -254,6 +258,7 @@ export class CourseAccessService {
             id: true,
             title: true,
             description: true,
+            languageCode: true,
             quizzes: {
               where: { quizType: QuizType.PRE_TEST },
               take: 1,
@@ -277,6 +282,7 @@ export class CourseAccessService {
                 title: true,
                 textBody: true,
                 position: true,
+                section: { select: { id: true, title: true, position: true } },
                 mediaAsset: {
                   select: {
                     id: true,
@@ -310,12 +316,14 @@ export class CourseAccessService {
       versionId: version.id,
       title: version.title,
       description: version.description,
+      languageCode: version.languageCode,
       contentItems: version.contentItems.map((item) => ({
         id: item.id,
         contentType: item.contentType,
         title: item.title,
         textBody: item.textBody,
         position: item.position,
+        section: item.section,
         media:
           item.mediaAsset?.status === AssetStatus.READY
             ? {

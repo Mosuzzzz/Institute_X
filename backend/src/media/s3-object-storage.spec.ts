@@ -1,4 +1,5 @@
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -80,5 +81,19 @@ describe('S3ObjectStorage', () => {
     expect(client.send).toHaveBeenCalledWith(expect.any(DeleteObjectCommand));
     const command = client.send.mock.calls[0][0] as DeleteObjectCommand;
     expect(command.input).toEqual({ Bucket: 'institute-x-private', Key: 'courses/key' });
+  });
+
+  it('copies an existing private object to a new storage key', async () => {
+    client.send.mockResolvedValue({});
+
+    await storage.copyObject('courses/old file.mp4', 'courses/new-file.mp4');
+
+    expect(client.send).toHaveBeenCalledWith(expect.any(CopyObjectCommand));
+    const command = client.send.mock.calls[0][0] as CopyObjectCommand;
+    expect(command.input).toEqual({
+      Bucket: 'institute-x-private',
+      CopySource: 'institute-x-private/courses/old%20file.mp4',
+      Key: 'courses/new-file.mp4',
+    });
   });
 });

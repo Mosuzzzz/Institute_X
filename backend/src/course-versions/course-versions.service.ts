@@ -35,7 +35,18 @@ type SubmittedVersion = Prisma.CourseVersionGetPayload<{
         mediaAsset: { select: { id: true; fileName: true; mimeType: true; status: true } };
       };
     };
-    quizzes: { include: { questions: { include: { options: true } } } };
+    quizzes: {
+      include: {
+        questions: {
+          include: {
+            options: true;
+            imageAsset: {
+              select: { id: true; fileName: true; mimeType: true; status: true };
+            };
+          };
+        };
+      };
+    };
     reviews: true;
   };
 }>;
@@ -61,7 +72,18 @@ export class CourseVersionsService {
             mediaAsset: { select: { id: true, fileName: true, mimeType: true, status: true } },
           },
         },
-        quizzes: { include: { questions: { include: { options: true } } } },
+        quizzes: {
+          include: {
+            questions: {
+              include: {
+                options: true,
+                imageAsset: {
+                  select: { id: true, fileName: true, mimeType: true, status: true },
+                },
+              },
+            },
+          },
+        },
         reviews: { where: { decision: null }, take: 1 },
       },
       orderBy: { submittedAt: 'asc' },
@@ -82,7 +104,14 @@ export class CourseVersionsService {
           },
         },
         quizzes: {
-          include: { questions: { include: { options: true } } },
+          include: {
+            questions: {
+              include: {
+                options: true,
+                imageAsset: { select: { status: true } },
+              },
+            },
+          },
         },
       },
     });
@@ -145,23 +174,12 @@ export class CourseVersionsService {
 
     await this.prisma.$transaction(async (tx) => {
       const reviewedAt = new Date();
-      if (decision === ReviewDecision.APPROVED) {
-        await tx.courseVersion.updateMany({
-          where: {
-            courseId: version.courseId,
-            status: CourseVersionStatus.PUBLISHED,
-          },
-          data: { status: CourseVersionStatus.SUPERSEDED },
-        });
-      }
-
       const updated = await tx.courseVersion.updateMany({
         where: { id: versionId, status: CourseVersionStatus.SUBMITTED },
         data:
           decision === ReviewDecision.APPROVED
             ? {
-                status: CourseVersionStatus.PUBLISHED,
-                publishedAt: reviewedAt,
+                status: CourseVersionStatus.APPROVED,
               }
             : { status: CourseVersionStatus.REJECTED },
       });
@@ -212,6 +230,111 @@ export class CourseVersionsService {
     }
   }
 
+  async unpublish(actor: VersionActor, versionId: string): Promise<void> {
+    this.requireRole(actor, UserRole.TEACHER);
+    const version = await this.prisma.courseVersion.findUnique({
+      where: { id: versionId },
+      select: {
+        status: true,
+        course: { select: { teacherId: true } },
+      },
+    });
+    if (!version) {
+      throw new NotFoundException('Course Version was not found');
+    }
+    if (version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may unpublish this Version');
+    }
+    if (version.status !== CourseVersionStatus.PUBLISHED) {
+      throw new ConflictException('Only a published Version may be unpublished');
+    }
+
+    const updated = await this.prisma.courseVersion.updateMany({
+      where: { id: versionId, status: CourseVersionStatus.PUBLISHED },
+      data: { status: CourseVersionStatus.UNPUBLISHED },
+    });
+    if (updated.count !== 1) {
+      throw new ConflictException('Version state changed concurrently');
+    }
+  }
+
+  async republish(actor: VersionActor, versionId: string): Promise<void> {
+    this.requireRole(actor, UserRole.TEACHER);
+    const version = await this.prisma.courseVersion.findUnique({
+      where: { id: versionId },
+      select: {
+        id: true,
+        courseId: true,
+        status: true,
+        course: { select: { teacherId: true } },
+      },
+    });
+    if (!version) {
+      throw new NotFoundException('Course Version was not found');
+    }
+    if (version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may publish this Version');
+    }
+    if (
+      version.status !== CourseVersionStatus.APPROVED &&
+      version.status !== CourseVersionStatus.UNPUBLISHED
+    ) {
+      throw new ConflictException('Only an approved or unpublished Version may be published');
+    }
+
+    if (version.status === CourseVersionStatus.APPROVED) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.courseVersion.updateMany({
+          where: {
+            courseId: version.courseId,
+            status: CourseVersionStatus.PUBLISHED,
+          },
+          data: { status: CourseVersionStatus.SUPERSEDED },
+        });
+        const updated = await tx.courseVersion.updateMany({
+          where: { id: versionId, status: CourseVersionStatus.APPROVED },
+          data: {
+            status: CourseVersionStatus.PUBLISHED,
+            publishedAt: new Date(),
+          },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException('Version state changed concurrently');
+        }
+      });
+      return;
+    }
+
+    const currentPublished = await this.prisma.courseVersion.findFirst({
+      where: {
+        courseId: version.courseId,
+        status: CourseVersionStatus.PUBLISHED,
+      },
+      select: { id: true },
+    });
+    if (currentPublished) {
+      throw new ConflictException('This Course already has a published Version');
+    }
+
+    try {
+      const updated = await this.prisma.courseVersion.updateMany({
+        where: { id: versionId, status: CourseVersionStatus.UNPUBLISHED },
+        data: {
+          status: CourseVersionStatus.PUBLISHED,
+          publishedAt: new Date(),
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException('Version state changed concurrently');
+      }
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('This Course already has a published Version');
+      }
+      throw error;
+    }
+  }
+
   private validateSubmission(version: {
     course: { eligibilityMode: CourseEligibilityMode; allowedMajors: unknown[] };
     contentItems: Array<{
@@ -220,7 +343,10 @@ export class CourseVersionsService {
     }>;
     quizzes: Array<{
       quizType: QuizType;
-      questions: Array<{ options: Array<{ isCorrect: boolean }> }>;
+      questions: Array<{
+        imageAsset?: { status: AssetStatus } | null;
+        options: Array<{ isCorrect: boolean }>;
+      }>;
     }>;
   }): void {
     if (
@@ -249,6 +375,11 @@ export class CourseVersionsService {
         throw new UnprocessableEntityException(`${quiz.quizType} requires at least one question`);
       }
       for (const question of quiz.questions) {
+        if (question.imageAsset && question.imageAsset.status !== AssetStatus.READY) {
+          throw new UnprocessableEntityException(
+            'Every question image must be READY before submission',
+          );
+        }
         if (
           question.options.length < 2 ||
           question.options.filter((option) => option.isCorrect).length !== 1

@@ -16,7 +16,7 @@ import { CourseAccessService } from './course-access.service';
 
 describe('CourseAccessService', () => {
   const db = {
-    courseEnrollment: { upsert: jest.fn() },
+    courseEnrollment: { upsert: jest.fn(), createMany: jest.fn() },
     courseAccessEvent: { create: jest.fn() },
   };
   const prisma = {
@@ -65,20 +65,14 @@ describe('CourseAccessService', () => {
 
   it('enrolls an eligible Student once and records every Course entry', async () => {
     prisma.course.findUnique.mockResolvedValue(accessibleCourse);
-    db.courseEnrollment.upsert.mockResolvedValue({ id: 'enrollment-id' });
+    db.courseEnrollment.createMany.mockResolvedValue({ count: 1 });
     db.courseAccessEvent.create.mockResolvedValue({ id: 'event-id' });
 
     const result = await service.enterCourse(student, 'course-id');
 
-    expect(db.courseEnrollment.upsert).toHaveBeenCalledWith({
-      where: {
-        courseId_studentId: {
-          courseId: 'course-id',
-          studentId: 'student-id',
-        },
-      },
-      create: { courseId: 'course-id', studentId: 'student-id' },
-      update: {},
+    expect(db.courseEnrollment.createMany).toHaveBeenCalledWith({
+      data: [{ courseId: 'course-id', studentId: 'student-id' }],
+      skipDuplicates: true,
     });
     expect(db.courseAccessEvent.create).toHaveBeenCalledWith({
       data: { courseId: 'course-id', studentId: 'student-id' },
@@ -88,6 +82,19 @@ describe('CourseAccessService', () => {
       preTestId: 'pre-test-id',
       postTestId: 'post-test-id',
       contentUnlocked: false,
+    });
+  });
+
+  it('still records entry when a concurrent request already created the enrollment', async () => {
+    prisma.course.findUnique.mockResolvedValue(accessibleCourse);
+    db.courseEnrollment.createMany.mockResolvedValue({ count: 0 });
+    db.courseAccessEvent.create.mockResolvedValue({ id: 'event-id' });
+
+    await expect(service.enterCourse(student, 'course-id')).resolves.toEqual(
+      expect.objectContaining({ versionId: 'published-version' }),
+    );
+    expect(db.courseAccessEvent.create).toHaveBeenCalledWith({
+      data: { courseId: 'course-id', studentId: 'student-id' },
     });
   });
 
@@ -112,7 +119,7 @@ describe('CourseAccessService', () => {
         },
       ],
     });
-    db.courseEnrollment.upsert.mockResolvedValue({ id: 'enrollment-id' });
+    db.courseEnrollment.createMany.mockResolvedValue({ count: 1 });
     db.courseAccessEvent.create.mockResolvedValue({ id: 'event-id' });
 
     await expect(service.enterCourse(student, 'course-id')).resolves.toEqual({
@@ -129,7 +136,7 @@ describe('CourseAccessService', () => {
     await expect(
       service.enterCourse({ ...student, majorId: 'major-business' }, 'course-id'),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(db.courseEnrollment.upsert).not.toHaveBeenCalled();
+    expect(db.courseEnrollment.createMany).not.toHaveBeenCalled();
     expect(db.courseAccessEvent.create).not.toHaveBeenCalled();
   });
 
@@ -139,7 +146,7 @@ describe('CourseAccessService', () => {
       eligibilityMode: 'OPEN',
       allowedMajors: [],
     });
-    db.courseEnrollment.upsert.mockResolvedValue({ id: 'enrollment-id' });
+    db.courseEnrollment.createMany.mockResolvedValue({ count: 1 });
     db.courseAccessEvent.create.mockResolvedValue({ id: 'event-id' });
 
     await expect(
@@ -193,6 +200,7 @@ describe('CourseAccessService', () => {
           id: 'published-version',
           title: 'Network Fundamentals',
           description: 'Course description',
+          languageCode: 'en',
           quizzes: [{ attempts: [{ id: 'pre-attempt' }] }],
           contentItems: [
             {
@@ -229,6 +237,7 @@ describe('CourseAccessService', () => {
         versionId: 'published-version',
         title: 'Network Fundamentals',
         description: 'Course description',
+        languageCode: 'en',
         contentItems: [
           {
             id: 'text-id',
@@ -316,6 +325,7 @@ describe('CourseAccessService', () => {
               id: 'version-id',
               title: 'Network Fundamentals',
               description: 'Introduction',
+              languageCode: 'en',
               publishedAt: new Date('2026-08-25T00:00:00.000Z'),
               coverAsset: { id: 'cover-id', status: AssetStatus.READY },
               quizzes: [
@@ -337,6 +347,7 @@ describe('CourseAccessService', () => {
           versionId: 'version-id',
           title: 'Network Fundamentals',
           description: 'Introduction',
+          languageCode: 'en',
           publishedAt: new Date('2026-08-25T00:00:00.000Z'),
           coverAssetId: 'cover-id',
           enrollments: 25,

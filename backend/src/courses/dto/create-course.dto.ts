@@ -3,6 +3,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -23,6 +24,16 @@ export class CreateCourseDto {
   @IsString()
   @MaxLength(10_000)
   description?: string;
+
+  @ApiPropertyOptional({
+    enum: ['th', 'en', 'zh-CN', 'ja'],
+    default: 'th',
+    description: 'Primary language used to teach this Course',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['th', 'en', 'zh-CN', 'ja'])
+  languageCode?: string;
 
   @ApiProperty({ enum: CourseEligibilityMode, default: CourseEligibilityMode.OPEN })
   @IsEnum(CourseEligibilityMode)

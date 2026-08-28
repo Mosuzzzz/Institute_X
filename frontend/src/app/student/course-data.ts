@@ -4,6 +4,7 @@ export type StudentCourse = {
   instructor: string;
   category: string;
   categorySlug?: string;
+  language: string;
   availability: "OPEN" | "LIMITED";
   accent: string;
   mark: string;
@@ -30,6 +31,7 @@ export const courses: StudentCourse[] = [
     title: "Full-Stack Web Development Foundations",
     instructor: "Institute X Computing Faculty",
     category: "IT & Software",
+    language: "English",
     availability: "LIMITED",
     accent: "#f2c94c",
     mark: "WEB",
@@ -39,6 +41,7 @@ export const courses: StudentCourse[] = [
     title: "Python Programming: From Zero to Practice",
     instructor: "Institute X Computing Faculty",
     category: "IT & Software",
+    language: "English",
     availability: "OPEN",
     accent: "#58b9c9",
     mark: "PY",
@@ -49,6 +52,7 @@ export const courses: StudentCourse[] = [
     title: "Modern JavaScript: From Zero to Expert",
     instructor: "Institute X Computing Faculty",
     category: "IT & Software",
+    language: "English",
     availability: "LIMITED",
     accent: "#f4d03f",
     mark: "JS",
@@ -58,6 +62,7 @@ export const courses: StudentCourse[] = [
     title: "50 Frontend Projects with HTML, CSS & JavaScript",
     instructor: "Institute X Digital Learning Team",
     category: "Design",
+    language: "English",
     availability: "OPEN",
     accent: "#ef744b",
     mark: "50",
@@ -67,6 +72,7 @@ export const courses: StudentCourse[] = [
     title: "Succeed in the Age of AI",
     instructor: "Institute X Innovation Centre",
     category: "Personal Development",
+    language: "English",
     availability: "LIMITED",
     accent: "#c96dd8",
     mark: "AI",
@@ -76,6 +82,7 @@ export const courses: StudentCourse[] = [
     title: "Rust Mastery Saga: Unlocking Backend Power",
     instructor: "Institute X Computing Faculty",
     category: "IT & Software",
+    language: "Thai",
     availability: "LIMITED",
     accent: "#e87f45",
     mark: "RS",

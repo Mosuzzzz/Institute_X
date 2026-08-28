@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  AssetStatus,
   CourseEligibilityMode,
   CourseVersionStatus,
   Prisma,
@@ -32,6 +33,7 @@ interface SubmittedAnswer {
 interface PresentedQuestion {
   id: string;
   questionText: string;
+  imageAssetId: string | null;
   options: Array<{ id: string; optionText: string }>;
 }
 
@@ -57,7 +59,13 @@ const resumableAttemptSelect = {
     orderBy: { displayPosition: 'asc' as const },
     select: {
       displayPosition: true,
-      question: { select: { id: true, questionText: true } },
+      question: {
+        select: {
+          id: true,
+          questionText: true,
+          imageAsset: { select: { id: true, status: true } },
+        },
+      },
     },
   },
   presentedOptions: {
@@ -99,7 +107,10 @@ export class PreTestService {
             },
           },
         },
-        questions: { include: { options: true }, orderBy: { position: 'asc' } },
+        questions: {
+          include: { options: true, imageAsset: true },
+          orderBy: { position: 'asc' },
+        },
       },
     });
     if (!quiz || quiz.quizType !== QuizType.PRE_TEST) {
@@ -182,6 +193,8 @@ export class PreTestService {
         questions: presented.map((question) => ({
           id: question.id,
           questionText: question.questionText,
+          imageAssetId:
+            question.imageAsset?.status === AssetStatus.READY ? question.imageAsset.id : null,
           options: question.options.map((option) => ({
             id: option.id,
             optionText: option.optionText,
@@ -234,6 +247,8 @@ export class PreTestService {
       questions: attempt.presentedQuestions.map(({ question }) => ({
         id: question.id,
         questionText: question.questionText,
+        imageAssetId:
+          question.imageAsset?.status === AssetStatus.READY ? question.imageAsset.id : null,
         options: optionsByQuestion.get(question.id) ?? [],
       })),
     };

@@ -1,21 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import {
   backendApi,
+  type CreatedQuestionDto,
   type InitializedUploadDto,
   type TeacherCourseDetailDto,
 } from "../../../../lib/backend-api";
 import { useBackendQuery } from "../../../../lib/use-backend-query";
 import ApiState from "../../../api-state";
 import CourseCoverImage from "../../../course-cover-image";
+import QuestionImage from "../../../question-image";
 import StatusBadge from "../../status-badge";
 import { useAppLanguage } from "../../../../lib/language";
 import {
   translateCategory,
   translateMajor,
 } from "../../../../lib/reference-translations";
+import {
+  COURSE_LANGUAGES,
+  courseLanguageLabel,
+} from "../../../../lib/course-language";
 
 const fieldClass =
   "min-h-11 w-full border border-[#cfd5df] bg-white px-3 py-2.5 text-sm text-[#202a38] outline-none transition focus:border-[#073d78] focus:ring-2 focus:ring-[#073d78]/15";
@@ -50,10 +57,30 @@ function QuizEditor({
 }) {
   const [correctOption, setCorrectOption] = useState("0");
 
+  async function storeQuestionImage(questionId: string, file: File) {
+    const upload = await backendApi<InitializedUploadDto>(
+      `questions/${questionId}/image/uploads`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        }),
+      },
+    );
+    await putSignedFile(upload.uploadUrl, file);
+    await backendApi(`question-images/${upload.assetId}/complete`, {
+      method: "POST",
+    });
+  }
+
   async function addQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const values = new FormData(form);
+    const image = (form.elements.namedItem("questionImage") as HTMLInputElement)
+      .files?.[0];
     const options = ["option0", "option1", "option2", "option3"]
       .map((name, index) => ({
         text: String(values.get(name) ?? "").trim(),
@@ -67,7 +94,9 @@ function QuizEditor({
           throw new Error("Add at least two answer choices.");
         if (!options.some((option) => option.index === correct))
           throw new Error("The correct answer cannot be empty.");
-        await backendApi(`quizzes/${quiz.id}/questions`, {
+        const question = await backendApi<CreatedQuestionDto>(
+          `quizzes/${quiz.id}/questions`,
+          {
           method: "POST",
           body: JSON.stringify({
             questionText: String(values.get("questionText") ?? ""),
@@ -79,13 +108,97 @@ function QuizEditor({
               position: index + 1,
             })),
           }),
-        });
+          },
+        );
+        if (image) await storeQuestionImage(question.id, image);
         form.reset();
         setCorrectOption("0");
         await onChanged();
       },
       `Question added to ${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"}.`,
     );
+  }
+
+  async function updateQuizDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const minutes = Number(values.get("minutes") ?? 0);
+    await run(async () => {
+      await backendApi(`quizzes/${quiz.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: String(values.get("title") ?? ""),
+          durationSeconds: minutes > 0 ? minutes * 60 : null,
+        }),
+      });
+      await onChanged();
+    }, `${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"} updated.`);
+  }
+
+  async function updateQuestion(
+    event: FormEvent<HTMLFormElement>,
+    question: QuizDto["questions"][number],
+  ) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    const correctIndex = Number(values.get("correctOption"));
+    const optionCount = Math.max(4, question.options.length);
+    const options = Array.from({ length: optionCount }, (_, index) => ({
+      text: String(values.get(`option${index}`) ?? "").trim(),
+      index,
+    })).filter((option) => option.text);
+    await run(async () => {
+      if (options.length < 2) throw new Error("Add at least two answer choices.");
+      if (!options.some((option) => option.index === correctIndex)) {
+        throw new Error("The correct answer cannot be empty.");
+      }
+      await backendApi(`questions/${question.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          questionText: String(values.get("questionText") ?? ""),
+          points: Number(values.get("points") ?? 1),
+          position: question.position,
+          options: options.map((option, index) => ({
+            optionText: option.text,
+            isCorrect: option.index === correctIndex,
+            position: index + 1,
+          })),
+        }),
+      });
+      await onChanged();
+    }, "Question updated.");
+  }
+
+  async function clearAllQuestions() {
+    if (!window.confirm(`Clear every question from “${quiz.title}”? This cannot be undone.`)) {
+      return;
+    }
+    await run(async () => {
+      await backendApi(`quizzes/${quiz.id}/questions`, { method: "DELETE" });
+      await onChanged();
+    }, `${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"} questions cleared.`);
+  }
+
+  async function removeQuestion(
+    question: QuizDto["questions"][number],
+  ) {
+    if (!window.confirm(`Remove “${question.questionText}”? This cannot be undone.`)) {
+      return;
+    }
+    await run(async () => {
+      await backendApi(`questions/${question.id}`, { method: "DELETE" });
+      await onChanged();
+    }, "Question removed.");
+  }
+
+  async function removeTest() {
+    if (!window.confirm(`Remove “${quiz.title}” and all of its questions? This cannot be undone.`)) {
+      return;
+    }
+    await run(async () => {
+      await backendApi(`quizzes/${quiz.id}`, { method: "DELETE" });
+      await onChanged();
+    }, `${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"} removed.`);
   }
 
   return (
@@ -106,6 +219,51 @@ function QuizEditor({
             : "Untimed"}
         </span>
       </div>
+      {!disabled ? (
+        <form
+          className="mt-5 grid gap-3 border-l-4 border-[#073d78] bg-[#f6f8fa] p-4 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end"
+          onSubmit={(event) => void updateQuizDetails(event)}
+        >
+          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+            Test title
+            <input className={fieldClass} defaultValue={quiz.title} name="title" required />
+          </label>
+          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+            Duration (minutes)
+            <input
+              className={fieldClass}
+              defaultValue={quiz.durationSeconds ? Math.ceil(quiz.durationSeconds / 60) : ""}
+              min="1"
+              name="minutes"
+              placeholder="Untimed"
+              type="number"
+            />
+          </label>
+          <button className={secondaryButton} type="submit">
+            Save test
+          </button>
+        </form>
+      ) : null}
+      {!disabled ? (
+        <div className="mt-3 flex flex-wrap justify-end gap-4">
+          {quiz.questions.length ? (
+            <button
+              className="cursor-pointer text-xs font-semibold text-[#b54708] hover:underline"
+              onClick={() => void clearAllQuestions()}
+              type="button"
+            >
+              Clear questions
+            </button>
+          ) : null}
+          <button
+            className="cursor-pointer text-xs font-semibold text-[#8f1d14] hover:underline"
+            onClick={() => void removeTest()}
+            type="button"
+          >
+            Remove test
+          </button>
+        </div>
+      ) : null}
       {quiz.questions.length ? (
         <ol className="mt-5 grid gap-3">
           {quiz.questions.map((question, index) => (
@@ -117,9 +275,149 @@ function QuizEditor({
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div>
-                <p className="text-sm font-medium text-[#202a38]">
-                  {question.questionText}
-                </p>
+                {!disabled ? (
+                  <form
+                    className="grid gap-3"
+                    onSubmit={(event) => void updateQuestion(event, question)}
+                  >
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                      Question
+                      <input
+                        className={fieldClass}
+                        defaultValue={question.questionText}
+                        name="questionText"
+                        required
+                      />
+                    </label>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {Array.from(
+                        { length: Math.max(4, question.options.length) },
+                        (_, optionIndex) => {
+                          const option = question.options[optionIndex];
+                          return (
+                            <label
+                              className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2"
+                              key={option?.id ?? optionIndex}
+                            >
+                              <input
+                                defaultChecked={option?.isCorrect ?? false}
+                                name="correctOption"
+                                required
+                                type="radio"
+                                value={optionIndex}
+                              />
+                              <input
+                                className={fieldClass}
+                                defaultValue={option?.optionText ?? ""}
+                                name={`option${optionIndex}`}
+                                placeholder={`Choice ${optionIndex + 1}${optionIndex > 1 ? " (optional)" : ""}`}
+                                required={optionIndex < 2}
+                              />
+                            </label>
+                          );
+                        },
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <label className="grid w-28 gap-1.5 text-xs font-semibold text-[#435166]">
+                        Points
+                        <input
+                          className={fieldClass}
+                          defaultValue={Number(question.points)}
+                          min="0.01"
+                          name="points"
+                          required
+                          step="0.01"
+                          type="number"
+                        />
+                      </label>
+                      <div className="flex flex-wrap items-center gap-4">
+                        <button
+                          className="cursor-pointer text-xs font-semibold text-[#8f1d14] hover:underline"
+                          onClick={() => void removeQuestion(question)}
+                          type="button"
+                        >
+                          Remove question
+                        </button>
+                        <button className={secondaryButton} type="submit">
+                          Save question
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="text-sm font-medium text-[#202a38]">
+                    {question.questionText}
+                  </p>
+                )}
+                {question.imageAsset ? (
+                  <div className="mt-3 grid max-w-md gap-2">
+                    <QuestionImage
+                      assetId={
+                        question.imageAsset.status === "READY"
+                          ? question.imageAsset.id
+                          : null
+                      }
+                      alt={`${question.questionText} illustration`}
+                      className="max-h-56 w-full border border-[#d8dde5] bg-white object-contain"
+                      fallback={
+                        <span className="text-xs font-semibold text-[#b54708]">
+                          Image {question.imageAsset.status}
+                        </span>
+                      }
+                    />
+                    {!disabled ? (
+                      <button
+                        className="w-fit cursor-pointer text-xs font-semibold text-[#8f1d14] hover:underline"
+                        onClick={() =>
+                          void run(async () => {
+                            await backendApi(
+                              `question-images/${question.imageAsset!.id}`,
+                              { method: "DELETE" },
+                            );
+                            await onChanged();
+                          }, "Question image removed.")
+                        }
+                        type="button"
+                      >
+                        Remove image
+                      </button>
+                    ) : null}
+                  </div>
+                ) : !disabled ? (
+                  <form
+                    className="mt-3 flex flex-wrap items-center gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const uploadForm = event.currentTarget;
+                      const file = (
+                        uploadForm.elements.namedItem(
+                          "existingQuestionImage",
+                        ) as HTMLInputElement
+                      ).files?.[0];
+                      if (!file) return;
+                      void run(async () => {
+                        await storeQuestionImage(question.id, file);
+                        uploadForm.reset();
+                        await onChanged();
+                      }, "Question image uploaded.");
+                    }}
+                  >
+                    <input
+                      accept="image/jpeg,image/png,image/webp"
+                      className="max-w-xs text-xs"
+                      name="existingQuestionImage"
+                      required
+                      type="file"
+                    />
+                    <button
+                      className="cursor-pointer text-xs font-semibold text-[#073d78] hover:underline"
+                      type="submit"
+                    >
+                      Add image
+                    </button>
+                  </form>
+                ) : null}
                 <p className="mt-1 text-xs text-[#747d8c]">
                   {question.options.length} choices · {Number(question.points)}{" "}
                   point(s)
@@ -142,6 +440,18 @@ function QuizEditor({
               placeholder="What should the learner understand?"
               required
             />
+          </label>
+          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+            Question image (optional)
+            <input
+              accept="image/jpeg,image/png,image/webp"
+              className={fieldClass}
+              name="questionImage"
+              type="file"
+            />
+            <span className="font-normal text-[#747d8c]">
+              JPEG, PNG, or WebP · maximum 10 MB
+            </span>
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             {[0, 1, 2, 3].map((index) => (
@@ -190,6 +500,7 @@ function QuizEditor({
 }
 
 export default function CourseDetailClient({ courseId }: { courseId: string }) {
+  const router = useRouter();
   const [language] = useAppLanguage();
   const { data, error, loading, refresh } =
     useBackendQuery<TeacherCourseDetailDto>(`courses/${courseId}`);
@@ -233,6 +544,23 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   const checks = Object.entries(data.checks);
   const nextContentPosition =
     Math.max(0, ...version.contentItems.map((item) => item.position)) + 1;
+  const nextSectionPosition =
+    Math.max(0, ...version.sections.map((section) => section.position)) + 1;
+  const publishedVersion = data.versions.find(
+    (courseVersion) => courseVersion.status === "PUBLISHED",
+  );
+  const unpublishedVersion = data.versions.find(
+    (courseVersion) => courseVersion.status === "UNPUBLISHED",
+  );
+  const approvedVersion = data.versions.find(
+    (courseVersion) => courseVersion.status === "APPROVED",
+  );
+  const publishableVersion =
+    approvedVersion ?? (!publishedVersion ? unpublishedVersion : undefined);
+  const canCreateRevision =
+    version.status === "APPROVED" ||
+    version.status === "PUBLISHED" ||
+    version.status === "UNPUBLISHED";
 
   async function uploadCover(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -261,6 +589,22 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
     }, "Course cover uploaded.");
   }
 
+  async function updateCourseDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    await run(async () => {
+      await backendApi(`course-versions/${version.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: String(values.get("title") ?? ""),
+          description: String(values.get("description") ?? ""),
+          languageCode: String(values.get("languageCode") ?? "th"),
+        }),
+      });
+      await refresh();
+    }, "Course details updated.");
+  }
+
   async function addText(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -271,12 +615,48 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         body: JSON.stringify({
           title: String(values.get("title") ?? ""),
           textBody: String(values.get("textBody") ?? ""),
+          sectionId: String(values.get("sectionId") ?? "") || undefined,
           position: nextContentPosition,
         }),
       });
       form.reset();
       await refresh();
     }, "Text lesson added.");
+  }
+
+  async function createSection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    await run(async () => {
+      await backendApi(`course-versions/${version.id}/sections`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: String(values.get("title") ?? ""),
+          position: nextSectionPosition,
+        }),
+      });
+      form.reset();
+      await refresh();
+    }, "Section added.");
+  }
+
+  async function updateTextContent(
+    event: FormEvent<HTMLFormElement>,
+    contentId: string,
+  ) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    await run(async () => {
+      await backendApi(`content/${contentId}/text`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: String(values.get("title") ?? ""),
+          textBody: String(values.get("textBody") ?? ""),
+        }),
+      });
+      await refresh();
+    }, "Text lesson updated.");
   }
 
   async function addMedia(event: FormEvent<HTMLFormElement>) {
@@ -298,6 +678,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             mimeType: file.type,
             sizeBytes: file.size,
             position: nextContentPosition,
+            sectionId: String(values.get("sectionId") ?? "") || undefined,
           }),
         },
       );
@@ -345,6 +726,58 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
     }, "Rejected Version reopened as a Draft.");
   }
 
+  async function startRevision() {
+    await run(async () => {
+      await backendApi(`courses/${courseId}/versions`, { method: "POST" });
+      await refresh();
+    }, "Draft revision created. You can now update the Course.");
+  }
+
+  async function cancelRevision() {
+    if (!window.confirm("Cancel this edit? All changes in this Draft revision will be discarded.")) {
+      return;
+    }
+    await run(async () => {
+      await backendApi(`course-versions/${version.id}`, { method: "DELETE" });
+      await refresh();
+    }, "Draft revision cancelled. The previous Version is active again.");
+  }
+
+  async function unpublishCourse(versionId: string) {
+    if (!window.confirm("Unpublish this Course? Students will no longer find or open it.")) {
+      return;
+    }
+    await run(async () => {
+      await backendApi(`course-versions/${versionId}/unpublish`, {
+        method: "POST",
+      });
+      await refresh();
+    }, "Course unpublished.");
+  }
+
+  async function publishCourse(versionId: string) {
+    if (!window.confirm("Publish this Course again? Students will be able to find and open it.")) {
+      return;
+    }
+    await run(async () => {
+      await backendApi(`course-versions/${versionId}/publish`, {
+        method: "POST",
+      });
+      await refresh();
+    }, "Course published again.");
+  }
+
+  async function deleteCourse() {
+    if (!window.confirm("Delete this Course? It will disappear from every active catalog.")) {
+      return;
+    }
+    await run(async () => {
+      await backendApi(`courses/${courseId}`, { method: "DELETE" });
+      router.push("/teacher/courses");
+      router.refresh();
+    }, "Course deleted.");
+  }
+
   return (
     <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
       <header className="flex items-end justify-between gap-8 border-b border-[#d8dde5] pb-8 max-[760px]:items-start max-[760px]:flex-col">
@@ -378,14 +811,37 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
           </p>
           {isDraft ? (
             <div>
-              <button
-                className={primaryButton}
-                disabled={busy}
-                onClick={() => void submitDraft()}
-                type="button"
-              >
-                {busy ? "Submitting…" : "Submit Draft for approval"}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className={primaryButton}
+                  disabled={busy}
+                  form="course-details-form"
+                  type="submit"
+                >
+                  {busy ? "Saving…" : "Save Draft"}
+                </button>
+                <button
+                  className={secondaryButton}
+                  disabled={busy}
+                  onClick={() => void submitDraft()}
+                  type="button"
+                >
+                  {busy ? "Submitting…" : "Submit Draft for approval"}
+                </button>
+                {version.versionNumber > 1 ? (
+                  <button
+                    className={secondaryButton}
+                    disabled={busy}
+                    onClick={() => void cancelRevision()}
+                    type="button"
+                  >
+                    Cancel edit
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-2 text-xs leading-5 text-[#747d8c]">
+                Changes typed into Course details are not saved until you press Save Draft.
+              </p>
               {data.readiness < 100 ? (
                 <p className="mt-2 text-xs leading-5 text-[#747d8c]">
                   Complete the sections marked “Needs work”. If something is
@@ -406,9 +862,51 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             <p className="text-sm font-semibold text-[#073d78]">
               {version.status === "SUBMITTED"
                 ? "Waiting for Approver review"
-                : "This Version has been published"}
+                : version.status === "APPROVED"
+                  ? "Approved — ready for Teacher publication"
+                : version.status === "UNPUBLISHED"
+                  ? "This Course is hidden from Students"
+                  : "This Version has been published"}
             </p>
           )}
+          {canCreateRevision ? (
+            <button
+              className={primaryButton}
+              disabled={busy}
+              onClick={() => void startRevision()}
+              type="button"
+            >
+              {busy ? "Creating Draft…" : "Edit Course"}
+            </button>
+          ) : null}
+          {!isDraft && publishedVersion ? (
+            <button
+              className={secondaryButton}
+              disabled={busy}
+              onClick={() => void unpublishCourse(publishedVersion.id)}
+              type="button"
+            >
+              {busy ? "Working…" : "Unpublish Course"}
+            </button>
+          ) : null}
+          {!isDraft && publishableVersion ? (
+            <button
+              className={primaryButton}
+              disabled={busy}
+              onClick={() => void publishCourse(publishableVersion.id)}
+              type="button"
+            >
+              {busy ? "Publishing…" : "Publish Course"}
+            </button>
+          ) : null}
+          <button
+            className="inline-flex min-h-11 w-fit cursor-pointer items-center justify-center border border-[#b42318] bg-white px-5 py-2.5 text-sm font-semibold text-[#b42318] transition hover:bg-[#fff3f2] disabled:cursor-not-allowed disabled:border-[#d5a5a1] disabled:text-[#a8736f]"
+            disabled={busy}
+            onClick={() => void deleteCourse()}
+            type="button"
+          >
+            {busy ? "Working…" : "Delete Course"}
+          </button>
         </div>
       </header>
       {actionError || notice ? (
@@ -449,11 +947,59 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             <h2 className="mt-2 text-3xl tracking-[-0.04em] text-[#202a38]">
               Structure overview
             </h2>
-            <p className="mt-3 max-w-2xl leading-7 text-[#687486]">
-              {version.description ??
-                "Add a description to complete Course details."}
-            </p>
-            <dl className="mt-7 grid grid-cols-2 border-t border-l border-[#d8dde5] max-[640px]:grid-cols-1">
+            {isDraft ? (
+              <form
+                className="mt-6 grid max-w-3xl gap-4"
+                id="course-details-form"
+                onSubmit={(event) => void updateCourseDetails(event)}
+              >
+                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                  Course title
+                  <input
+                    className={fieldClass}
+                    defaultValue={version.title}
+                    name="title"
+                    required
+                  />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                  Course description
+                  <textarea
+                    className={`${fieldClass} min-h-32 resize-y`}
+                    defaultValue={version.description ?? ""}
+                    name="description"
+                    required
+                  />
+                </label>
+                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                  Course language
+                  <select
+                    className={fieldClass}
+                    defaultValue={version.languageCode}
+                    name="languageCode"
+                  >
+                    {COURSE_LANGUAGES.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {courseLanguageLabel(option.code, language)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </form>
+            ) : (
+              <p className="mt-3 max-w-2xl leading-7 text-[#687486]">
+                {version.description ?? "No Course description."}
+              </p>
+            )}
+            <dl className="mt-7 grid grid-cols-3 border-t border-l border-[#d8dde5] max-[800px]:grid-cols-1">
+              <div className="border-r border-b border-[#d8dde5] p-5">
+                <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
+                  Course language
+                </dt>
+                <dd className="mt-2 text-sm font-semibold text-[#202a38]">
+                  {courseLanguageLabel(version.languageCode, language)}
+                </dd>
+              </div>
               <div className="border-r border-b border-[#d8dde5] p-5">
                 <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
                   Eligible majors
@@ -586,17 +1132,63 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     <span className="text-xs font-bold text-[#073d78]">
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    <span>
-                      <strong className="block text-sm text-[#202a38]">
-                        {item.title ?? item.contentType}
-                      </strong>
-                      <small className="text-[#747d8c]">
-                        {item.contentType}
-                        {item.mediaAsset
-                          ? ` · ${item.mediaAsset.fileName}`
-                          : ""}
-                      </small>
+                    <span className="text-[0.7rem] font-semibold tracking-[0.06em] text-[#0b6a73] uppercase">
+                      {version.sections.find((section) => section.id === item.sectionId)?.title ?? "General"}
                     </span>
+                    {isDraft && item.contentType === "TEXT" ? (
+                      <form
+                        className="grid gap-3"
+                        onSubmit={(event) =>
+                          void updateTextContent(event, item.id)
+                        }
+                      >
+                        <input
+                          className={fieldClass}
+                          defaultValue={item.title ?? ""}
+                          name="title"
+                          placeholder="Lesson title"
+                          required
+                        />
+                        <textarea
+                          className={`${fieldClass} min-h-28 resize-y`}
+                          defaultValue={item.textBody ?? ""}
+                          name="textBody"
+                          required
+                        />
+                        <div className="flex flex-wrap gap-3">
+                          <button className={secondaryButton} disabled={busy} type="submit">
+                            Save lesson
+                          </button>
+                          <button
+                            className="cursor-pointer text-xs font-semibold text-[#8f1d14] hover:underline"
+                            disabled={busy}
+                            onClick={() =>
+                              void run(async () => {
+                                await backendApi(`content/${item.id}/text`, {
+                                  method: "DELETE",
+                                });
+                                await refresh();
+                              }, "Text lesson removed.")
+                            }
+                            type="button"
+                          >
+                            Remove lesson
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <span>
+                        <strong className="block text-sm text-[#202a38]">
+                          {item.title ?? item.contentType}
+                        </strong>
+                        <small className="text-[#747d8c]">
+                          {item.contentType}
+                          {item.mediaAsset
+                            ? ` · ${item.mediaAsset.fileName}`
+                            : ""}
+                        </small>
+                      </span>
+                    )}
                     <div className="grid justify-items-end gap-2">
                       <small
                         className={
@@ -635,12 +1227,27 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
               </p>
             )}
             {isDraft ? (
-              <div className="mt-7 grid gap-5 xl:grid-cols-2">
+              <div className="mt-7 grid gap-5">
+                <form
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t-4 border-[#0b6a73] bg-[#f1f8f8] p-5 max-[560px]:grid-cols-1"
+                  onSubmit={(event) => void createSection(event)}
+                >
+                  <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                    New section title
+                    <input className={fieldClass} name="title" placeholder={`Section ${nextSectionPosition}`} required />
+                  </label>
+                  <button className={primaryButton} disabled={busy} type="submit">Add section</button>
+                </form>
+                <div className="grid gap-5 xl:grid-cols-2">
                 <form
                   className="grid content-start gap-4 border-t-4 border-[#073d78] bg-[#f8fafc] p-5"
                   onSubmit={(event) => void addText(event)}
                 >
                   <h3 className="text-lg text-[#202a38]">Add text lesson</h3>
+                  <select className={fieldClass} name="sectionId" required={version.sections.length > 0}>
+                    <option value="">{version.sections.length ? "Choose section" : "General (no section)"}</option>
+                    {version.sections.map((section) => <option key={section.id} value={section.id}>{section.position}. {section.title}</option>)}
+                  </select>
                   <input
                     className={fieldClass}
                     name="title"
@@ -668,6 +1275,10 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                   <h3 className="text-lg text-[#202a38]">
                     Upload media lesson
                   </h3>
+                  <select className={fieldClass} name="sectionId" required={version.sections.length > 0}>
+                    <option value="">{version.sections.length ? "Choose section" : "General (no section)"}</option>
+                    {version.sections.map((section) => <option key={section.id} value={section.id}>{section.position}. {section.title}</option>)}
+                  </select>
                   <select
                     className={fieldClass}
                     defaultValue="VIDEO"
@@ -698,6 +1309,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     Upload media
                   </button>
                 </form>
+                </div>
               </div>
             ) : null}
           </section>

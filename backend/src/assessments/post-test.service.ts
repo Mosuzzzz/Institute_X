@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  AssetStatus,
   CourseEligibilityMode,
   CourseVersionStatus,
   QuizResult,
@@ -34,6 +35,7 @@ interface StartedPostTest {
   questions: Array<{
     id: string;
     questionText: string;
+    imageAssetId: string | null;
     options: Array<{ id: string; optionText: string }>;
   }>;
 }
@@ -87,7 +89,10 @@ export class PostTestService {
             },
           },
         },
-        questions: { include: { options: true }, orderBy: { position: 'asc' } },
+        questions: {
+          include: { options: true, imageAsset: true },
+          orderBy: { position: 'asc' },
+        },
       },
     });
     if (!quiz || quiz.quizType !== QuizType.POST_TEST) {
@@ -149,6 +154,8 @@ export class PostTestService {
       questions: presented.map((question) => ({
         id: question.id,
         questionText: question.questionText,
+        imageAssetId:
+          question.imageAsset?.status === AssetStatus.READY ? question.imageAsset.id : null,
         options: question.options.map((option) => ({
           id: option.id,
           optionText: option.optionText,
