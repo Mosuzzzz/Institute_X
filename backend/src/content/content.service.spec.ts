@@ -51,11 +51,10 @@ describe('ContentService', () => {
     });
     prisma.courseSection.create.mockResolvedValue({ id: 'section-id' });
 
-    await service.createSection(
-      { id: 'teacher-id', role: UserRole.TEACHER },
-      'version-id',
-      { title: 'Section 1', position: 1 },
-    );
+    await service.createSection({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id', {
+      title: 'Section 1',
+      position: 1,
+    });
 
     expect(prisma.courseSection.create).toHaveBeenCalledWith({
       data: { versionId: 'version-id', title: 'Section 1', position: 1 },
@@ -79,6 +78,38 @@ describe('ContentService', () => {
 
     expect(prisma.contentItem.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ sectionId: 'section-id' }),
+    });
+  });
+
+  it('moves an existing Draft Lecture into a selected Section', async () => {
+    prisma.contentItem.findUnique.mockResolvedValue({
+      id: 'content-id',
+      versionId: 'version-id',
+      contentType: ContentType.VIDEO,
+      version: {
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+      },
+    });
+    prisma.courseSection.findFirst.mockResolvedValue({ id: 'section-id' });
+    prisma.contentItem.update.mockResolvedValue({
+      id: 'content-id',
+      sectionId: 'section-id',
+    });
+
+    await service.moveToSection(
+      { id: 'teacher-id', role: UserRole.TEACHER },
+      'content-id',
+      'section-id',
+    );
+
+    expect(prisma.courseSection.findFirst).toHaveBeenCalledWith({
+      where: { id: 'section-id', versionId: 'version-id' },
+      select: { id: true },
+    });
+    expect(prisma.contentItem.update).toHaveBeenCalledWith({
+      where: { id: 'content-id' },
+      data: { sectionId: 'section-id' },
     });
   });
 

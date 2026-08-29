@@ -15,6 +15,7 @@ import { OidcAuthGuard } from '../auth/oidc-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ContentService } from './content.service';
+import { MoveContentToSectionDto } from './dto/move-content-to-section.dto';
 import { UpdateTextContentDto } from './dto/update-text-content.dto';
 
 @ApiTags('course-content')
@@ -33,6 +34,17 @@ export class DraftContentController {
     @Body() input: UpdateTextContentDto,
   ): ReturnType<ContentService['updateText']> {
     return this.content.updateText(user, contentId, input);
+  }
+
+  @Patch(':contentId/section')
+  @Roles(UserRole.TEACHER)
+  @ApiOkResponse({ description: 'Owned Draft Lecture moved to a Course Section' })
+  moveToSection(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('contentId', new ParseUUIDPipe({ version: '4' })) contentId: string,
+    @Body() input: MoveContentToSectionDto,
+  ): ReturnType<ContentService['moveToSection']> {
+    return this.content.moveToSection(user, contentId, input.sectionId);
   }
 
   @Delete(':contentId/text')

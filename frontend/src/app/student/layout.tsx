@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense, type ReactNode } from 'react';
 import StudentShell from './student-shell';
+import { commonUi } from '../ui-styles';
 
 export const metadata: Metadata = {
   title: 'Student Learning | Institute X',
@@ -11,9 +12,9 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <main className="callback-shell">
-          <section className="callback-panel" aria-live="polite">
-            <span className="callback-spinner" aria-hidden="true" />
+        <main className={commonUi.callbackShell}>
+          <section className={commonUi.callbackPanel} aria-live="polite">
+            <span className={commonUi.spinner} aria-hidden="true" />
             <h1>Loading student workspace…</h1>
           </section>
         </main>

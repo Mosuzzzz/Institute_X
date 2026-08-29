@@ -18,6 +18,7 @@ import { translateCategory } from '../../lib/reference-translations';
 import { useBackendQuery } from '../../lib/use-backend-query';
 import LanguageSelector from '../language-selector';
 import ProfileMenu from '../profile-menu';
+import { commonUi } from '../ui-styles';
 
 const subscribeToSession = () => () => undefined;
 
@@ -76,9 +77,9 @@ export default function StudentShell({ children }: { children: ReactNode }) {
     applicationRole === 'OWNER'
   ) {
     return (
-      <main className="callback-shell">
-        <section className="callback-panel" aria-live="polite">
-          <span className="callback-spinner" aria-hidden="true" />
+      <main className={commonUi.callbackShell}>
+        <section className={commonUi.callbackPanel} aria-live="polite">
+          <span className={commonUi.spinner} aria-hidden="true" />
           <h1>{text.checking}</h1>
         </section>
       </main>

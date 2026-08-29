@@ -2,6 +2,7 @@
 
 import { commonCopy } from '../lib/app-copy';
 import { useAppLanguage } from '../lib/language';
+import { commonUi } from './ui-styles';
 
 export default function ApiState({ loading, error }: { loading: boolean; error: string | null }) {
   const [language] = useAppLanguage();
@@ -13,7 +14,7 @@ export default function ApiState({ loading, error }: { loading: boolean; error: 
   if (loading) {
     return (
       <section className={stateClasses} aria-live="polite">
-        <span className="callback-spinner" aria-hidden="true" />
+        <span className={commonUi.spinner} aria-hidden="true" />
         <strong className="text-[1.1rem] text-[#202a38]">{text.loading}</strong>
         <p className="max-w-[520px] leading-[1.55]">{text.connecting}</p>
       </section>

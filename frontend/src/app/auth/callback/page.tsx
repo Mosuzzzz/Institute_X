@@ -13,6 +13,7 @@ import {
   SSO_TOKEN_KEY,
   type SsoProfile,
 } from '../../../lib/sso-session';
+import { commonUi } from '../../ui-styles';
 
 function expiresAt(expiresIn: string | null) {
   if (!expiresIn) return Date.now() + 60 * 60 * 1000;
@@ -117,8 +118,8 @@ export default function SsoCallbackPage() {
   }, [router]);
 
   return (
-    <main className="callback-shell">
-      <section className="callback-panel" aria-live="polite">
+    <main className={commonUi.callbackShell}>
+      <section className={commonUi.callbackPanel} aria-live="polite">
         <Image src="/logoX.png" alt="Institute X" width={58} height={58} priority />
         {error ? (
           <>
@@ -128,7 +129,7 @@ export default function SsoCallbackPage() {
           </>
         ) : (
           <>
-            <span className="callback-spinner" aria-hidden="true" />
+            <span className={commonUi.spinner} aria-hidden="true" />
             <h1>Signing you in</h1>
             <p>Verifying your Institute X account…</p>
           </>

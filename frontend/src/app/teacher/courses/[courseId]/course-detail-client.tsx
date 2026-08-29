@@ -528,14 +528,14 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
 
   if (!data)
     return (
-      <main className="teacher-main course-authoring-page">
+      <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
         <ApiState loading={loading} error={error} />
       </main>
     );
   const version = data.versions[0];
   if (!version)
     return (
-      <main className="teacher-main">
+      <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
         <ApiState loading={false} error="Course Version was not found." />
       </main>
     );
@@ -657,6 +657,23 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       });
       await refresh();
     }, "Text lesson updated.");
+  }
+
+  async function moveContentToSection(
+    event: FormEvent<HTMLFormElement>,
+    contentId: string,
+  ) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    await run(async () => {
+      await backendApi(`content/${contentId}/section`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          sectionId: String(values.get("sectionId") ?? "") || null,
+        }),
+      });
+      await refresh();
+    }, "Lecture section updated.");
   }
 
   async function addMedia(event: FormEvent<HTMLFormElement>) {
@@ -1190,6 +1207,34 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                       </span>
                     )}
                     <div className="grid justify-items-end gap-2">
+                      {isDraft && version.sections.length > 0 ? (
+                        <form
+                          className="grid min-w-44 gap-2"
+                          onSubmit={(event) =>
+                            void moveContentToSection(event, item.id)
+                          }
+                        >
+                          <select
+                            className={fieldClass}
+                            defaultValue={item.sectionId ?? ""}
+                            name="sectionId"
+                          >
+                            <option value="">General</option>
+                            {version.sections.map((section) => (
+                              <option key={section.id} value={section.id}>
+                                {section.position}. {section.title}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            className={secondaryButton}
+                            disabled={busy}
+                            type="submit"
+                          >
+                            Save section
+                          </button>
+                        </form>
+                      ) : null}
                       <small
                         className={
                           item.mediaAsset?.status === "READY"

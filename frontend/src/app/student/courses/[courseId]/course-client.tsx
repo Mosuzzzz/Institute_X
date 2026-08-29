@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   backendApi,
   type CourseEntryDto,
@@ -77,6 +77,38 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   };
 
   if (!course || !entry) return <main className="mx-auto w-[min(calc(100%-48px),1720px)] pt-[clamp(54px,6vw,96px)] pb-[70px] max-[820px]:w-[min(calc(100%-36px),760px)] max-[540px]:w-[min(calc(100%-28px),500px)]"><ApiState loading={loading} error={error} /></main>;
+  const contentGroups = content
+    ? Array.from(
+        content.contentItems.reduce<
+          Map<
+            string,
+            {
+              title: string;
+              position: number;
+              items: PublishedCourseContentDto['contentItems'];
+            }
+          >
+        >((groups, item) => {
+          const key = item.section?.id ?? 'general';
+          const group = groups.get(key) ?? {
+            title: item.section
+              ? `Section ${item.section.position}: ${item.section.title}`
+              : 'General',
+            position: item.section?.position ?? 0,
+            items: [],
+          };
+          group.items.push(item);
+          groups.set(key, group);
+          return groups;
+        }, new Map()).entries(),
+      )
+        .map(([key, group]) => ({
+          key,
+          ...group,
+          items: group.items.sort((left, right) => left.position - right.position),
+        }))
+        .sort((left, right) => left.position - right.position)
+    : [];
   return (
     <main className="grid min-h-[calc(100svh-96px)] grid-cols-[minmax(0,1fr)_minmax(360px,520px)] max-[1180px]:grid-cols-[minmax(0,1fr)_380px] max-[820px]:block">
       <section className="min-w-0 bg-white">
@@ -172,29 +204,41 @@ export default function CourseClient({ courseId }: { courseId: string }) {
           <h2 className="mt-3.5 text-[1.2rem] tracking-[-0.035em] text-[#20243a]">Course content</h2>
         </header>
         {content ? (
-          <ol className="m-0 list-none p-0">
-            {content.contentItems.map((item, index) => (
-              <Fragment key={item.id}>
-              {(index === 0 || content.contentItems[index - 1]?.section?.id !== item.section?.id) ? (
-                <li className="border-b border-[#d9dce7] bg-[#e8edf3] px-7 py-3 text-xs font-bold tracking-[0.08em] text-[#435166] uppercase">
-                  {item.section ? `Section ${item.section.position}: ${item.section.title}` : "General"}
-                </li>
-              ) : null}
-              <li className="border-b border-[#d9dce7]">
-                <button
-                  aria-pressed={selectedItem?.id === item.id}
-                  className="grid w-full cursor-pointer gap-1.5 border-0 bg-transparent px-7 py-[23px] text-left text-[#20243a] hover:bg-[#eef1f6] aria-pressed:bg-[#e8eef5] focus-visible:-outline-offset-4 focus-visible:outline-3 focus-visible:outline-focus"
-                  onClick={() => void openContent(item)}
-                  type="button"
-                >
-                  <span className="text-[0.72rem] font-bold tracking-[0.06em] text-[#073d78] uppercase">Item {index + 1}</span>
-                  <strong className="text-[0.95rem] leading-[1.35]">{item.title ?? item.contentType}</strong>
-                  <small className="text-[#747b92]">{item.contentType}{item.media ? ` · ${item.media.fileName}` : ''}</small>
-                </button>
-              </li>
-              </Fragment>
+          <div>
+            {contentGroups.map((group) => (
+              <section key={group.key}>
+                <h3 className="border-y border-[#cfd5df] bg-[#e8edf3] px-7 py-4 text-sm font-semibold tracking-[0.04em] text-[#26364a]">
+                  {group.title}
+                  <span className="ml-2 font-normal text-[#747b92]">
+                    · {group.items.length} lecture(s)
+                  </span>
+                </h3>
+                <ol className="m-0 list-none p-0">
+                  {group.items.map((item, index) => (
+                    <li className="border-b border-[#d9dce7]" key={item.id}>
+                      <button
+                        aria-pressed={selectedItem?.id === item.id}
+                        className="grid w-full cursor-pointer grid-cols-[34px_minmax(0,1fr)] gap-x-3 gap-y-1 border-0 bg-transparent px-7 py-[23px] text-left text-[#20243a] hover:bg-[#eef1f6] aria-pressed:bg-[#e8eef5] focus-visible:-outline-offset-4 focus-visible:outline-3 focus-visible:outline-focus"
+                        onClick={() => void openContent(item)}
+                        type="button"
+                      >
+                        <span className="row-span-2 grid size-7 place-items-center bg-[#073d78] text-[0.7rem] font-semibold text-white">
+                          {index + 1}
+                        </span>
+                        <strong className="text-[0.95rem] leading-[1.35]">
+                          {item.title ?? item.contentType}
+                        </strong>
+                        <small className="text-[#747b92]">
+                          {item.contentType}
+                          {item.media ? ` · ${item.media.fileName}` : ''}
+                        </small>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </section>
             ))}
-          </ol>
+          </div>
         ) : (
           <section className="grid min-h-[280px] place-content-center justify-items-center gap-2.5 border border-[#d8dde5] bg-white p-10 text-center text-[#4f5b6b]">
             <strong className="text-[1.1rem] text-[#202a38]">Complete the Pre-Test first</strong>

@@ -11,6 +11,7 @@ import { courseLanguageLabel } from "../../../lib/course-language";
 import { useBackendQuery } from "../../../lib/use-backend-query";
 import ApiState from "../../api-state";
 import CourseCoverImage from "../../course-cover-image";
+import { staffUi } from "../../ui-styles";
 
 export default function ApproverCoursesPage() {
   const [language] = useAppLanguage();
@@ -41,7 +42,7 @@ export default function ApproverCoursesPage() {
 
   if (!data) {
     return (
-      <main className="teacher-main">
+      <main className={staffUi.page}>
         <ApiState loading={loading} error={error} />
       </main>
     );

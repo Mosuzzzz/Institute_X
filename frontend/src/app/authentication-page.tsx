@@ -4,7 +4,8 @@ import Image from 'next/image';
 import { useEffect } from 'react';
 import { useAppLanguage } from '../lib/language';
 import { SSO_STATE_KEY } from '../lib/sso-session';
-import LanguageSelector, { type Language } from './language-selector';
+import LanguageSelector from './language-selector';
+import { authUi } from './ui-styles';
 
 const copy = {
   th: {
@@ -57,15 +58,15 @@ export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPagePr
   };
 
   return (
-    <main className="auth-shell">
+    <main className={authUi.shell}>
       <nav className="fixed top-[clamp(18px,3vw,34px)] right-[clamp(18px,3vw,42px)] z-10 max-[560px]:top-4 max-[560px]:right-4" aria-label={text.languageLabel}>
         <LanguageSelector value={language} label={text.languageLabel} onChange={setLanguage} />
       </nav>
 
-      <section className="auth-panel" aria-labelledby="authentication-title">
-        <header className="brand-lockup">
+      <section className={authUi.panel} aria-labelledby="authentication-title">
+        <header className={authUi.brand}>
           <Image
-            className="x-mark"
+            className={authUi.logo}
             src="/logoX.png"
             alt="Institute X"
             width={1238}
@@ -75,17 +76,17 @@ export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPagePr
           <h1 id="authentication-title">Authentication Service</h1>
         </header>
 
-        <div className="panel-rule" aria-hidden="true" />
+        <div className={authUi.rule} aria-hidden="true" />
 
-        <div className="personnel-access">
+        <div className={authUi.access}>
           <h2>{text.personnelHeading}</h2>
-          <button className="sso-link" type="button" onClick={startSsoLogin}>
+          <button className={authUi.ssoButton} type="button" onClick={startSsoLogin}>
             <span>{text.signIn}</span>
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path d="M7 4.75 12.25 10 7 15.25" />
             </svg>
           </button>
-          <p className="access-note">{text.accessNote}</p>
+          <p className="text-center text-sm leading-6 text-muted">{text.accessNote}</p>
         </div>
       </section>
     </main>

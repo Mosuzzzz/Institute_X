@@ -38,6 +38,12 @@ interface UpdateTextInput {
   position?: number;
 }
 
+type ContentWithOwner = Prisma.ContentItemGetPayload<{
+  include: {
+    version: { include: { course: { select: { teacherId: true } } } };
+  };
+}>;
+
 @Injectable()
 export class ContentService {
   constructor(private readonly prisma: PrismaService) {}
@@ -71,7 +77,8 @@ export class ContentService {
         where: { id: input.sectionId, versionId },
         select: { id: true },
       });
-      if (!section) throw new UnprocessableEntityException('Section does not belong to this Version');
+      if (!section)
+        throw new UnprocessableEntityException('Section does not belong to this Version');
     }
 
     try {
@@ -137,6 +144,28 @@ export class ContentService {
     await this.prisma.contentItem.delete({ where: { id: contentId } });
   }
 
+  async moveToSection(
+    actor: ContentActor,
+    contentId: string,
+    sectionId: string | null,
+  ): Promise<ContentItem> {
+    this.requireTeacher(actor);
+    const content = await this.requireOwnedDraftContent(actor, contentId);
+    if (sectionId) {
+      const section = await this.prisma.courseSection.findFirst({
+        where: { id: sectionId, versionId: content.versionId },
+        select: { id: true },
+      });
+      if (!section) {
+        throw new UnprocessableEntityException('Section does not belong to this Version');
+      }
+    }
+    return this.prisma.contentItem.update({
+      where: { id: contentId },
+      data: { sectionId },
+    });
+  }
+
   async createSection(
     actor: ContentActor,
     versionId: string,
@@ -162,14 +191,24 @@ export class ContentService {
   }
 
   private async requireOwnedDraftText(actor: ContentActor, contentId: string): Promise<void> {
+    const content = await this.requireOwnedDraftContent(actor, contentId);
+    if (content.contentType !== ContentType.TEXT) {
+      throw new NotFoundException('Text Content Item was not found');
+    }
+  }
+
+  private async requireOwnedDraftContent(
+    actor: ContentActor,
+    contentId: string,
+  ): Promise<ContentWithOwner> {
     const content = await this.prisma.contentItem.findUnique({
       where: { id: contentId },
       include: {
         version: { include: { course: { select: { teacherId: true } } } },
       },
     });
-    if (!content || content.contentType !== ContentType.TEXT) {
-      throw new NotFoundException('Text Content Item was not found');
+    if (!content) {
+      throw new NotFoundException('Content Item was not found');
     }
     if (content.version.course.teacherId !== actor.id) {
       throw new ForbiddenException('Only the owning Teacher may edit this Course');
@@ -177,6 +216,7 @@ export class ContentService {
     if (content.version.status !== CourseVersionStatus.DRAFT) {
       throw new ConflictException('Only a Draft Version may be changed');
     }
+    return content;
   }
 
   private requireTeacher(actor: ContentActor): void {
