@@ -37,6 +37,7 @@ describe('PreTestService', () => {
     randomizeQuestions: true,
     randomizeOptions: true,
     version: {
+      courseId: 'course-id',
       status: CourseVersionStatus.PUBLISHED,
       course: {
         enrollments: [{ studentId: 'student-id' }],
@@ -224,7 +225,11 @@ describe('PreTestService', () => {
         result: QuizResult.COMPLETED,
       }),
     });
-    expect(result).toEqual({ score: 50, result: QuizResult.COMPLETED });
+    expect(result).toEqual({
+      score: 50,
+      result: QuizResult.COMPLETED,
+      courseId: 'course-id',
+    });
   });
 
   it('rejects incomplete or duplicate answers', async () => {
@@ -267,6 +272,7 @@ describe('PreTestService', () => {
       result: QuizResult.COMPLETED,
       startedAt: new Date('2026-08-25T00:00:00.000Z'),
       submittedAt: new Date('2026-08-25T00:10:00.000Z'),
+      quiz: { version: { courseId: 'course-id' } },
     });
 
     await expect(service.getResult(student, 'quiz-id')).resolves.toEqual({
@@ -275,6 +281,7 @@ describe('PreTestService', () => {
       result: QuizResult.COMPLETED,
       startedAt: new Date('2026-08-25T00:00:00.000Z'),
       submittedAt: new Date('2026-08-25T00:10:00.000Z'),
+      courseId: 'course-id',
     });
     expect(db.quizAttempt.findFirst).toHaveBeenCalledWith({
       where: {
@@ -304,6 +311,7 @@ describe('PreTestService', () => {
         result: true,
         startedAt: true,
         submittedAt: true,
+        quiz: { select: { version: { select: { courseId: true } } } },
       },
     });
   });

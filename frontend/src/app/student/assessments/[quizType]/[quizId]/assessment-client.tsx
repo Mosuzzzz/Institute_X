@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
-import { backendApi, type QuizSubmissionDto, type StartedQuizDto } from '../../../../../lib/backend-api';
+import { backendApi, type CompletedPreTestDto, type QuizSubmissionDto, type StartedQuizDto } from '../../../../../lib/backend-api';
 import ApiState from '../../../../api-state';
 import QuestionImage from '../../../../question-image';
 
 export default function AssessmentClient({ quizType, quizId }: { quizType: string; quizId: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const isPostTest = quizType === 'post-test';
   const validType = isPostTest || quizType === 'pre-test';
   const [attempt, setAttempt] = useState<StartedQuizDto | null>(null);
@@ -15,6 +18,10 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   const [error, setError] = useState<string | null>(validType ? null : 'Unknown assessment type.');
   const [loading, setLoading] = useState(validType);
   const [submitting, setSubmitting] = useState(false);
+  const requestedReturnTo = searchParams.get('returnTo');
+  const returnTo = requestedReturnTo?.startsWith('/student/courses/')
+    ? requestedReturnTo
+    : '/student/learning';
 
   useEffect(() => {
     if (!validType) return;
@@ -24,6 +31,17 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
         const started = await backendApi<StartedQuizDto>(`${isPostTest ? 'post-tests' : 'pre-tests'}/${quizId}/attempts`, { method: 'POST' });
         if (!cancelled) setAttempt(started);
       } catch (requestError) {
+        if (!isPostTest) {
+          try {
+            const completed = await backendApi<CompletedPreTestDto>(`pre-tests/${quizId}/result`);
+            if (!cancelled) {
+              router.replace(`/student/courses/${encodeURIComponent(completed.courseId)}`);
+              return;
+            }
+          } catch {
+            // Keep the original start error when no completed result exists.
+          }
+        }
         if (!cancelled) setError(requestError instanceof Error ? requestError.message : 'Unable to start this assessment.');
       } finally {
         if (!cancelled) setLoading(false);
@@ -31,7 +49,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
     };
     void start();
     return () => { cancelled = true; };
-  }, [isPostTest, quizId, validType]);
+  }, [isPostTest, quizId, router, validType]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,7 +64,15 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
         method: 'POST',
         body: JSON.stringify({ answers: attempt.questions.map((question) => ({ questionId: question.id, optionId: answers[question.id] })) }),
       });
-      setResult(submitted);
+      if (isPostTest) {
+        setResult(submitted);
+      } else {
+        router.replace(
+          submitted.courseId
+            ? `/student/courses/${encodeURIComponent(submitted.courseId)}`
+            : returnTo,
+        );
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to submit this assessment.');
     } finally {
@@ -75,7 +101,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   return (
     <main className={pageClasses}>
       <header className="mb-[42px] grid gap-2.5">
-        <Link className="mb-6 w-fit text-[0.78rem] font-bold text-[#073d78] no-underline" href="/student/learning">← My learning</Link>
+        <Link className="mb-6 w-fit text-[0.78rem] font-bold text-[#073d78] no-underline" href={returnTo}>← {returnTo === '/student/learning' ? 'My learning' : 'Back to course'}</Link>
         <p className="mb-2 text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase">{isPostTest ? 'Post-Test' : 'Pre-Test'}</p>
         <h1 className="text-[clamp(2.3rem,5vw,4.8rem)] font-medium tracking-[-0.055em] text-[#202a38]">{isPostTest ? 'Check your mastery' : 'Before you begin'}</h1>
         <p className="text-[#697586]">Answer every question, then submit your attempt.</p>

@@ -45,6 +45,7 @@ interface StartedPreTest {
 
 interface PreTestResultRecord {
   id: string;
+  courseId: string;
   score: number;
   result: QuizResult;
   startedAt: Date;
@@ -258,12 +259,16 @@ export class PreTestService {
     student: StudentActor,
     attemptId: string,
     answers: SubmittedAnswer[],
-  ): Promise<{ score: number; result: QuizResult }> {
+  ): Promise<{ score: number; result: QuizResult; courseId: string }> {
     this.requireActiveStudent(student);
     const attempt = await this.prisma.quizAttempt.findUnique({
       where: { id: attemptId },
       include: {
-        quiz: true,
+        quiz: {
+          include: {
+            version: { select: { courseId: true } },
+          },
+        },
         presentedQuestions: {
           include: { question: { include: { options: true } } },
         },
@@ -323,7 +328,7 @@ export class PreTestService {
         throw new ConflictException('Pre-Test was submitted concurrently');
       }
     });
-    return { score, result };
+    return { score, result, courseId: attempt.quiz.version.courseId };
   }
 
   async getResult(student: StudentActor, quizId: string): Promise<PreTestResultRecord> {
@@ -356,15 +361,18 @@ export class PreTestService {
         result: true,
         startedAt: true,
         submittedAt: true,
+        quiz: { select: { version: { select: { courseId: true } } } },
       },
     });
     if (!attempt || attempt.score === null || !attempt.result || !attempt.submittedAt) {
       throw new NotFoundException('Completed Pre-Test result was not found');
     }
     return {
-      ...attempt,
+      id: attempt.id,
+      courseId: attempt.quiz.version.courseId,
       score: Number(attempt.score),
       result: attempt.result,
+      startedAt: attempt.startedAt,
       submittedAt: attempt.submittedAt,
     };
   }

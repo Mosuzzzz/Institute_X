@@ -256,6 +256,14 @@ export type CreatedQuestionDto = { id: string };
 export type QuizSubmissionDto = {
   score: number;
   result: "COMPLETED" | "PASS" | "NOT_PASS";
+  courseId?: string;
+};
+
+export type CompletedPreTestDto = QuizSubmissionDto & {
+  id: string;
+  courseId: string;
+  startedAt: string;
+  submittedAt: string;
 };
 
 export type SubmittedVersionDto = {
