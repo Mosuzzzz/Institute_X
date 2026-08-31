@@ -100,6 +100,25 @@ describe('database schema contract', () => {
     expect(content?.fields.map((field) => field.name)).toContain('sectionId');
   });
 
+  it('removes the fixed-ID development mock Courses and their dependent activity', () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        '../prisma/migrations/202608310001_remove_mock_courses/migration.sql',
+      ),
+      'utf8',
+    );
+
+    expect(migration).toContain("30000000-0000-4000-8000-%");
+    expect(migration).toContain('DELETE FROM "public"."quiz_attempts"');
+    expect(migration).toContain('DELETE FROM "public"."course_enrollments"');
+    expect(migration).toContain('DELETE FROM "public"."course_access_events"');
+    expect(migration).toContain('DELETE FROM "public"."courses"');
+    expect(migration.indexOf('DELETE FROM "public"."quiz_attempts"')).toBeLessThan(
+      migration.indexOf('DELETE FROM "public"."courses"'),
+    );
+  });
+
   it('stores the institutional username separately from the display name', () => {
     const user = Prisma.dmmf.datamodel.models.find((model) => model.name === 'User');
 

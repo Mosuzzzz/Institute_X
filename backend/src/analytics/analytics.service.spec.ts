@@ -5,7 +5,9 @@ import { AnalyticsService } from './analytics.service';
 describe('AnalyticsService', () => {
   const prisma = {
     course: { findUnique: jest.fn(), count: jest.fn(), findMany: jest.fn() },
-    user: { count: jest.fn() },
+    user: { count: jest.fn(), groupBy: jest.fn() },
+    courseVersion: { groupBy: jest.fn() },
+    teacherPermissionRequest: { count: jest.fn() },
     courseEnrollment: { count: jest.fn(), groupBy: jest.fn() },
     courseAccessEvent: { count: jest.fn() },
     quizAttempt: { aggregate: jest.fn(), groupBy: jest.fn(), count: jest.fn() },
@@ -70,7 +72,19 @@ describe('AnalyticsService', () => {
   describe('getOwnerDashboard', () => {
     it('returns system overview and popularity ranked by enrollments', async () => {
       prisma.user.count.mockResolvedValue(100);
+      prisma.user.groupBy.mockResolvedValue([
+        { role: UserRole.STUDENT, _count: { _all: 80 } },
+        { role: UserRole.TEACHER, _count: { _all: 15 } },
+        { role: UserRole.APPROVER, _count: { _all: 4 } },
+        { role: UserRole.OWNER, _count: { _all: 1 } },
+      ]);
       prisma.course.count.mockResolvedValue(10);
+      prisma.courseVersion.groupBy.mockResolvedValue([
+        { status: 'PUBLISHED', _count: { _all: 6 } },
+        { status: 'SUBMITTED', _count: { _all: 2 } },
+        { status: 'DRAFT', _count: { _all: 2 } },
+      ]);
+      prisma.teacherPermissionRequest.count.mockResolvedValue(3);
       prisma.courseEnrollment.count.mockResolvedValue(60);
       prisma.courseAccessEvent.count.mockResolvedValue(500);
       prisma.quizAttempt.count.mockResolvedValue(80);
@@ -95,11 +109,24 @@ describe('AnalyticsService', () => {
 
       expect(result.overview).toEqual({
         users: 100,
+        activeUsers: 100,
         courses: 10,
         enrollments: 60,
         accesses: 500,
         assessmentAttempts: 80,
+        pendingTeacherPermissions: 3,
       });
+      expect(result.usersByRole).toEqual([
+        { role: UserRole.STUDENT, users: 80 },
+        { role: UserRole.TEACHER, users: 15 },
+        { role: UserRole.APPROVER, users: 4 },
+        { role: UserRole.OWNER, users: 1 },
+      ]);
+      expect(result.courseVersionsByStatus).toEqual([
+        { status: 'PUBLISHED', versions: 6 },
+        { status: 'SUBMITTED', versions: 2 },
+        { status: 'DRAFT', versions: 2 },
+      ]);
       expect(result.popularCourses).toEqual([
         { courseId: 'course-a', title: 'Course A', enrollments: 30 },
         { courseId: 'course-b', title: 'Course B', enrollments: 30 },
@@ -120,7 +147,10 @@ describe('AnalyticsService', () => {
 
     it('counts only Post-Test PASS and NOT_PASS outcomes', async () => {
       prisma.user.count.mockResolvedValue(0);
+      prisma.user.groupBy.mockResolvedValue([]);
       prisma.course.count.mockResolvedValue(0);
+      prisma.courseVersion.groupBy.mockResolvedValue([]);
+      prisma.teacherPermissionRequest.count.mockResolvedValue(0);
       prisma.courseEnrollment.count.mockResolvedValue(0);
       prisma.courseAccessEvent.count.mockResolvedValue(0);
       prisma.quizAttempt.count.mockResolvedValue(0);

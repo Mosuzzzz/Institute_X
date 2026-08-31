@@ -287,11 +287,28 @@ export type SubmittedVersionDto = {
 export type OwnerDashboardDto = {
   overview: {
     users: number;
+    activeUsers: number;
     courses: number;
     enrollments: number;
     accesses: number;
     assessmentAttempts: number;
+    pendingTeacherPermissions: number;
   };
+  usersByRole: Array<{
+    role: "STUDENT" | "TEACHER" | "APPROVER" | "OWNER";
+    users: number;
+  }>;
+  courseVersionsByStatus: Array<{
+    status:
+      | "DRAFT"
+      | "SUBMITTED"
+      | "REJECTED"
+      | "APPROVED"
+      | "PUBLISHED"
+      | "UNPUBLISHED"
+      | "SUPERSEDED";
+    versions: number;
+  }>;
   popularCourses: Array<{
     courseId: string;
     title: string;

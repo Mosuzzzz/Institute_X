@@ -1,5 +1,13 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, QuizResult, QuizType, UserRole } from '@prisma/client';
+import {
+  AccountStatus,
+  CourseVersionStatus,
+  Prisma,
+  QuizResult,
+  QuizType,
+  TeacherPermissionStatus,
+  UserRole,
+} from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 
 interface AnalyticsActor {
@@ -26,11 +34,18 @@ interface TeacherCourseAnalytics {
 interface OwnerDashboard {
   overview: {
     users: number;
+    activeUsers: number;
     courses: number;
     enrollments: number;
     accesses: number;
     assessmentAttempts: number;
+    pendingTeacherPermissions: number;
   };
+  usersByRole: Array<{ role: UserRole; users: number }>;
+  courseVersionsByStatus: Array<{
+    status: CourseVersionStatus;
+    versions: number;
+  }>;
   popularCourses: Array<{
     courseId: string;
     title: string;
@@ -136,7 +151,11 @@ export class AnalyticsService {
     this.requireRole(actor, UserRole.OWNER);
     const [
       users,
+      activeUsers,
+      usersByRole,
       courses,
+      courseVersionsByStatus,
+      pendingTeacherPermissions,
       enrollments,
       accesses,
       assessmentAttempts,
@@ -145,7 +164,19 @@ export class AnalyticsService {
       peakRows,
     ] = await Promise.all([
       this.prisma.user.count(),
+      this.prisma.user.count({ where: { accountStatus: AccountStatus.ACTIVE } }),
+      this.prisma.user.groupBy({
+        by: ['role'],
+        _count: { _all: true },
+      }),
       this.prisma.course.count(),
+      this.prisma.courseVersion.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.teacherPermissionRequest.count({
+        where: { status: TeacherPermissionStatus.PENDING },
+      }),
       this.prisma.courseEnrollment.count(),
       this.prisma.courseAccessEvent.count(),
       this.prisma.quizAttempt.count({ where: { submittedAt: { not: null } } }),
@@ -204,7 +235,23 @@ export class AnalyticsService {
       );
 
     return {
-      overview: { users, courses, enrollments, accesses, assessmentAttempts },
+      overview: {
+        users,
+        activeUsers,
+        courses,
+        enrollments,
+        accesses,
+        assessmentAttempts,
+        pendingTeacherPermissions,
+      },
+      usersByRole: usersByRole.map((group) => ({
+        role: group.role,
+        users: group._count._all,
+      })),
+      courseVersionsByStatus: courseVersionsByStatus.map((group) => ({
+        status: group.status,
+        versions: group._count._all,
+      })),
       popularCourses,
       postTestResults: {
         pass: this.outcomeCount(postOutcomes, QuizResult.PASS),
