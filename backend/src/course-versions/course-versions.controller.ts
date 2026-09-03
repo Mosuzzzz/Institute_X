@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -56,9 +57,20 @@ export class CourseVersionsController {
     return this.versions.reopenRejected(user, versionId);
   }
 
-  @Post(':versionId/unpublish')
+  @Delete(':versionId')
   @HttpCode(204)
   @Roles(UserRole.TEACHER)
+  @ApiNoContentResponse({ description: 'Draft discarded; existing published Version retained' })
+  discard(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('versionId', new ParseUUIDPipe({ version: '4' })) versionId: string,
+  ): ReturnType<CourseVersionsService['discardDraft']> {
+    return this.versions.discardDraft(user, versionId);
+  }
+
+  @Post(':versionId/unpublish')
+  @HttpCode(204)
+  @Roles(UserRole.TEACHER, UserRole.OWNER)
   @ApiNoContentResponse({ description: 'Published Version removed from active catalogs' })
   unpublish(
     @CurrentUser() user: CurrentUserValue,
@@ -69,7 +81,7 @@ export class CourseVersionsController {
 
   @Post(':versionId/publish')
   @HttpCode(204)
-  @Roles(UserRole.TEACHER)
+  @Roles(UserRole.TEACHER, UserRole.OWNER)
   @ApiNoContentResponse({ description: 'Unpublished Version returned to active catalogs' })
   publish(
     @CurrentUser() user: CurrentUserValue,
@@ -81,7 +93,7 @@ export class CourseVersionsController {
   @Patch(':versionId/review')
   @HttpCode(204)
   @Roles(UserRole.APPROVER)
-  @ApiNoContentResponse({ description: 'Version reviewed; approved Versions await Teacher publication' })
+  @ApiNoContentResponse({ description: 'Version reviewed; approval publishes it automatically' })
   review(
     @CurrentUser() user: CurrentUserValue,
     @Param('versionId', new ParseUUIDPipe({ version: '4' })) versionId: string,

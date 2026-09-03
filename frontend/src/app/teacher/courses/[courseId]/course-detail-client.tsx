@@ -31,6 +31,24 @@ const primaryButton =
 const secondaryButton =
   "inline-flex min-h-11 cursor-pointer items-center justify-center border border-[#073d78] bg-white px-5 py-2.5 text-sm font-semibold text-[#073d78] transition hover:bg-[#edf3f8] disabled:cursor-not-allowed disabled:border-[#c8ccd3] disabled:text-[#949aa4]";
 const panelClass = "scroll-mt-28 border border-[#d8dde5] bg-white p-6 sm:p-8";
+const checklistLabels: Record<keyof TeacherCourseDetailDto["checks"], string> = {
+  details: "Title and language",
+  categories: "Category",
+  eligibility: "Student eligibility",
+  content: "Learning content",
+  media: "Media ready",
+  preTest: "Pre-Test",
+  assessments: "Valid assessments",
+};
+const checklistTargets: Record<keyof TeacherCourseDetailDto["checks"], string> = {
+  details: "details",
+  categories: "details",
+  eligibility: "details",
+  content: "content",
+  media: "content",
+  preTest: "preTest",
+  assessments: "preTest",
+};
 
 async function putSignedFile(uploadUrl: string, file: File): Promise<void> {
   const response = await fetch(uploadUrl, {
@@ -552,13 +570,8 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   const unpublishedVersion = data.versions.find(
     (courseVersion) => courseVersion.status === "UNPUBLISHED",
   );
-  const approvedVersion = data.versions.find(
-    (courseVersion) => courseVersion.status === "APPROVED",
-  );
-  const publishableVersion =
-    approvedVersion ?? (!publishedVersion ? unpublishedVersion : undefined);
+  const publishableVersion = !publishedVersion ? unpublishedVersion : undefined;
   const canCreateRevision =
-    version.status === "APPROVED" ||
     version.status === "PUBLISHED" ||
     version.status === "UNPUBLISHED";
 
@@ -751,13 +764,17 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   }
 
   async function cancelRevision() {
-    if (!window.confirm("Cancel this edit? All changes in this Draft revision will be discarded.")) {
+    if (!window.confirm("Discard this Draft? Its unsent changes and uploaded files will be deleted.")) {
       return;
     }
     await run(async () => {
       await backendApi(`course-versions/${version.id}`, { method: "DELETE" });
-      await refresh();
-    }, "Draft revision cancelled. The previous Version is active again.");
+      if (version.versionNumber === 1) {
+        router.replace("/teacher/courses");
+      } else {
+        await refresh();
+      }
+    }, "Draft discarded. The published Version remains active.");
   }
 
   async function unpublishCourse(versionId: string) {
@@ -773,7 +790,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   }
 
   async function publishCourse(versionId: string) {
-    if (!window.confirm("Publish this Course again? Students will be able to find and open it.")) {
+    if (!window.confirm("Republish this Course? Students will be able to find and open it.")) {
       return;
     }
     await run(async () => {
@@ -839,22 +856,20 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 </button>
                 <button
                   className={secondaryButton}
-                  disabled={busy}
+                  disabled={busy || data.readiness < 100}
                   onClick={() => void submitDraft()}
                   type="button"
                 >
                   {busy ? "Submitting…" : "Submit Draft for approval"}
                 </button>
-                {version.versionNumber > 1 ? (
-                  <button
-                    className={secondaryButton}
-                    disabled={busy}
-                    onClick={() => void cancelRevision()}
-                    type="button"
-                  >
-                    Cancel edit
-                  </button>
-                ) : null}
+                <button
+                  className={secondaryButton}
+                  disabled={busy}
+                  onClick={() => void cancelRevision()}
+                  type="button"
+                >
+                  Discard Draft
+                </button>
               </div>
               <p className="mt-2 text-xs leading-5 text-[#747d8c]">
                 Changes typed into Course details are not saved until you press Save Draft.
@@ -879,8 +894,6 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             <p className="text-sm font-semibold text-[#073d78]">
               {version.status === "SUBMITTED"
                 ? "Waiting for Approver review"
-                : version.status === "APPROVED"
-                  ? "Approved — ready for Teacher publication"
                 : version.status === "UNPUBLISHED"
                   ? "This Course is hidden from Students"
                   : "This Version has been published"}
@@ -913,7 +926,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
               onClick={() => void publishCourse(publishableVersion.id)}
               type="button"
             >
-              {busy ? "Publishing…" : "Publish Course"}
+              {busy ? "Republishing…" : "Republish Course"}
             </button>
           ) : null}
           <button
@@ -941,7 +954,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
           {checks.map(([key, ready], index) => (
             <a
               className={`grid min-w-40 grid-cols-[32px_1fr] gap-2 border-l-2 px-3 py-4 text-sm no-underline max-[900px]:border-t-2 max-[900px]:border-l-0 ${ready ? "border-[#073d78] bg-white text-[#073d78]" : "border-[#d8dde5] text-[#747d8c]"}`}
-              href={`#${key}`}
+              href={`#${checklistTargets[key as keyof TeacherCourseDetailDto["checks"]]}`}
               key={key}
             >
               <span className="text-xs font-bold">
@@ -949,7 +962,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
               </span>
               <span>
                 <strong className="block text-[#202a38]">
-                  {key.replace(/([A-Z])/g, " $1")}
+                  {checklistLabels[key as keyof TeacherCourseDetailDto["checks"]]}
                 </strong>
                 <small>{ready ? "Ready" : "Needs work"}</small>
               </span>

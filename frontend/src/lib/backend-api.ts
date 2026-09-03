@@ -153,7 +153,13 @@ export type MajorDto = { id: string; code: string; name: string };
 export type TeacherCourseDetailDto = TeacherCourseDto & {
   readiness: number;
   checks: Record<
-    "details" | "majors" | "categories" | "content" | "preTest" | "postTest",
+    | "details"
+    | "categories"
+    | "eligibility"
+    | "content"
+    | "media"
+    | "preTest"
+    | "assessments",
     boolean
   >;
   allowedMajors: Array<{ major: MajorDto }>;
@@ -268,9 +274,11 @@ export type CompletedPreTestDto = QuizSubmissionDto & {
 
 export type SubmittedVersionDto = {
   id: string;
+  courseId?: string;
   versionNumber: number;
   title: string;
   description: string | null;
+  languageCode?: CourseLanguageCode;
   submittedAt: string | null;
   course: {
     teacher: { id: string; fullName: string; universityEmail: string };
@@ -280,8 +288,39 @@ export type SubmittedVersionDto = {
     id: string;
     contentType: string;
     title: string | null;
+    textBody?: string | null;
+    position: number;
+    mediaAsset?: {
+      id: string;
+      fileName: string;
+      mimeType: string;
+      status: string;
+    } | null;
   }>;
-  quizzes: Array<{ id: string; quizType: string; questions: unknown[] }>;
+  quizzes: Array<{
+    id: string;
+    quizType: "PRE_TEST" | "POST_TEST" | string;
+    title: string;
+    durationSeconds?: number | null;
+    questions: Array<{
+      id: string;
+      questionText: string;
+      points?: number | string;
+      position: number;
+      imageAsset?: {
+        id: string;
+        fileName: string;
+        mimeType: string;
+        status: string;
+      } | null;
+      options: Array<{
+        id: string;
+        optionText: string;
+        isCorrect: boolean;
+        position: number;
+      }>;
+    }>;
+  }>;
 };
 
 export type OwnerDashboardDto = {

@@ -50,6 +50,15 @@ export class CoursesController {
     return this.courses.listPublishedForApprover(user);
   }
 
+  @Get('owner/catalog')
+  @Roles(UserRole.OWNER)
+  @ApiOkResponse({ description: 'All non-archived published Courses for Owner moderation' })
+  ownerCatalog(
+    @CurrentUser() user: CurrentUserValue,
+  ): ReturnType<CoursesService['listPublishedForOwner']> {
+    return this.courses.listPublishedForOwner(user);
+  }
+
   @Get(':courseId')
   @Roles(UserRole.TEACHER)
   @ApiOkResponse({ description: 'Owned Course detail with latest Version readiness' })
@@ -94,7 +103,7 @@ export class CoursesController {
 
   @Delete(':courseId')
   @HttpCode(204)
-  @Roles(UserRole.TEACHER, UserRole.APPROVER)
+  @Roles(UserRole.OWNER)
   @ApiNoContentResponse({ description: 'Course archived and removed from active catalogs' })
   delete(
     @CurrentUser() user: CurrentUserValue,

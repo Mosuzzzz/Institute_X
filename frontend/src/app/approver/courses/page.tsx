@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  backendApi,
-  type ApproverCourseDto,
-} from "../../../lib/backend-api";
+import type { ApproverCourseDto } from "../../../lib/backend-api";
 import { useAppLanguage } from "../../../lib/language";
 import { translateCategory } from "../../../lib/reference-translations";
 import { courseLanguageLabel } from "../../../lib/course-language";
@@ -15,30 +12,11 @@ import { staffUi } from "../../ui-styles";
 
 export default function ApproverCoursesPage() {
   const [language] = useAppLanguage();
-  const { data, error, loading, refresh } =
+  const { data, error, loading } =
     useBackendQuery<ApproverCourseDto[]>("courses/approver/catalog");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-
-  async function deleteCourse(course: ApproverCourseDto) {
-    if (!window.confirm(`Delete “${course.title}”? It will disappear from every active catalog.`)) {
-      return;
-    }
-    setDeletingId(course.courseId);
-    setActionError(null);
-    try {
-      await backendApi(`courses/${course.courseId}`, { method: "DELETE" });
-      await refresh();
-    } catch (requestError) {
-      setActionError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to delete this Course.",
-      );
-    } finally {
-      setDeletingId(null);
-    }
-  }
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [activeCourse, setActiveCourse] = useState<ApproverCourseDto | null>(null);
 
   if (!data) {
     return (
@@ -47,6 +25,24 @@ export default function ApproverCoursesPage() {
       </main>
     );
   }
+
+  // Extract unique categories for filter
+  const allCategories = Array.from(
+    new Map(
+      data.flatMap((c) => c.categories.map((cat) => [cat.id, cat]))
+    ).values()
+  );
+
+  const filtered = data.filter((course) => {
+    const matchesSearch =
+      search.trim() === "" ||
+      course.title.toLowerCase().includes(search.toLowerCase()) ||
+      course.teacher.fullName.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "ALL" ||
+      course.categories.some((cat) => cat.id === selectedCategory);
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
@@ -59,7 +55,7 @@ export default function ApproverCoursesPage() {
             All courses
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-[#687486]">
-            Browse every published Course across all Majors. Approvers may archive a Course when it must be removed from the active catalog.
+            Browse every published Course across all Majors in read-only mode. Course moderation belongs to the Owner workspace.
           </p>
         </div>
         <div className="border-l-4 border-[#8ccbd0] pl-4">
@@ -68,17 +64,56 @@ export default function ApproverCoursesPage() {
         </div>
       </header>
 
-      {actionError ? (
-        <p className="mt-6 border-l-4 border-[#b42318] bg-[#fff3f2] p-4 text-sm text-[#8f1d14]">
-          {actionError}
-        </p>
-      ) : null}
+      {/* Filter and search bar */}
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-1 min-w-[280px] max-w-md items-center rounded border border-[#d8dde5] bg-white px-3 py-2">
+          <input
+            type="text"
+            placeholder="Search by course title or instructor..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-transparent text-sm text-[#202a38] outline-none placeholder:text-[#94a3b8]"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="text-xs font-semibold text-[#687486] hover:text-[#202a38]"
+            >
+              Clear
+            </button>
+          )}
+        </div>
 
-      {data.length ? (
-        <section className="mt-10 grid gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label="All published courses">
-          {data.map((course) => (
-            <article className="group grid content-start" key={course.courseId}>
-              <div className="relative aspect-video overflow-hidden bg-[#27303b]">
+        <div className="flex items-center gap-2">
+          <label htmlFor="approver-cat-filter" className="text-xs font-semibold text-[#687486]">
+            Category:
+          </label>
+          <select
+            id="approver-cat-filter"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="rounded border border-[#d8dde5] bg-white px-3 py-2 text-xs font-medium text-[#202a38] outline-none"
+          >
+            <option value="ALL">All Categories</option>
+            {allCategories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {translateCategory(cat, language)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {filtered.length ? (
+        <section className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label="All published courses">
+          {filtered.map((course) => (
+            <article
+              className="group grid content-start cursor-pointer rounded transition hover:shadow-md"
+              key={course.courseId}
+              onClick={() => setActiveCourse(course)}
+            >
+              <div className="relative aspect-video overflow-hidden rounded-t bg-[#27303b]">
                 <CourseCoverImage
                   assetId={course.coverAssetId}
                   alt={`${course.title} cover`}
@@ -94,7 +129,7 @@ export default function ApproverCoursesPage() {
                   {course.eligibilityMode}
                 </span>
               </div>
-              <div className="pt-4">
+              <div className="rounded-b border border-t-0 border-[#d8dde5] bg-white p-4">
                 <div className="flex min-h-6 flex-wrap gap-2">
                   <span className="bg-[#eef1f5] px-2.5 py-1 text-[0.68rem] font-semibold text-[#435166]">
                     {courseLanguageLabel(course.languageCode, language)}
@@ -105,28 +140,86 @@ export default function ApproverCoursesPage() {
                     </span>
                   ))}
                 </div>
-                <h2 className="mt-3 text-xl leading-tight font-semibold text-[#202a38]">{course.title}</h2>
-                <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#687486]">
+                <h2 className="mt-3 text-lg leading-tight font-semibold text-[#202a38] group-hover:text-[#073d78]">{course.title}</h2>
+                <p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-[#687486]">
                   {course.description || "No Course description."}
                 </p>
-                <div className="mt-4 border-t border-[#d8dde5] pt-4 text-xs text-[#687486]">
-                  <strong className="block text-sm text-[#202a38]">{course.teacher.fullName}</strong>
+                <div className="mt-4 border-t border-[#d8dde5] pt-3 text-xs text-[#687486] flex items-center justify-between">
+                  <strong className="text-sm text-[#202a38]">{course.teacher.fullName}</strong>
                   <span>{course.enrollments} learner(s)</span>
                 </div>
-                <button
-                  className="mt-5 inline-flex min-h-10 w-full cursor-pointer items-center justify-center border border-[#b42318] bg-white px-4 py-2 text-sm font-semibold text-[#b42318] transition hover:bg-[#fff3f2] disabled:cursor-not-allowed disabled:border-[#d5a5a1] disabled:text-[#a8736f]"
-                  disabled={deletingId !== null}
-                  onClick={() => void deleteCourse(course)}
-                  type="button"
-                >
-                  {deletingId === course.courseId ? "Deleting…" : "Delete Course"}
-                </button>
               </div>
             </article>
           ))}
         </section>
       ) : (
-        <p className="mt-10 text-sm text-[#687486]">No published courses are available.</p>
+        <p className="mt-10 text-sm text-[#687486]">
+          {data.length ? "No courses matched your search/filter criteria." : "No published courses are available."}
+        </p>
+      )}
+
+      {/* Course Detail Modal */}
+      {activeCourse && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setActiveCourse(null)}
+        >
+          <div
+            className="w-full max-w-xl rounded-lg bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-[#d8dde5] pb-4">
+              <div>
+                <span className="rounded bg-[#073d78] px-2.5 py-0.5 text-xs font-bold text-white">
+                  {activeCourse.eligibilityMode}
+                </span>
+                <h2 className="mt-2 text-xl font-bold text-[#202a38]">{activeCourse.title}</h2>
+              </div>
+              <button
+                type="button"
+                className="text-lg font-bold text-[#687486] hover:text-[#202a38]"
+                onClick={() => setActiveCourse(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3 text-sm text-[#435166]">
+              <div>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">Instructor</strong>
+                <p>{activeCourse.teacher.fullName} ({activeCourse.teacher.universityEmail})</p>
+              </div>
+              <div>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">Categories</strong>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {activeCourse.categories.map((c) => (
+                    <span key={c.id} className="rounded bg-[#d9f2f2] px-2 py-0.5 text-xs text-[#07545b]">
+                      {translateCategory(c, language)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">Language & Stats</strong>
+                <p>{courseLanguageLabel(activeCourse.languageCode, language)} · {activeCourse.enrollments} Enrolled Students</p>
+              </div>
+              <div>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">Description</strong>
+                <p className="mt-1 leading-6">{activeCourse.description || "No description provided."}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end border-t border-[#d8dde5] pt-4">
+              <button
+                type="button"
+                className="rounded bg-[#073d78] px-4 py-2 text-sm font-semibold text-white hover:bg-[#052e5b]"
+                onClick={() => setActiveCourse(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

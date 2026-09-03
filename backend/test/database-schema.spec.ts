@@ -74,9 +74,7 @@ describe('database schema contract', () => {
   });
 
   it('stores the primary language on every Course Version', () => {
-    const version = Prisma.dmmf.datamodel.models.find(
-      (model) => model.name === 'CourseVersion',
-    );
+    const version = Prisma.dmmf.datamodel.models.find((model) => model.name === 'CourseVersion');
     const migration = readFileSync(
       resolve(__dirname, '../prisma/migrations/202608280001_add_course_language/migration.sql'),
       'utf8',
@@ -87,12 +85,8 @@ describe('database schema contract', () => {
   });
 
   it('stores ordered Sections containing Course lectures', () => {
-    const section = Prisma.dmmf.datamodel.models.find(
-      (model) => model.name === 'CourseSection',
-    );
-    const content = Prisma.dmmf.datamodel.models.find(
-      (model) => model.name === 'ContentItem',
-    );
+    const section = Prisma.dmmf.datamodel.models.find((model) => model.name === 'CourseSection');
+    const content = Prisma.dmmf.datamodel.models.find((model) => model.name === 'ContentItem');
 
     expect(section?.fields.map((field) => field.name)).toEqual(
       expect.arrayContaining(['versionId', 'title', 'position', 'contentItems']),
@@ -102,20 +96,34 @@ describe('database schema contract', () => {
 
   it('removes the fixed-ID development mock Courses and their dependent activity', () => {
     const migration = readFileSync(
-      resolve(
-        __dirname,
-        '../prisma/migrations/202608310001_remove_mock_courses/migration.sql',
-      ),
+      resolve(__dirname, '../prisma/migrations/202608310001_remove_mock_courses/migration.sql'),
       'utf8',
     );
 
-    expect(migration).toContain("30000000-0000-4000-8000-%");
+    expect(migration).toContain('30000000-0000-4000-8000-%');
     expect(migration).toContain('DELETE FROM "public"."quiz_attempts"');
     expect(migration).toContain('DELETE FROM "public"."course_enrollments"');
     expect(migration).toContain('DELETE FROM "public"."course_access_events"');
     expect(migration).toContain('DELETE FROM "public"."courses"');
     expect(migration.indexOf('DELETE FROM "public"."quiz_attempts"')).toBeLessThan(
       migration.indexOf('DELETE FROM "public"."courses"'),
+    );
+  });
+
+  it('migrates legacy approved Versions into the automatic publication workflow', () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        '../prisma/migrations/202609030001_auto_publish_approved_versions/migration.sql',
+      ),
+      'utf8',
+    );
+
+    expect(migration).toContain('WHERE "status" = \'APPROVED\'');
+    expect(migration).toContain('SET "status" = \'SUPERSEDED\'');
+    expect(migration).toContain('SET "status" = \'PUBLISHED\'');
+    expect(migration.indexOf('SET "status" = \'SUPERSEDED\'')).toBeLessThan(
+      migration.lastIndexOf('SET "status" = \'PUBLISHED\''),
     );
   });
 

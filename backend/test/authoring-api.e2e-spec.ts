@@ -8,6 +8,8 @@ import { ContentModule } from '../src/content/content.module';
 import { ContentService } from '../src/content/content.service';
 import { CourseVersionsModule } from '../src/course-versions/course-versions.module';
 import { CourseVersionsService } from '../src/course-versions/course-versions.service';
+import { CoursesModule } from '../src/courses/courses.module';
+import { CoursesService } from '../src/courses/courses.service';
 import { QuizzesModule } from '../src/quizzes/quizzes.module';
 import { QuizAuthoringService } from '../src/quizzes/quiz-authoring.service';
 import { TeacherPermissionsModule } from '../src/teacher-permissions/teacher-permissions.module';
@@ -34,14 +36,25 @@ describe('Authoring REST API', () => {
     submit: jest.fn(),
     review: jest.fn(),
     reopenRejected: jest.fn(),
+    discardDraft: jest.fn(),
     listSubmitted: jest.fn(),
+  };
+  const courses = {
+    listPublishedForOwner: jest.fn(),
+    archiveCourse: jest.fn(),
   };
   const quizzes = { createQuiz: jest.fn(), addQuestion: jest.fn() };
 
   beforeEach(async () => {
     jest.resetAllMocks();
     const moduleRef = await Test.createTestingModule({
-      imports: [TeacherPermissionsModule, ContentModule, CourseVersionsModule, QuizzesModule],
+      imports: [
+        TeacherPermissionsModule,
+        ContentModule,
+        CourseVersionsModule,
+        CoursesModule,
+        QuizzesModule,
+      ],
     })
       .overrideProvider(TeacherPermissionsService)
       .useValue(permissions)
@@ -49,6 +62,8 @@ describe('Authoring REST API', () => {
       .useValue(content)
       .overrideProvider(CourseVersionsService)
       .useValue(versions)
+      .overrideProvider(CoursesService)
+      .useValue(courses)
       .overrideProvider(QuizAuthoringService)
       .useValue(quizzes)
       .compile();
@@ -188,6 +203,20 @@ describe('Authoring REST API', () => {
     );
   });
 
+  it('DELETE /course-versions/:id discards an owned Draft', async () => {
+    versions.discardDraft.mockResolvedValue(undefined);
+
+    await request(app.getHttpServer() as Server)
+      .delete('/api/course-versions/11111111-1111-4111-8111-111111111111')
+      .set('x-test-role', UserRole.TEACHER)
+      .expect(204);
+
+    expect(versions.discardDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'actor-id', role: UserRole.TEACHER }),
+      '11111111-1111-4111-8111-111111111111',
+    );
+  });
+
   it('GET /course-versions/pending-review returns the Approver queue', async () => {
     versions.listSubmitted.mockResolvedValue([{ id: 'version-id', status: 'SUBMITTED' }]);
 
@@ -196,6 +225,49 @@ describe('Authoring REST API', () => {
       .set('x-test-role', UserRole.APPROVER)
       .expect(200)
       .expect([{ id: 'version-id', status: 'SUBMITTED' }]);
+  });
+
+  it('GET /courses/owner/catalog returns the Owner moderation catalog', async () => {
+    courses.listPublishedForOwner.mockResolvedValue([{ courseId: 'course-id' }]);
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/courses/owner/catalog')
+      .set('x-test-role', UserRole.OWNER)
+      .expect(200)
+      .expect([{ courseId: 'course-id' }]);
+
+    expect(courses.listPublishedForOwner).toHaveBeenCalledWith(
+      expect.objectContaining({ role: UserRole.OWNER }),
+    );
+  });
+
+  it('does not expose Owner Course moderation to an Approver', async () => {
+    await request(app.getHttpServer() as Server)
+      .get('/api/courses/owner/catalog')
+      .set('x-test-role', UserRole.APPROVER)
+      .expect(403);
+
+    expect(courses.listPublishedForOwner).not.toHaveBeenCalled();
+  });
+
+  it('DELETE /courses/:id archives a Course for an Owner only', async () => {
+    courses.archiveCourse.mockResolvedValue(undefined);
+    const path = '/api/courses/11111111-1111-4111-8111-111111111111';
+
+    await request(app.getHttpServer() as Server)
+      .delete(path)
+      .set('x-test-role', UserRole.APPROVER)
+      .expect(403);
+    await request(app.getHttpServer() as Server)
+      .delete(path)
+      .set('x-test-role', UserRole.OWNER)
+      .expect(204);
+
+    expect(courses.archiveCourse).toHaveBeenCalledTimes(1);
+    expect(courses.archiveCourse).toHaveBeenCalledWith(
+      expect.objectContaining({ role: UserRole.OWNER }),
+      '11111111-1111-4111-8111-111111111111',
+    );
   });
 
   it('POST /course-versions/:id/quizzes creates a timed Pre-Test', async () => {

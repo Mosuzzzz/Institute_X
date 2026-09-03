@@ -16,6 +16,7 @@ import {
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { ObjectStorage } from '../media/object-storage';
 
 interface VersionActor {
   id: string;
@@ -53,7 +54,10 @@ type SubmittedVersion = Prisma.CourseVersionGetPayload<{
 
 @Injectable()
 export class CourseVersionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: ObjectStorage,
+  ) {}
 
   async listSubmitted(actor: VersionActor): Promise<SubmittedVersion[]> {
     this.requireRole(actor, UserRole.APPROVER);
@@ -95,7 +99,8 @@ export class CourseVersionsService {
     const version = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
       include: {
-        course: { include: { allowedMajors: true } },
+        course: { include: { allowedMajors: true, categories: true } },
+        coverAsset: { select: { status: true } },
         contentItems: {
           select: {
             id: true,
@@ -174,12 +179,23 @@ export class CourseVersionsService {
 
     await this.prisma.$transaction(async (tx) => {
       const reviewedAt = new Date();
+      if (decision === ReviewDecision.APPROVED) {
+        await tx.courseVersion.updateMany({
+          where: {
+            courseId: version.courseId,
+            id: { not: versionId },
+            status: CourseVersionStatus.PUBLISHED,
+          },
+          data: { status: CourseVersionStatus.SUPERSEDED },
+        });
+      }
       const updated = await tx.courseVersion.updateMany({
         where: { id: versionId, status: CourseVersionStatus.SUBMITTED },
         data:
           decision === ReviewDecision.APPROVED
             ? {
-                status: CourseVersionStatus.APPROVED,
+                status: CourseVersionStatus.PUBLISHED,
+                publishedAt: reviewedAt,
               }
             : { status: CourseVersionStatus.REJECTED },
       });
@@ -230,8 +246,67 @@ export class CourseVersionsService {
     }
   }
 
-  async unpublish(actor: VersionActor, versionId: string): Promise<void> {
+  async discardDraft(actor: VersionActor, versionId: string): Promise<void> {
     this.requireRole(actor, UserRole.TEACHER);
+    const version = await this.prisma.courseVersion.findUnique({
+      where: { id: versionId },
+      select: {
+        courseId: true,
+        status: true,
+        course: {
+          select: {
+            id: true,
+            teacherId: true,
+            _count: { select: { versions: true } },
+          },
+        },
+        coverAsset: { select: { storageKey: true } },
+        contentItems: { select: { mediaAsset: { select: { storageKey: true } } } },
+        quizzes: {
+          select: {
+            questions: { select: { imageAsset: { select: { storageKey: true } } } },
+          },
+        },
+      },
+    });
+    if (!version) {
+      throw new NotFoundException('Course Version was not found');
+    }
+    if (version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may discard this Draft');
+    }
+    if (version.status !== CourseVersionStatus.DRAFT) {
+      throw new ConflictException('Only a Draft Version may be discarded');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.courseVersion.deleteMany({
+        where: { id: versionId, status: CourseVersionStatus.DRAFT },
+      });
+      if (deleted.count !== 1) {
+        throw new ConflictException('Version state changed concurrently');
+      }
+      if (version.course._count.versions === 1) {
+        await tx.course.deleteMany({
+          where: { id: version.courseId, versions: { none: {} } },
+        });
+      }
+    });
+
+    const storageKeys = [
+      version.coverAsset?.storageKey,
+      ...version.contentItems.map((item) => item.mediaAsset?.storageKey),
+      ...version.quizzes.flatMap((quiz) =>
+        quiz.questions.map((question) => question.imageAsset?.storageKey),
+      ),
+    ].filter((storageKey): storageKey is string => Boolean(storageKey));
+    await Promise.allSettled(
+      storageKeys.map((storageKey) => this.storage.deleteObject(storageKey)),
+    );
+  }
+
+  async unpublish(actor: VersionActor, versionId: string): Promise<void> {
+    this.requireTeacherOrOwner(actor);
     const version = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
       select: {
@@ -242,7 +317,7 @@ export class CourseVersionsService {
     if (!version) {
       throw new NotFoundException('Course Version was not found');
     }
-    if (version.course.teacherId !== actor.id) {
+    if (actor.role === UserRole.TEACHER && version.course.teacherId !== actor.id) {
       throw new ForbiddenException('Only the owning Teacher may unpublish this Version');
     }
     if (version.status !== CourseVersionStatus.PUBLISHED) {
@@ -259,7 +334,7 @@ export class CourseVersionsService {
   }
 
   async republish(actor: VersionActor, versionId: string): Promise<void> {
-    this.requireRole(actor, UserRole.TEACHER);
+    this.requireTeacherOrOwner(actor);
     const version = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
       select: {
@@ -272,37 +347,11 @@ export class CourseVersionsService {
     if (!version) {
       throw new NotFoundException('Course Version was not found');
     }
-    if (version.course.teacherId !== actor.id) {
+    if (actor.role === UserRole.TEACHER && version.course.teacherId !== actor.id) {
       throw new ForbiddenException('Only the owning Teacher may publish this Version');
     }
-    if (
-      version.status !== CourseVersionStatus.APPROVED &&
-      version.status !== CourseVersionStatus.UNPUBLISHED
-    ) {
-      throw new ConflictException('Only an approved or unpublished Version may be published');
-    }
-
-    if (version.status === CourseVersionStatus.APPROVED) {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.courseVersion.updateMany({
-          where: {
-            courseId: version.courseId,
-            status: CourseVersionStatus.PUBLISHED,
-          },
-          data: { status: CourseVersionStatus.SUPERSEDED },
-        });
-        const updated = await tx.courseVersion.updateMany({
-          where: { id: versionId, status: CourseVersionStatus.APPROVED },
-          data: {
-            status: CourseVersionStatus.PUBLISHED,
-            publishedAt: new Date(),
-          },
-        });
-        if (updated.count !== 1) {
-          throw new ConflictException('Version state changed concurrently');
-        }
-      });
-      return;
+    if (version.status !== CourseVersionStatus.UNPUBLISHED) {
+      throw new ConflictException('Only an unpublished Version may be republished');
     }
 
     const currentPublished = await this.prisma.courseVersion.findFirst({
@@ -336,7 +385,14 @@ export class CourseVersionsService {
   }
 
   private validateSubmission(version: {
-    course: { eligibilityMode: CourseEligibilityMode; allowedMajors: unknown[] };
+    title: string;
+    languageCode: string;
+    course: {
+      eligibilityMode: CourseEligibilityMode;
+      allowedMajors: unknown[];
+      categories: unknown[];
+    };
+    coverAsset: { status: AssetStatus } | null;
     contentItems: Array<{
       contentType: ContentType;
       mediaAsset: { status: AssetStatus } | null;
@@ -349,6 +405,12 @@ export class CourseVersionsService {
       }>;
     }>;
   }): void {
+    if (!version.title.trim() || !version.languageCode.trim()) {
+      throw new UnprocessableEntityException('Course title and language are required');
+    }
+    if (version.course.categories.length === 0) {
+      throw new UnprocessableEntityException('At least one Category is required');
+    }
     if (
       version.course.eligibilityMode !== CourseEligibilityMode.OPEN &&
       version.course.allowedMajors.length === 0
@@ -359,6 +421,7 @@ export class CourseVersionsService {
       throw new UnprocessableEntityException('Learning content is required');
     }
     if (
+      (version.coverAsset && version.coverAsset.status !== AssetStatus.READY) ||
       version.contentItems.some(
         (item) =>
           item.contentType !== ContentType.TEXT && item.mediaAsset?.status !== AssetStatus.READY,
@@ -395,6 +458,12 @@ export class CourseVersionsService {
   private requireRole(actor: VersionActor, role: UserRole): void {
     if (actor.role !== role) {
       throw new ForbiddenException(`${role} role is required`);
+    }
+  }
+
+  private requireTeacherOrOwner(actor: VersionActor): void {
+    if (actor.role !== UserRole.TEACHER && actor.role !== UserRole.OWNER) {
+      throw new ForbiddenException('TEACHER or OWNER role is required');
     }
   }
 }

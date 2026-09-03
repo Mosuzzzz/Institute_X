@@ -20,7 +20,9 @@ describe('CourseVersionsService', () => {
       findFirst: jest.fn(),
       findMany: jest.fn(),
       updateMany: jest.fn(),
+      deleteMany: jest.fn(),
     },
+    course: { deleteMany: jest.fn() },
     courseVersionReview: {
       aggregate: jest.fn(),
       create: jest.fn(),
@@ -31,13 +33,21 @@ describe('CourseVersionsService', () => {
     ...db,
     $transaction: jest.fn((operation: (tx: typeof db) => unknown) => operation(db)),
   };
+  const storage = { deleteObject: jest.fn() };
   let service: CourseVersionsService;
 
   const validDraft = {
     id: 'version-id',
     courseId: 'course-id',
+    title: 'Network Fundamentals',
+    languageCode: 'en',
     status: CourseVersionStatus.DRAFT,
-    course: { teacherId: 'teacher-id', allowedMajors: [{ majorId: 'major-id' }] },
+    course: {
+      teacherId: 'teacher-id',
+      eligibilityMode: 'LIMITED',
+      allowedMajors: [{ majorId: 'major-id' }],
+      categories: [{ categoryId: 'category-id' }],
+    },
     contentItems: [{ id: 'content-id', contentType: ContentType.TEXT, mediaAsset: null }],
     quizzes: [
       {
@@ -54,7 +64,7 @@ describe('CourseVersionsService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((operation) => operation(db));
-    service = new CourseVersionsService(prisma as never);
+    service = new CourseVersionsService(prisma as never, storage as never);
   });
 
   it('submits a complete owned Draft and creates review history', async () => {
@@ -146,10 +156,7 @@ describe('CourseVersionsService', () => {
   it('rejects an optional Post-Test that has no valid questions', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       ...validDraft,
-      quizzes: [
-        ...validDraft.quizzes,
-        { quizType: QuizType.POST_TEST, questions: [] },
-      ],
+      quizzes: [...validDraft.quizzes, { quizType: QuizType.POST_TEST, questions: [] }],
     });
 
     await expect(
@@ -165,13 +172,15 @@ describe('CourseVersionsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('approves a submitted Version without publishing it automatically', async () => {
+  it('publishes an approved submitted Version and supersedes the live Version atomically', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       id: 'version-id',
       courseId: 'course-id',
       status: CourseVersionStatus.SUBMITTED,
     });
-    db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
+    db.courseVersion.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
     db.courseVersionReview.updateMany.mockResolvedValue({ count: 1 });
 
     await service.review(
@@ -180,11 +189,34 @@ describe('CourseVersionsService', () => {
       ReviewDecision.APPROVED,
     );
 
-    expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
-      where: { id: 'version-id', status: CourseVersionStatus.SUBMITTED },
-      data: { status: 'APPROVED' },
+    expect(db.courseVersion.updateMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        courseId: 'course-id',
+        id: { not: 'version-id' },
+        status: CourseVersionStatus.PUBLISHED,
+      },
+      data: { status: CourseVersionStatus.SUPERSEDED },
     });
-    expect(db.courseVersion.updateMany).toHaveBeenCalledTimes(1);
+    expect(db.courseVersion.updateMany).toHaveBeenNthCalledWith(2, {
+      where: { id: 'version-id', status: CourseVersionStatus.SUBMITTED },
+      data: {
+        status: CourseVersionStatus.PUBLISHED,
+        publishedAt: expect.any(Date),
+      },
+    });
+  });
+
+  it('rejects submission when title or Category is missing', async () => {
+    db.courseVersion.findUnique.mockResolvedValue({
+      ...validDraft,
+      title: ' ',
+      course: { ...validDraft.course, categories: [] },
+    });
+
+    await expect(
+      service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
   });
 
   it('requires a comment when rejecting', async () => {
@@ -232,10 +264,7 @@ describe('CourseVersionsService', () => {
       });
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.reopenRejected(
-        { id: 'teacher-id', role: UserRole.TEACHER },
-        'version-id',
-      );
+      await service.reopenRejected({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id');
 
       expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
         where: { id: 'version-id', status: CourseVersionStatus.REJECTED },
@@ -269,6 +298,64 @@ describe('CourseVersionsService', () => {
     });
   });
 
+  describe('discardDraft', () => {
+    it('deletes an owned Draft revision and its copied storage objects', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'draft-id',
+        courseId: 'course-id',
+        status: CourseVersionStatus.DRAFT,
+        course: { id: 'course-id', teacherId: 'teacher-id', _count: { versions: 2 } },
+        coverAsset: { storageKey: 'course-covers/copied' },
+        contentItems: [{ mediaAsset: { storageKey: 'courses/copied' } }],
+        quizzes: [{ questions: [{ imageAsset: { storageKey: 'question-images/copied' } }] }],
+      });
+      db.courseVersion.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.discardDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id');
+
+      expect(db.courseVersion.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'draft-id', status: CourseVersionStatus.DRAFT },
+      });
+      expect(storage.deleteObject).toHaveBeenCalledTimes(3);
+      expect(db.course.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('removes the empty Course when discarding its only unreleased Draft', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'draft-id',
+        courseId: 'course-id',
+        status: CourseVersionStatus.DRAFT,
+        course: { id: 'course-id', teacherId: 'teacher-id', _count: { versions: 1 } },
+        coverAsset: null,
+        contentItems: [],
+        quizzes: [],
+      });
+      db.courseVersion.deleteMany.mockResolvedValue({ count: 1 });
+      db.course.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.discardDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id');
+
+      expect(db.course.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'course-id', versions: { none: {} } },
+      });
+    });
+
+    it('does not discard a submitted Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        status: CourseVersionStatus.SUBMITTED,
+        course: { id: 'course-id', teacherId: 'teacher-id', _count: { versions: 1 } },
+        coverAsset: null,
+        contentItems: [],
+        quizzes: [],
+      });
+
+      await expect(
+        service.discardDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
   describe('unpublish', () => {
     it('allows the owning Teacher to unpublish a published Version', async () => {
       db.courseVersion.findUnique.mockResolvedValue({
@@ -278,14 +365,27 @@ describe('CourseVersionsService', () => {
       });
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.unpublish(
-        { id: 'teacher-id', role: UserRole.TEACHER },
-        'version-id',
-      );
+      await service.unpublish({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id');
 
       expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
         where: { id: 'version-id', status: CourseVersionStatus.PUBLISHED },
         data: { status: 'UNPUBLISHED' },
+      });
+    });
+
+    it('allows an Owner to unpublish any published Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        status: CourseVersionStatus.PUBLISHED,
+        course: { teacherId: 'teacher-id' },
+      });
+      db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.unpublish({ id: 'owner-id', role: UserRole.OWNER }, 'version-id');
+
+      expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
+        where: { id: 'version-id', status: CourseVersionStatus.PUBLISHED },
+        data: { status: CourseVersionStatus.UNPUBLISHED },
       });
     });
 
@@ -297,10 +397,7 @@ describe('CourseVersionsService', () => {
       });
 
       await expect(
-        service.unpublish(
-          { id: 'other-id', role: UserRole.TEACHER },
-          'version-id',
-        ),
+        service.unpublish({ id: 'other-id', role: UserRole.TEACHER }, 'version-id'),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
     });
@@ -313,45 +410,23 @@ describe('CourseVersionsService', () => {
       });
 
       await expect(
-        service.unpublish(
-          { id: 'teacher-id', role: UserRole.TEACHER },
-          'version-id',
-        ),
+        service.unpublish({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
   });
 
   describe('republish', () => {
-    it('publishes an approved Version and supersedes the currently published Version', async () => {
+    it('does not manually publish an approved Version because approval auto-publishes', async () => {
       db.courseVersion.findUnique.mockResolvedValue({
         id: 'approved-version-id',
         courseId: 'course-id',
         status: 'APPROVED',
         course: { teacherId: 'teacher-id' },
       });
-      db.courseVersion.updateMany
-        .mockResolvedValueOnce({ count: 1 })
-        .mockResolvedValueOnce({ count: 1 });
-
-      await service.republish(
-        { id: 'teacher-id', role: UserRole.TEACHER },
-        'approved-version-id',
-      );
-
-      expect(db.courseVersion.updateMany).toHaveBeenNthCalledWith(1, {
-        where: {
-          courseId: 'course-id',
-          status: CourseVersionStatus.PUBLISHED,
-        },
-        data: { status: CourseVersionStatus.SUPERSEDED },
-      });
-      expect(db.courseVersion.updateMany).toHaveBeenNthCalledWith(2, {
-        where: { id: 'approved-version-id', status: 'APPROVED' },
-        data: {
-          status: CourseVersionStatus.PUBLISHED,
-          publishedAt: expect.any(Date),
-        },
-      });
+      await expect(
+        service.republish({ id: 'teacher-id', role: UserRole.TEACHER }, 'approved-version-id'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
     });
 
     it('allows the owning Teacher to publish an unpublished Version again', async () => {
@@ -364,10 +439,7 @@ describe('CourseVersionsService', () => {
       db.courseVersion.findFirst.mockResolvedValue(null);
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.republish(
-        { id: 'teacher-id', role: UserRole.TEACHER },
-        'version-id',
-      );
+      await service.republish({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id');
 
       expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
         where: { id: 'version-id', status: CourseVersionStatus.UNPUBLISHED },
@@ -376,6 +448,25 @@ describe('CourseVersionsService', () => {
           publishedAt: expect.any(Date),
         },
       });
+    });
+
+    it('allows an Owner to republish an unpublished Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        courseId: 'course-id',
+        status: CourseVersionStatus.UNPUBLISHED,
+        course: { teacherId: 'teacher-id' },
+      });
+      db.courseVersion.findFirst.mockResolvedValue(null);
+      db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.republish({ id: 'owner-id', role: UserRole.OWNER }, 'version-id');
+
+      expect(db.courseVersion.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'version-id', status: CourseVersionStatus.UNPUBLISHED },
+        }),
+      );
     });
 
     it('does not replace a newer published Version', async () => {
@@ -388,10 +479,7 @@ describe('CourseVersionsService', () => {
       db.courseVersion.findFirst.mockResolvedValue({ id: 'new-version-id' });
 
       await expect(
-        service.republish(
-          { id: 'teacher-id', role: UserRole.TEACHER },
-          'old-version-id',
-        ),
+        service.republish({ id: 'teacher-id', role: UserRole.TEACHER }, 'old-version-id'),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
     });
@@ -405,10 +493,7 @@ describe('CourseVersionsService', () => {
       });
 
       await expect(
-        service.republish(
-          { id: 'other-id', role: UserRole.TEACHER },
-          'version-id',
-        ),
+        service.republish({ id: 'other-id', role: UserRole.TEACHER }, 'version-id'),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });

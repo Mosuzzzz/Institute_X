@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { backendApi, type CategoryDto, type MajorDto, type TeacherCourseDto } from '../../../../lib/backend-api';
+import { backendApi, type CategoryDto, type MajorDto, type TeacherCourseDto, type TeacherPermissionDto } from '../../../../lib/backend-api';
 import { useBackendQuery } from '../../../../lib/use-backend-query';
 import { useAppLanguage } from '../../../../lib/language';
 import { translateCategory, translateMajor } from '../../../../lib/reference-translations';
@@ -15,10 +15,14 @@ export default function CreateCourseClient() {
   const [language] = useAppLanguage();
   const categories = useBackendQuery<CategoryDto[]>('categories');
   const majors = useBackendQuery<MajorDto[]>('majors');
+  const permission = useBackendQuery<TeacherPermissionDto | null>('teacher-permissions/me');
   const [eligibilityMode, setEligibilityMode] = useState<'OPEN' | 'LIMITED'>('OPEN');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!categories.data || !majors.data) return <main className={formUi.page}><ApiState loading={categories.loading || majors.loading} error={categories.error ?? majors.error} /></main>;
+  if (categories.loading || majors.loading || permission.loading) return <main className={formUi.page}><ApiState loading error={null} /></main>;
+  if (categories.error || majors.error || permission.error) return <main className={formUi.page}><ApiState loading={false} error={categories.error ?? majors.error ?? permission.error} /></main>;
+  if (permission.data?.status !== 'APPROVED') return <main className={formUi.page}><section className="border border-[#dce1e7] bg-white p-8"><p className={staffUi.eyebrow}>Permission required</p><h1 className="mt-2 text-3xl text-[#202a38]">Course creation is locked</h1><p className="mt-3 text-[#667182]">An Approver must approve your Teacher permission before you can create a Course.</p><Link className={`${staffUi.primaryAction} mt-6 inline-flex`} href="/teacher/permission">Open permission request</Link></section></main>;
+  if (!categories.data || !majors.data) return <main className={formUi.page}><ApiState loading={false} error="Course reference data is unavailable." /></main>;
 
   const submit = async (formData: FormData) => {
     setSaving(true); setError(null);

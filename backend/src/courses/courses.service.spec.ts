@@ -70,6 +70,7 @@ describe('CoursesService', () => {
           {
             title: 'Course title',
             description: 'Course description',
+            languageCode: 'en',
             contentItems: [],
             coverAsset: null,
             quizzes: [],
@@ -99,6 +100,97 @@ describe('CoursesService', () => {
           }),
         }),
       );
+    });
+
+    it('reports a complete mandatory checklist without requiring an optional Post-Test', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'teacher-id',
+        archivedAt: null,
+        eligibilityMode: 'OPEN',
+        allowedMajors: [],
+        categories: [{ category: { id: 'category-id' } }],
+        versions: [
+          {
+            title: 'Course title',
+            description: null,
+            languageCode: 'en',
+            contentItems: [
+              {
+                contentType: 'VIDEO',
+                mediaAsset: { status: 'READY' },
+              },
+            ],
+            coverAsset: null,
+            quizzes: [
+              {
+                quizType: 'PRE_TEST',
+                questions: [
+                  {
+                    imageAsset: null,
+                    options: [{ isCorrect: true }, { isCorrect: false }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      await expect(
+        service.getOwnedDetail({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id'),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          readiness: 100,
+          checks: {
+            details: true,
+            categories: true,
+            eligibility: true,
+            content: true,
+            media: true,
+            preTest: true,
+            assessments: true,
+          },
+        }),
+      );
+    });
+
+    it('marks the media checklist incomplete while any uploaded asset is not READY', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'teacher-id',
+        archivedAt: null,
+        eligibilityMode: 'OPEN',
+        allowedMajors: [],
+        categories: [{ category: { id: 'category-id' } }],
+        versions: [
+          {
+            title: 'Course title',
+            languageCode: 'en',
+            contentItems: [{ contentType: 'TEXT', mediaAsset: null }],
+            coverAsset: { status: 'PENDING' },
+            quizzes: [
+              {
+                quizType: 'PRE_TEST',
+                questions: [
+                  {
+                    imageAsset: null,
+                    options: [{ isCorrect: true }, { isCorrect: false }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await service.getOwnedDetail(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'course-id',
+      );
+
+      expect(result.checks.media).toBe(false);
+      expect(result.readiness).toBeLessThan(100);
     });
   });
 
@@ -590,44 +682,6 @@ describe('CoursesService', () => {
     });
   });
 
-  describe('cancelRevision', () => {
-    it('deletes an owned Draft revision and its copied objects', async () => {
-      db.courseVersion.findUnique.mockResolvedValue({
-        id: 'draft-id',
-        versionNumber: 2,
-        status: CourseVersionStatus.DRAFT,
-        course: { teacherId: 'teacher-id' },
-        coverAsset: { storageKey: 'course-covers/copied' },
-        contentItems: [{ mediaAsset: { storageKey: 'courses/copied' } }],
-        quizzes: [{ questions: [{ imageAsset: { storageKey: 'question-images/copied' } }] }],
-      });
-      db.courseVersion.deleteMany.mockResolvedValue({ count: 1 });
-
-      await service.cancelRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id');
-
-      expect(db.courseVersion.deleteMany).toHaveBeenCalledWith({
-        where: { id: 'draft-id', status: CourseVersionStatus.DRAFT },
-      });
-      expect(storage.deleteObject).toHaveBeenCalledTimes(3);
-    });
-
-    it('does not cancel the original Version', async () => {
-      db.courseVersion.findUnique.mockResolvedValue({
-        id: 'draft-id',
-        versionNumber: 1,
-        status: CourseVersionStatus.DRAFT,
-        course: { teacherId: 'teacher-id' },
-        coverAsset: null,
-        contentItems: [],
-        quizzes: [],
-      });
-
-      await expect(
-        service.cancelRevision({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id'),
-      ).rejects.toBeInstanceOf(ConflictException);
-    });
-  });
-
   describe('listOwned', () => {
     it('returns only the authenticated Teacher Courses with Version states', async () => {
       db.course.findMany.mockResolvedValue([{ id: 'course-id', versions: [] }]);
@@ -688,7 +742,7 @@ describe('CoursesService', () => {
   });
 
   describe('archiveCourse', () => {
-    it('allows a Teacher to delete only their own Course', async () => {
+    it('allows an Owner to archive any Course', async () => {
       db.course.findUnique.mockResolvedValue({
         id: 'course-id',
         teacherId: 'teacher-id',
@@ -696,7 +750,7 @@ describe('CoursesService', () => {
       });
       db.course.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.archiveCourse({ id: 'teacher-id', role: UserRole.TEACHER }, 'course-id');
+      await service.archiveCourse({ id: 'owner-id', role: UserRole.OWNER }, 'course-id');
 
       expect(db.course.updateMany).toHaveBeenCalledWith({
         where: { id: 'course-id', archivedAt: null },
@@ -704,33 +758,11 @@ describe('CoursesService', () => {
       });
     });
 
-    it('denies a Teacher deleting another Teacher Course', async () => {
-      db.course.findUnique.mockResolvedValue({
-        id: 'course-id',
-        teacherId: 'owner-teacher-id',
-        archivedAt: null,
-      });
-
+    it.each([UserRole.TEACHER, UserRole.APPROVER])('denies Course archival to %s', async (role) => {
       await expect(
-        service.archiveCourse({ id: 'other-teacher-id', role: UserRole.TEACHER }, 'course-id'),
+        service.archiveCourse({ id: 'actor-id', role }, 'course-id'),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(db.course.updateMany).not.toHaveBeenCalled();
-    });
-
-    it('allows an Approver to delete any Course', async () => {
-      db.course.findUnique.mockResolvedValue({
-        id: 'course-id',
-        teacherId: 'teacher-id',
-        archivedAt: null,
-      });
-      db.course.updateMany.mockResolvedValue({ count: 1 });
-
-      await service.archiveCourse({ id: 'approver-id', role: UserRole.APPROVER }, 'course-id');
-
-      expect(db.course.updateMany).toHaveBeenCalledWith({
-        where: { id: 'course-id', archivedAt: null },
-        data: { archivedAt: expect.any(Date) },
-      });
     });
   });
 
@@ -780,6 +812,30 @@ describe('CoursesService', () => {
     it('denies the Approver catalog to Teachers', async () => {
       await expect(
         service.listPublishedForApprover({ id: 'teacher-id', role: UserRole.TEACHER }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('listPublishedForOwner', () => {
+    it('returns the moderation catalog to an Owner', async () => {
+      db.course.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.listPublishedForOwner({ id: 'owner-id', role: UserRole.OWNER }),
+      ).resolves.toEqual([]);
+      expect(db.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            archivedAt: null,
+            versions: { some: { status: CourseVersionStatus.PUBLISHED } },
+          },
+        }),
+      );
+    });
+
+    it('denies the Owner moderation catalog to an Approver', async () => {
+      await expect(
+        service.listPublishedForOwner({ id: 'approver-id', role: UserRole.APPROVER }),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });

@@ -12,12 +12,12 @@ import { randomUUID } from 'node:crypto';
 import { CourseAccessService } from '../src/learning/course-access.service';
 import { CourseVersionsService } from '../src/course-versions/course-versions.service';
 
-const describeDatabase =
-  process.env.RUN_DATABASE_INTEGRATION === 'true' ? describe : describe.skip;
+const describeDatabase = process.env.RUN_DATABASE_INTEGRATION === 'true' ? describe : describe.skip;
 
 describeDatabase('PostgreSQL integration', () => {
   const prisma = new PrismaClient();
   const majorId = randomUUID();
+  const categoryId = randomUUID();
   const teacherId = randomUUID();
   const studentId = randomUUID();
   const approverId = randomUUID();
@@ -26,11 +26,17 @@ describeDatabase('PostgreSQL integration', () => {
   const quizId = randomUUID();
   const marker = randomUUID();
   const service = new CourseAccessService(prisma as never);
-  const versions = new CourseVersionsService(prisma as never);
+  const versions = new CourseVersionsService(
+    prisma as never,
+    { deleteObject: () => Promise.resolve() } as never,
+  );
 
   beforeAll(async () => {
     await prisma.major.create({
       data: { id: majorId, code: `IT-${marker}`, name: `Integration Major ${marker}` },
+    });
+    await prisma.category.create({
+      data: { id: categoryId, slug: `integration-${marker}`, name: `Integration ${marker}` },
     });
     await prisma.user.createMany({
       data: [
@@ -69,6 +75,7 @@ describeDatabase('PostgreSQL integration', () => {
         id: courseId,
         teacherId,
         allowedMajors: { create: { majorId } },
+        categories: { create: { categoryId } },
         versions: {
           create: {
             id: versionId,
@@ -97,6 +104,7 @@ describeDatabase('PostgreSQL integration', () => {
     await prisma.courseVersion.deleteMany({ where: { courseId } });
     await prisma.courseAllowedMajor.deleteMany({ where: { courseId } });
     await prisma.course.deleteMany({ where: { id: courseId } });
+    await prisma.category.deleteMany({ where: { id: categoryId } });
     await prisma.user.deleteMany({
       where: { id: { in: [studentId, teacherId, approverId] } },
     });
@@ -115,12 +123,12 @@ describeDatabase('PostgreSQL integration', () => {
     await service.enterCourse(actor, courseId);
     await service.enterCourse(actor, courseId);
 
-    await expect(
-      prisma.courseEnrollment.count({ where: { courseId, studentId } }),
-    ).resolves.toBe(1);
-    await expect(
-      prisma.courseAccessEvent.count({ where: { courseId, studentId } }),
-    ).resolves.toBe(2);
+    await expect(prisma.courseEnrollment.count({ where: { courseId, studentId } })).resolves.toBe(
+      1,
+    );
+    await expect(prisma.courseAccessEvent.count({ where: { courseId, studentId } })).resolves.toBe(
+      2,
+    );
   });
 
   it('enforces the database unique Enrollment invariant', async () => {
@@ -211,16 +219,10 @@ describeDatabase('PostgreSQL integration', () => {
 
     await expect(
       prisma.courseVersion.findUniqueOrThrow({ where: { id: draft.id } }),
-    ).resolves.toMatchObject({ status: CourseVersionStatus.APPROVED });
-    await expect(
-      prisma.courseVersion.findUniqueOrThrow({ where: { id: versionId } }),
-    ).resolves.toMatchObject({ status: CourseVersionStatus.PUBLISHED });
-
-    await versions.republish({ id: teacherId, role: UserRole.TEACHER }, draft.id);
-
-    await expect(
-      prisma.courseVersion.findUniqueOrThrow({ where: { id: draft.id } }),
-    ).resolves.toMatchObject({ status: CourseVersionStatus.PUBLISHED });
+    ).resolves.toMatchObject({
+      status: CourseVersionStatus.PUBLISHED,
+      publishedAt: expect.any(Date),
+    });
     await expect(
       prisma.courseVersion.findUniqueOrThrow({ where: { id: versionId } }),
     ).resolves.toMatchObject({ status: CourseVersionStatus.SUPERSEDED });

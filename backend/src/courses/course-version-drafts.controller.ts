@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, HttpCode, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiConflictResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
 import { OidcAuthGuard } from '../auth/oidc-auth.guard';
@@ -25,16 +25,5 @@ export class CourseVersionDraftsController {
     @Body() input: UpdateCourseVersionDto,
   ): ReturnType<CoursesService['updateDraft']> {
     return this.courses.updateDraft(user, versionId, input);
-  }
-
-  @Delete(':versionId')
-  @HttpCode(204)
-  @Roles(UserRole.TEACHER)
-  @ApiNoContentResponse({ description: 'Draft revision cancelled; previous Version retained' })
-  cancel(
-    @CurrentUser() user: CurrentUserValue,
-    @Param('versionId', new ParseUUIDPipe({ version: '4' })) versionId: string,
-  ): ReturnType<CoursesService['cancelRevision']> {
-    return this.courses.cancelRevision(user, versionId);
   }
 }

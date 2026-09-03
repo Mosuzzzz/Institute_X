@@ -93,11 +93,12 @@ type OwnedCourseDetail = Prisma.CourseGetPayload<{
 
 interface CourseReadiness {
   details: boolean;
-  majors: boolean;
   categories: boolean;
+  eligibility: boolean;
   content: boolean;
+  media: boolean;
   preTest: boolean;
-  postTest: boolean;
+  assessments: boolean;
 }
 
 type OwnedCourseDetailResponse = OwnedCourseDetail & {
@@ -105,7 +106,7 @@ type OwnedCourseDetailResponse = OwnedCourseDetail & {
   checks: CourseReadiness;
 };
 
-interface ApproverPublishedCourse {
+interface PublishedCourseSummary {
   courseId: string;
   eligibilityMode: CourseEligibilityMode;
   versionId: string;
@@ -198,28 +199,48 @@ export class CoursesService {
       throw new ForbiddenException('Only the owning Teacher may view this Course');
     }
     const latest = course.versions[0];
+    const hasValidQuestions = (
+      quiz: (typeof course.versions)[number]['quizzes'][number],
+    ): boolean =>
+      quiz.questions.length > 0 &&
+      quiz.questions.every(
+        (question) =>
+          question.options.length >= 2 &&
+          question.options.filter((option) => option.isCorrect).length === 1,
+      );
     const checks = latest
       ? {
-          details: Boolean(latest.title.trim() && latest.description?.trim()),
-          majors:
+          details: Boolean(latest.title.trim() && latest.languageCode.trim()),
+          categories: course.categories.length > 0,
+          eligibility:
             course.eligibilityMode === CourseEligibilityMode.OPEN ||
             course.allowedMajors.length > 0,
-          categories: course.categories.length > 0,
           content: latest.contentItems.length > 0,
+          media:
+            (!latest.coverAsset || latest.coverAsset.status === AssetStatus.READY) &&
+            latest.contentItems.every(
+              (item) =>
+                item.contentType === 'TEXT' || item.mediaAsset?.status === AssetStatus.READY,
+            ) &&
+            latest.quizzes.every((quiz) =>
+              quiz.questions.every(
+                (question) =>
+                  !question.imageAsset || question.imageAsset.status === AssetStatus.READY,
+              ),
+            ),
           preTest: latest.quizzes.some(
-            (quiz) => quiz.quizType === 'PRE_TEST' && quiz.questions.length > 0,
+            (quiz) => quiz.quizType === 'PRE_TEST' && hasValidQuestions(quiz),
           ),
-          postTest: latest.quizzes.some(
-            (quiz) => quiz.quizType === 'POST_TEST' && quiz.questions.length > 0,
-          ),
+          assessments: latest.quizzes.every(hasValidQuestions),
         }
       : {
           details: false,
-          majors: false,
           categories: false,
+          eligibility: false,
           content: false,
+          media: false,
           preTest: false,
-          postTest: false,
+          assessments: false,
         };
     const passed = Object.values(checks).filter(Boolean).length;
     return {
@@ -616,49 +637,6 @@ export class CoursesService {
     }
   }
 
-  async cancelRevision(actor: CourseActor, versionId: string): Promise<void> {
-    this.requireTeacher(actor);
-    const version = await this.prisma.courseVersion.findUnique({
-      where: { id: versionId },
-      select: {
-        versionNumber: true,
-        status: true,
-        course: { select: { teacherId: true } },
-        coverAsset: { select: { storageKey: true } },
-        contentItems: { select: { mediaAsset: { select: { storageKey: true } } } },
-        quizzes: {
-          select: {
-            questions: { select: { imageAsset: { select: { storageKey: true } } } },
-          },
-        },
-      },
-    });
-    if (!version) throw new NotFoundException('Course Version was not found');
-    if (version.course.teacherId !== actor.id) {
-      throw new ForbiddenException('Only the owning Teacher may cancel this revision');
-    }
-    if (version.status !== CourseVersionStatus.DRAFT || version.versionNumber === 1) {
-      throw new ConflictException('Only a Draft revision may be cancelled');
-    }
-
-    const deleted = await this.prisma.courseVersion.deleteMany({
-      where: { id: versionId, status: CourseVersionStatus.DRAFT },
-    });
-    if (deleted.count !== 1) {
-      throw new ConflictException('Version state changed concurrently');
-    }
-    const storageKeys = [
-      version.coverAsset?.storageKey,
-      ...version.contentItems.map((item) => item.mediaAsset?.storageKey),
-      ...version.quizzes.flatMap((quiz) =>
-        quiz.questions.map((question) => question.imageAsset?.storageKey),
-      ),
-    ].filter((storageKey): storageKey is string => Boolean(storageKey));
-    await Promise.allSettled(
-      storageKeys.map((storageKey) => this.storage.deleteObject(storageKey)),
-    );
-  }
-
   async replaceCategories(
     actor: CourseActor,
     courseId: string,
@@ -692,8 +670,8 @@ export class CoursesService {
   }
 
   async archiveCourse(actor: CourseActor, courseId: string): Promise<void> {
-    if (actor.role !== UserRole.TEACHER && actor.role !== UserRole.APPROVER) {
-      throw new ForbiddenException('TEACHER or APPROVER role is required');
+    if (actor.role !== UserRole.OWNER) {
+      throw new ForbiddenException('OWNER role is required');
     }
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
@@ -701,9 +679,6 @@ export class CoursesService {
     });
     if (!course || course.archivedAt) {
       throw new NotFoundException('Course was not found');
-    }
-    if (actor.role === UserRole.TEACHER && course.teacherId !== actor.id) {
-      throw new ForbiddenException('Only the owning Teacher may delete this Course');
     }
     const archived = await this.prisma.course.updateMany({
       where: { id: courseId, archivedAt: null },
@@ -714,10 +689,21 @@ export class CoursesService {
     }
   }
 
-  async listPublishedForApprover(actor: CourseActor): Promise<ApproverPublishedCourse[]> {
+  async listPublishedForApprover(actor: CourseActor): Promise<PublishedCourseSummary[]> {
     if (actor.role !== UserRole.APPROVER) {
       throw new ForbiddenException('APPROVER role is required');
     }
+    return this.listPublishedCourses();
+  }
+
+  async listPublishedForOwner(actor: CourseActor): Promise<PublishedCourseSummary[]> {
+    if (actor.role !== UserRole.OWNER) {
+      throw new ForbiddenException('OWNER role is required');
+    }
+    return this.listPublishedCourses();
+  }
+
+  private async listPublishedCourses(): Promise<PublishedCourseSummary[]> {
     const courses = await this.prisma.course.findMany({
       where: {
         archivedAt: null,
