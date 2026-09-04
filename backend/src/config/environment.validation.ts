@@ -13,6 +13,10 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
       otherwise: Joi.required(),
     }),
   CORS_ORIGIN: Joi.string().default('http://localhost:3001'),
+  REDIS_URL: Joi.string()
+    .uri({ scheme: ['redis', 'rediss'] })
+    .optional(),
+  AUTH_SESSION_CACHE_TTL_SECONDS: Joi.number().integer().min(60).max(900).default(300),
   SSO_PROVIDER: Joi.string().valid('oidc', 'mock').default('oidc'),
   MOCK_SSO_ME_URL: Joi.string().uri().when('SSO_PROVIDER', {
     is: 'mock',

@@ -98,6 +98,8 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-institute_x}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-institute_x}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      REDIS_URL: redis://redis:6379
+      AUTH_SESSION_CACHE_TTL_SECONDS: ${AUTH_SESSION_CACHE_TTL_SECONDS:-300}
       SSO_PROVIDER: ${SSO_PROVIDER:-oidc}
       MOCK_SSO_ME_URL: ${MOCK_SSO_ME_URL:-}
       MOCK_SSO_VERIFY_URL: ${MOCK_SSO_VERIFY_URL:-}

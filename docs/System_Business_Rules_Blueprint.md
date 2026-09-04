@@ -139,3 +139,9 @@ To eliminate "Object storage is not configured" and stuck `PENDING` assets:
   - `OWNER` $\rightarrow$ Executive Director role.
 - Redirection upon SSO Callback:
   - Strictly routes according to verified role (`/student`, `/teacher`, `/approver`, or `/owner`).
+- Authenticated API sessions are cached in Redis for a short configurable TTL (default: 5 minutes):
+  - Cache keys contain a SHA-256 token digest; raw Bearer tokens are never stored as Redis keys.
+  - A cache hit supplies the synchronized local User and avoids repeated SSO verification and PostgreSQL upsert operations.
+  - Cache misses perform normal SSO verification and local User synchronization before caching the result.
+  - Redis failures are fail-open for availability: authentication falls back to SSO and PostgreSQL rather than denying valid users.
+  - The TTL may be configured from 1 to 15 minutes to limit stale Role or account-status data.

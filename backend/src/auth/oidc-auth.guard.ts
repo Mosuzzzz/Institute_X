@@ -1,18 +1,17 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AccountStatus, UserRole } from '@prisma/client';
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
+import { AuthenticatedSession, AuthSessionCache } from './auth-session-cache';
 import { OIDC_TOKEN_VERIFIER, OidcTokenVerifier } from './oidc-token-verifier';
 import { SsoUserService } from './sso-user.service';
 
-interface AuthenticatedUser {
-  id: string;
-  role: UserRole;
-  accountStatus: AccountStatus;
-  majorId: string | null;
-}
-
 interface AuthenticatedRequest extends Request {
-  user?: AuthenticatedUser;
+  user?: AuthenticatedSession;
 }
 
 @Injectable()
@@ -20,6 +19,7 @@ export class OidcAuthGuard implements CanActivate {
   constructor(
     @Inject(OIDC_TOKEN_VERIFIER) private readonly verifier: OidcTokenVerifier,
     private readonly users: SsoUserService,
+    private readonly sessions: AuthSessionCache,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -29,6 +29,12 @@ export class OidcAuthGuard implements CanActivate {
     }
 
     const token = this.bearerToken(request.headers.authorization);
+    const cached = await this.sessions.get(token).catch(() => null);
+    if (cached) {
+      request.user = cached;
+      return true;
+    }
+
     let identity;
     try {
       identity = await this.verifier.verify(token);
@@ -37,12 +43,14 @@ export class OidcAuthGuard implements CanActivate {
     }
 
     const user = await this.users.synchronize(identity);
-    request.user = {
+    const session: AuthenticatedSession = {
       id: user.id,
       role: user.role,
       accountStatus: user.accountStatus,
       majorId: user.majorId,
     };
+    request.user = session;
+    await this.sessions.set(token, session).catch(() => undefined);
     return true;
   }
 

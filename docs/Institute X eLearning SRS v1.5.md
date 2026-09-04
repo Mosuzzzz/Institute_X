@@ -70,6 +70,8 @@ The system excludes payment, paid Courses, Guest access, course passwords, atten
 | FR-AUTH-04 | The system shall not provide Guest access. |
 | FR-AUTH-05 | The system shall not provide social login. |
 | FR-AUTH-06 | The system shall not maintain a separate local password. |
+| FR-AUTH-07 | The system shall cache a successfully verified SSO session for a short configurable period to avoid repeated SSO calls and local User writes on every API request. |
+| FR-AUTH-08 | The authentication flow shall fall back to direct SSO verification and local User synchronization when the session cache is unavailable. |
 
 ```text
 University Email
@@ -408,6 +410,7 @@ The Owner dashboard shall include:
 | NFR-13 | Individual uploaded media files shall not exceed 1 GB. |
 | NFR-14 | Learning assets shall not be exposed as unrestricted public-download resources. |
 | NFR-15 | The system shall collect sufficient access information for traffic and peak-usage analysis. |
+| NFR-16 | Authentication cache keys shall use a one-way token digest and shall not expose raw Bearer tokens. |
 
 ---
 
