@@ -38,7 +38,8 @@ const checklistLabels: Record<keyof TeacherCourseDetailDto["checks"], string> = 
   content: "Learning content",
   media: "Media ready",
   preTest: "Pre-Test",
-  assessments: "Valid assessments",
+  postTest: "Post-Test",
+  assessments: "Valid assessment questions",
 };
 const checklistTargets: Record<keyof TeacherCourseDetailDto["checks"], string> = {
   details: "details",
@@ -47,6 +48,7 @@ const checklistTargets: Record<keyof TeacherCourseDetailDto["checks"], string> =
   content: "content",
   media: "content",
   preTest: "preTest",
+  postTest: "preTest",
   assessments: "preTest",
 };
 
@@ -1441,7 +1443,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 ))
               ) : (
                 <p className="bg-[#f6f8fa] p-6 text-sm text-[#687486]">
-                  No assessments yet. Start with the Pre-test.
+                  No assessments yet. Create both the mandatory Pre-test and Post-test.
                 </p>
               )}
             </div>

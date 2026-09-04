@@ -13,7 +13,7 @@ Institute X E-Learning Management System is a free, web-based learning platform 
 
 The system supports four mutually exclusive roles: `STUDENT`, `TEACHER`, `APPROVER`, and `OWNER`. A Teacher must be authorized before creating courses. Course access is validated by the Student's Major. Teachers submit Course Versions for approval; rejected Versions must be fixed and resubmitted, while approved Versions are automatically published.
 
-Students must complete a Pre-Test once before accessing learning content. The Pre-Test has no passing requirement. Post-Tests may be taken an unlimited number of times, and a score of at least 80% is required to pass.
+Every Course must include both a Pre-Test and a Post-Test before it can be submitted for approval. Students must complete the Pre-Test once before accessing learning content. The Pre-Test has no passing requirement. Post-Tests may be taken an unlimited number of times, and a score of at least 80% is required to pass.
 
 ---
 
@@ -31,7 +31,7 @@ The system includes:
 - Automatic publication after approval
 - Video, audio, image, text, and document learning content
 - Mandatory Pre-Test before learning
-- Post-Test with unlimited attempts
+- Mandatory Post-Test with unlimited attempts
 - Automatic grading
 - Multiple Choice questions
 - Optional Teacher-configured quiz timer
@@ -112,7 +112,7 @@ Teacher → Request Permission → Approver
 | FR-CM-02 | A Teacher shall be able to edit a Course owned by that Teacher. |
 | FR-CM-03 | A Teacher shall be able to add learning content. |
 | FR-CM-04 | A Teacher shall create a Pre-Test for the Course. |
-| FR-CM-05 | A Teacher shall be able to create a Post-Test. |
+| FR-CM-05 | A Teacher shall create a Post-Test for the Course. |
 | FR-CM-06 | A Teacher shall submit a Course Version for approval. |
 | FR-CM-07 | Published content shall not be edited directly. |
 | FR-CM-08 | Changes to published content shall create a new Course Version. |
@@ -242,7 +242,7 @@ Supported learning content:
 
 ## 11. Post-Test Requirements
 
-A Student must achieve at least 80% to pass the Post-Test. Post-Test attempts are unlimited.
+Every Course must contain a valid Post-Test before submission. A Student must achieve at least 80% to pass the Post-Test. Post-Test attempts are unlimited.
 
 | ID | Requirement |
 |---|---|
@@ -377,6 +377,7 @@ The Owner dashboard shall include:
 | BR-21 | Quiz timing is configurable by the Teacher. |
 | BR-22 | Popular Courses are ranked by enrollments. |
 | BR-23 | Low-usage analysis is out of scope. |
+| BR-24 | Every Course Version submitted for approval must contain valid Pre-Test and Post-Test assessments. |
 | BR-24 | Analytics date filtering is out of scope. |
 | BR-25 | Individual media files shall not exceed 1 GB. |
 | BR-26 | Total Course assets shall not exceed 1 GB. |

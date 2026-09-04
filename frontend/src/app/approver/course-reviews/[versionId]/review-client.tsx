@@ -58,8 +58,8 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
       ready: (preTest?.questions.length ?? 0) > 0,
     },
     {
-      label: 'Post-Test (Optional)',
-      detail: postTest ? `${postTest.questions.length} questions configured` : 'Not created (Optional)',
+      label: 'Post-Test',
+      detail: postTest ? `${postTest.questions.length} questions configured` : 'Missing (Required)',
       ready: true,
     },
     {

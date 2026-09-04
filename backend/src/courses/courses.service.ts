@@ -98,6 +98,7 @@ interface CourseReadiness {
   content: boolean;
   media: boolean;
   preTest: boolean;
+  postTest: boolean;
   assessments: boolean;
 }
 
@@ -231,6 +232,9 @@ export class CoursesService {
           preTest: latest.quizzes.some(
             (quiz) => quiz.quizType === 'PRE_TEST' && hasValidQuestions(quiz),
           ),
+          postTest: latest.quizzes.some(
+            (quiz) => quiz.quizType === 'POST_TEST' && hasValidQuestions(quiz),
+          ),
           assessments: latest.quizzes.every(hasValidQuestions),
         }
       : {
@@ -240,6 +244,7 @@ export class CoursesService {
           content: false,
           media: false,
           preTest: false,
+          postTest: false,
           assessments: false,
         };
     const passed = Object.values(checks).filter(Boolean).length;

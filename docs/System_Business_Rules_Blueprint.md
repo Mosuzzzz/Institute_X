@@ -13,7 +13,7 @@ To prevent routing conflicts, unauthorized actions, and UI confusion, each of th
 | Role | Default Workspace Route | Primary Responsibilities | Strict Boundaries (What they CANNOT do) |
 | :--- | :--- | :--- | :--- |
 | **STUDENT** | `/student` | - Browse eligible courses<br>- Auto-enroll upon starting a course<br>- Complete mandatory 1-attempt Pre-Test<br>- View text & media content<br>- Attempt Post-Tests (unlimited attempts, 80% passing mark)<br>- View own scores & history | - Cannot access any `/teacher`, `/approver`, or `/owner` routes.<br>- Cannot bypass Pre-Test to access content.<br>- Cannot view courses from other majors when configured as `LIMITED`. |
-| **TEACHER** | `/teacher` | - Request course creation permission (`/teacher/permission`)<br>- Create and edit Course Versions (in `DRAFT` status)<br>- Organize content into optional Sections<br>- Add Text, Video, Audio, Image, Document content<br>- Create Pre-Test (mandatory) and Post-Test (optional)<br>- Submit Draft Version for Approver review<br>- Reopen rejected drafts for correction<br>- Discard unwanted draft revisions<br>- Unpublish/republish own published courses<br>- View analytics for own courses | - **Cannot create courses without APPROVED permission.**<br>- **Cannot directly edit `PUBLISHED` content.** Changes must create a new Version.<br>- **Cannot approve own or others' courses.**<br>- Cannot access Approver review queues or Owner administrative panels. |
+| **TEACHER** | `/teacher` | - Request course creation permission (`/teacher/permission`)<br>- Create and edit Course Versions (in `DRAFT` status)<br>- Organize content into optional Sections<br>- Add Text, Video, Audio, Image, Document content<br>- Create mandatory Pre-Test and Post-Test assessments<br>- Submit Draft Version for Approver review<br>- Reopen rejected drafts for correction<br>- Discard unwanted draft revisions<br>- Unpublish/republish own published courses<br>- View analytics for own courses | - **Cannot create courses without APPROVED permission.**<br>- **Cannot directly edit `PUBLISHED` content.** Changes must create a new Version.<br>- **Cannot approve own or others' courses.**<br>- Cannot access Approver review queues or Owner administrative panels. |
 | **APPROVER** | `/approver` | - Review Teacher Permission requests (`APPROVE` / `REJECT`)<br>- Review Course Version submissions (`APPROVE` / `REJECT` with mandatory comment for rejection)<br>- View submitted content and quiz structures in read-only mode | - Cannot create, edit, or author courses.<br>- Cannot modify course content during review.<br>- Cannot access Owner system-wide analytics. |
 | **OWNER** | `/owner` | - Executive Dashboard: Active users, course totals, enrollments, assessment statistics, traffic & peak hours<br>- Central Category Management (Create, Edit, List course categories)<br>- Administrative Course Moderation (Unpublish / Archive courses for institutional policy) | - Does not participate in routine course approval queues (handled strictly by Approver).<br>- Does not author courses directly. |
 
@@ -81,7 +81,7 @@ A Draft Course Version cannot be submitted to the Approver until all mandatory i
 | **Sections** | Optional | Content can be organized into Sections or remain unsectioned. |
 | **Media Assets** | Mandatory Condition | All uploaded media (cover, content video/audio/doc, question image) must have status `READY`. Uploads in `PENDING` or `FAILED` will block submission. |
 | **Pre-Test** | Mandatory | Must have at least 1 Question. Each question must have $\ge 2$ options and exactly 1 correct answer. |
-| **Post-Test** | Optional | If created, must have at least 1 Question conforming to the same question rules ($\ge 2$ options, 1 correct). |
+| **Post-Test** | Mandatory | Must have at least 1 Question conforming to the same question rules ($\ge 2$ options, exactly 1 correct answer). |
 
 ### UI Experience:
 - The editor continuously autosaves/persists state into the database.
@@ -104,6 +104,7 @@ A Draft Course Version cannot be submitted to the Approver until all mandatory i
    - Questions and options are randomized.
    - Submitting the Pre-Test records score and immediately unlocks the course content.
 4. **Post-Test:**
+   - Every published Course must include a Post-Test.
    - Can be attempted unlimited times.
    - Passing criteria is 80%.
    - Full history of attempts is preserved for teacher and student analytics.

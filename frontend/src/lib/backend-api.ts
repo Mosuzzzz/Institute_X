@@ -159,6 +159,7 @@ export type TeacherCourseDetailDto = TeacherCourseDto & {
     | "content"
     | "media"
     | "preTest"
+    | "postTest"
     | "assessments",
     boolean
   >;

@@ -102,7 +102,7 @@ describe('CoursesService', () => {
       );
     });
 
-    it('reports a complete mandatory checklist without requiring an optional Post-Test', async () => {
+    it('reports a complete mandatory checklist when both assessments are valid', async () => {
       db.course.findUnique.mockResolvedValue({
         id: 'course-id',
         teacherId: 'teacher-id',
@@ -132,6 +132,15 @@ describe('CoursesService', () => {
                   },
                 ],
               },
+              {
+                quizType: 'POST_TEST',
+                questions: [
+                  {
+                    imageAsset: null,
+                    options: [{ isCorrect: true }, { isCorrect: false }],
+                  },
+                ],
+              },
             ],
           },
         ],
@@ -149,10 +158,49 @@ describe('CoursesService', () => {
             content: true,
             media: true,
             preTest: true,
+            postTest: true,
             assessments: true,
           },
         }),
       );
+    });
+
+    it('keeps readiness below 100 when the mandatory Post-Test is missing', async () => {
+      db.course.findUnique.mockResolvedValue({
+        id: 'course-id',
+        teacherId: 'teacher-id',
+        archivedAt: null,
+        eligibilityMode: 'OPEN',
+        allowedMajors: [],
+        categories: [{ category: { id: 'category-id' } }],
+        versions: [
+          {
+            title: 'Course title',
+            languageCode: 'en',
+            contentItems: [{ contentType: 'TEXT', mediaAsset: null }],
+            coverAsset: null,
+            quizzes: [
+              {
+                quizType: 'PRE_TEST',
+                questions: [
+                  {
+                    imageAsset: null,
+                    options: [{ isCorrect: true }, { isCorrect: false }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await service.getOwnedDetail(
+        { id: 'teacher-id', role: UserRole.TEACHER },
+        'course-id',
+      );
+
+      expect(result.readiness).toBeLessThan(100);
+      expect(result.checks.postTest).toBe(false);
     });
 
     it('marks the media checklist incomplete while any uploaded asset is not READY', async () => {

@@ -209,6 +209,26 @@ describeDatabase('PostgreSQL integration', () => {
         },
       },
     });
+    await prisma.quiz.create({
+      data: {
+        versionId: draft.id,
+        quizType: QuizType.POST_TEST,
+        title: 'Integration Post-Test',
+        questions: {
+          create: {
+            questionText: 'Integration mastery question',
+            points: 1,
+            position: 1,
+            options: {
+              create: [
+                { optionText: 'Correct', isCorrect: true, position: 1 },
+                { optionText: 'Incorrect', isCorrect: false, position: 2 },
+              ],
+            },
+          },
+        },
+      },
+    });
 
     await versions.submit({ id: teacherId, role: UserRole.TEACHER }, draft.id);
     await versions.review(

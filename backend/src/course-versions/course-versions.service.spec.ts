@@ -58,6 +58,14 @@ describe('CourseVersionsService', () => {
           },
         ],
       },
+      {
+        quizType: QuizType.POST_TEST,
+        questions: [
+          {
+            options: [{ isCorrect: true }, { isCorrect: false }],
+          },
+        ],
+      },
     ],
   };
 
@@ -90,11 +98,25 @@ describe('CourseVersionsService', () => {
   });
 
   it('rejects submission without a Pre-Test', async () => {
-    db.courseVersion.findUnique.mockResolvedValue({ ...validDraft, quizzes: [] });
+    db.courseVersion.findUnique.mockResolvedValue({
+      ...validDraft,
+      quizzes: validDraft.quizzes.filter((quiz) => quiz.quizType !== QuizType.PRE_TEST),
+    });
 
     await expect(
       service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
+  });
+
+  it('rejects submission without a Post-Test', async () => {
+    db.courseVersion.findUnique.mockResolvedValue({
+      ...validDraft,
+      quizzes: validDraft.quizzes.filter((quiz) => quiz.quizType !== QuizType.POST_TEST),
+    });
+
+    await expect(
+      service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
+    ).rejects.toThrow('A Post-Test with questions is required');
   });
 
   it('rejects a question without exactly one correct option', async () => {
@@ -153,10 +175,12 @@ describe('CourseVersionsService', () => {
     expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
   });
 
-  it('rejects an optional Post-Test that has no valid questions', async () => {
+  it('rejects a mandatory Post-Test that has no valid questions', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       ...validDraft,
-      quizzes: [...validDraft.quizzes, { quizType: QuizType.POST_TEST, questions: [] }],
+      quizzes: validDraft.quizzes.map((quiz) =>
+        quiz.quizType === QuizType.POST_TEST ? { ...quiz, questions: [] } : quiz,
+      ),
     });
 
     await expect(
