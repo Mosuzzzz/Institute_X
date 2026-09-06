@@ -2,6 +2,7 @@ import {
   CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -19,8 +20,18 @@ export class S3ObjectStorage extends ObjectStorage {
   constructor(
     private readonly client: S3Client,
     private readonly config: S3ObjectStorageConfig,
+    private readonly signingClient: S3Client = client,
   ) {
     super();
+  }
+
+  async isReady(): Promise<boolean> {
+    try {
+      await this.client.send(new HeadBucketCommand({ Bucket: this.config.bucket }));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async createUploadUrl(
@@ -80,7 +91,7 @@ export class S3ObjectStorage extends ObjectStorage {
   }
 
   private async sign(command: PutObjectCommand | GetObjectCommand): Promise<SignedStorageUrl> {
-    const url = await getSignedUrl(this.client, command, {
+    const url = await getSignedUrl(this.signingClient, command, {
       expiresIn: this.config.signedUrlTtlSeconds,
     });
     return {

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   backendApi,
   type CourseEntryDto,
@@ -53,6 +53,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   const [collapsedSections, setCollapsedSections] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const contentRequestId = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +98,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   }, [courseId]);
 
   const openContent = useCallback(async (item: ContentItem, scroll = true) => {
+    const requestId = ++contentRequestId.current;
     setSelectedItem(item);
     setMediaUrl(null);
     setContentError(null);
@@ -104,17 +106,20 @@ export default function CourseClient({ courseId }: { courseId: string }) {
     try {
       if (item.media) {
         const signed = await backendApi<SignedViewUrlDto>(`media/${item.media.assetId}/view-url`);
+        if (requestId !== contentRequestId.current) return;
         setMediaUrl(signed.url);
       }
+      if (requestId !== contentRequestId.current) return;
       if (scroll) {
         requestAnimationFrame(() =>
           document.getElementById('lesson-viewer')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
         );
       }
     } catch (requestError) {
+      if (requestId !== contentRequestId.current) return;
       setContentError(requestError instanceof Error ? requestError.message : 'Unable to open this content.');
     } finally {
-      setOpeningContent(false);
+      if (requestId === contentRequestId.current) setOpeningContent(false);
     }
   }, []);
 
@@ -334,6 +339,17 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             <p className="mt-8 max-w-[780px] text-base leading-[1.8] text-[#606274]">
               {course.description ?? 'Continue through the published learning content and assessments.'}
             </p>
+
+            {entry.contentUnlocked && entry.preTestId ? (
+              <Link
+                className="mt-8 inline-flex text-sm font-bold text-[#073d78] hover:underline"
+                href={`/student/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
+                  `/student/courses/${courseId}`,
+                )}`}
+              >
+                View Pre-Test result →
+              </Link>
+            ) : null}
 
             {/* Post-Test action card if unlocked */}
             {entry.contentUnlocked && entry.postTestId && (

@@ -15,6 +15,7 @@ describe('database schema contract', () => {
     'CourseAllowedMajor',
     'CourseVersion',
     'CourseVersionReview',
+    'DiscardedCourseVersionReview',
     'CourseSection',
     'ContentItem',
     'MediaAsset',
@@ -163,6 +164,32 @@ describe('database schema contract', () => {
     expect(migration).toContain("WHERE status IN ('DRAFT', 'SUBMITTED', 'REJECTED')");
     expect(migration).toContain('course_versions_one_published_per_course');
     expect(migration).toContain("WHERE status = 'PUBLISHED'");
+  });
+
+  it('serializes child authoring mutations through the Draft Version row', () => {
+    const migration = readFileSync(
+      resolve(__dirname, '../prisma/migrations/202609060001_lock_draft_authoring/migration.sql'),
+      'utf8',
+    );
+
+    expect(migration).toContain('FOR UPDATE');
+    expect(migration).toContain("target_status <> 'DRAFT'");
+    expect(migration).toContain('media_assets_require_draft');
+    expect(migration).toContain('question_image_assets_require_draft');
+  });
+
+  it('preserves review audit records when a reopened Draft is discarded', () => {
+    const migration = readFileSync(
+      resolve(
+        __dirname,
+        '../prisma/migrations/202609060002_preserve_discarded_review_history/migration.sql',
+      ),
+      'utf8',
+    );
+
+    expect(modelNames).toContain('DiscardedCourseVersionReview');
+    expect(migration).toContain('discarded_course_version_reviews');
+    expect(migration).toContain('original_review_id');
   });
 
   it('seeds the Mock SSO Computer Science Major idempotently', () => {

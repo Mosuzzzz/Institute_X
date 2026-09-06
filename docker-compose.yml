@@ -39,12 +39,15 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
       timeout: 5s
       retries: 10
     networks:
+      - edge
       - internal
 
   minio-init:
@@ -110,6 +113,7 @@ services:
       OIDC_ACCOUNT_STATUS_CLAIM: ${OIDC_ACCOUNT_STATUS_CLAIM:-account_status}
       OIDC_MAJOR_CODE_CLAIM: ${OIDC_MAJOR_CODE_CLAIM:-major_code}
       S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_BUCKET: ${S3_BUCKET:-institute-x-private}
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-institute_x}
@@ -123,6 +127,7 @@ services:
       retries: 10
       start_period: 10s
     networks:
+      - edge
       - internal
 
   nginx:

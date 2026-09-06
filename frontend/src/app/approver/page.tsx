@@ -10,15 +10,201 @@ import { staffUi } from '../ui-styles';
 export default function ApproverOverviewPage() {
   const permissions = useBackendQuery<TeacherPermissionDto[]>('teacher-permissions/pending');
   const versions = useBackendQuery<SubmittedVersionDto[]>('course-versions/pending-review');
-  if (!permissions.data || !versions.data) return <main className={staffUi.page}><ApiState loading={permissions.loading || versions.loading} error={permissions.error ?? versions.error} /></main>;
+
+  if (!permissions.data || !versions.data) {
+    return (
+      <main className={staffUi.page}>
+        <ApiState loading={permissions.loading || versions.loading} error={permissions.error ?? versions.error} />
+      </main>
+    );
+  }
+
   const nextPermission = permissions.data[0];
   const nextVersion = versions.data[0];
+  const totalPending = permissions.data.length + versions.data.length;
 
   return (
     <main className={staffUi.page}>
-      <header className={staffUi.heading}><div><p className={staffUi.eyebrow}>Decision queues</p><h1>Review overview</h1><p>Work oldest-first, inspect the evidence and record a clear decision for every request.</p></div><span className={staffUi.count}>Live backend data</span></header>
-      <section className={staffUi.queueSummary} aria-label="Pending review totals"><Link href="/approver/teacher-requests"><span>01</span><div><p>Teacher permissions</p><strong>{permissions.data.length} pending</strong><small>Oldest waiting {formatWaiting(nextPermission?.requestedAt ?? null)}</small></div><b>→</b></Link><Link href="/approver/course-reviews"><span>02</span><div><p>Course Versions</p><strong>{versions.data.length} pending</strong><small>Oldest waiting {formatWaiting(nextVersion?.submittedAt ?? null)}</small></div><b>→</b></Link></section>
-      <section className={staffUi.worklist}><div className={staffUi.sectionHeading}><div><p className={staffUi.eyebrow}>Next decisions</p><h2>Oldest items first</h2></div></div><div className={staffUi.mixedList}>{nextPermission ? <Link href="/approver/teacher-requests"><span className={staffUi.approvalType}>Permission</span><div><strong>{nextPermission.teacher?.fullName}</strong><small>{nextPermission.teacher?.universityEmail}</small></div><time>{formatWaiting(nextPermission.requestedAt)}</time><b>Review →</b></Link> : null}{nextVersion ? <Link href={`/approver/course-reviews/${nextVersion.id}`}><span className={`${staffUi.approvalType} ${staffUi.approvalTypeCourse}`}>Course V{nextVersion.versionNumber}</span><div><strong>{nextVersion.title}</strong><small>{nextVersion.course.teacher.fullName}</small></div><time>{formatWaiting(nextVersion.submittedAt)}</time><b>Review →</b></Link> : null}{!nextPermission && !nextVersion ? <p className={staffUi.empty}>All review queues are clear.</p> : null}</div></section>
+      {/* Header Section */}
+      <header className="mb-8 flex flex-col gap-6 border-b border-slate-200/80 pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 text-xs font-bold tracking-wider text-teal-700 uppercase">
+            <span className="size-2 rounded-full bg-teal-600 animate-pulse" />
+            Institutional Governance
+          </div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Review Overview
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Enforce quality standards, verify mandatory pre/post test requirements, and maintain two-person integrity.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50/80 px-3.5 py-1.5 text-xs font-semibold text-teal-800 shadow-xs">
+            <span className="size-2 rounded-full bg-teal-600" />
+            {totalPending} decisions pending
+          </span>
+        </div>
+      </header>
+
+      {/* Queue Summary Cards */}
+      <section aria-label="Review queue totals" className="mb-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {/* Teacher Permissions Queue Card */}
+        <Link
+          href="/approver/teacher-requests"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:shadow-md"
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-bold tracking-wide text-amber-700 uppercase">
+                Queue 01
+              </span>
+              <div className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-600/20 group-hover:bg-teal-100">
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                </svg>
+              </div>
+            </div>
+            <div className="my-5">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Teacher Permissions</p>
+              <strong className="mt-1 block text-4xl font-bold tracking-tight text-slate-900">
+                {permissions.data.length} <span className="text-lg font-normal text-slate-500">pending</span>
+              </strong>
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">
+                <svg className="size-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                Oldest waiting: {formatWaiting(nextPermission?.requestedAt ?? null)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-teal-700 group-hover:text-teal-800">
+            <span>Open permission review queue</span>
+            <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+          </div>
+        </Link>
+
+        {/* Course Versions Queue Card */}
+        <Link
+          href="/approver/course-reviews"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:shadow-md"
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-teal-50 px-2 py-1 text-xs font-bold tracking-wide text-teal-700 uppercase">
+                Queue 02
+              </span>
+              <div className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-600/20 group-hover:bg-teal-100">
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                </svg>
+              </div>
+            </div>
+            <div className="my-5">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Course Versions</p>
+              <strong className="mt-1 block text-4xl font-bold tracking-tight text-slate-900">
+                {versions.data.length} <span className="text-lg font-normal text-slate-500">pending</span>
+              </strong>
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">
+                <svg className="size-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                Oldest waiting: {formatWaiting(nextVersion?.submittedAt ?? null)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-teal-700 group-hover:text-teal-800">
+            <span>Open course submissions queue</span>
+            <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+          </div>
+        </Link>
+      </section>
+
+      {/* Prioritized Decision Worklist (Oldest First) */}
+      <section aria-labelledby="worklist-heading" className="mb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 id="worklist-heading" className="text-lg font-bold tracking-tight text-slate-900">
+              Prioritized Decision Queue
+            </h2>
+            <p className="text-xs text-slate-500">Oldest submissions first to maintain institutional SLA</p>
+          </div>
+        </div>
+
+        {totalPending > 0 ? (
+          <div className="grid gap-3">
+            {/* Top pending teacher permission */}
+            {nextPermission ? (
+              <Link
+                href="/approver/teacher-requests"
+                className="group flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md sm:flex-row sm:items-center"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="inline-flex items-center rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-600/20">
+                    Teacher Request
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-teal-700">
+                      {nextPermission.teacher?.fullName}
+                    </h3>
+                    <p className="text-xs text-slate-500">{nextPermission.teacher?.universityEmail}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-4 sm:justify-end">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                    Waiting {formatWaiting(nextPermission.requestedAt)}
+                  </span>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-teal-700 group-hover:translate-x-1 transition-transform">
+                    <span>Review Decision</span>
+                    <span aria-hidden="true">→</span>
+                  </div>
+                </div>
+              </Link>
+            ) : null}
+
+            {/* Top pending course version */}
+            {nextVersion ? (
+              <Link
+                href={`/approver/course-reviews/${nextVersion.id}`}
+                className="group flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md sm:flex-row sm:items-center"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="inline-flex items-center rounded-xl bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-700 ring-1 ring-teal-600/20">
+                    Course V{nextVersion.versionNumber}
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 group-hover:text-teal-700">
+                      {nextVersion.title}
+                    </h3>
+                    <p className="text-xs text-slate-500">Instructor: {nextVersion.course.teacher.fullName}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-4 sm:justify-end">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                    Waiting {formatWaiting(nextVersion.submittedAt)}
+                  </span>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-teal-700 group-hover:translate-x-1 transition-transform">
+                    <span>Inspect Course</span>
+                    <span aria-hidden="true">→</span>
+                  </div>
+                </div>
+              </Link>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white p-12 text-center shadow-xs">
+            <div className="grid size-14 place-items-center rounded-2xl bg-teal-50 text-teal-600 ring-1 ring-teal-600/20">
+              <svg className="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <h3 className="mt-4 text-base font-bold text-slate-900">All review queues are cleared!</h3>
+            <p className="mt-1 max-w-sm text-xs text-slate-500">
+              There are currently no teacher permission requests or course version drafts waiting for approval.
+            </p>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

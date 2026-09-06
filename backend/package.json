@@ -14,7 +14,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config test/jest-e2e.json",
-    "test:integration": "RUN_DATABASE_INTEGRATION=true jest --runInBand --runTestsByPath test/database.integration.spec.ts",
+    "test:integration": "RUN_DATABASE_INTEGRATION=true RUN_REDIS_INTEGRATION=true jest --runInBand --runTestsByPath test/database.integration.spec.ts test/concurrency.integration.spec.ts test/redis.integration.spec.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

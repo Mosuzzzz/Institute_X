@@ -1,6 +1,7 @@
 import {
   ConflictException,
   ForbiddenException,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { AccountStatus, CourseVersionStatus, QuizResult, QuizType, UserRole } from '@prisma/client';
@@ -40,6 +41,7 @@ describe('PreTestService', () => {
       courseId: 'course-id',
       status: CourseVersionStatus.PUBLISHED,
       course: {
+        archivedAt: null,
         enrollments: [{ studentId: 'student-id' }],
         allowedMajors: [{ majorId: 'major-it' }],
       },
@@ -109,6 +111,19 @@ describe('PreTestService', () => {
     expect(JSON.stringify(result)).not.toContain('isCorrect');
   });
 
+  it('denies starting a Pre-Test after the Course is archived', async () => {
+    prisma.quiz.findUnique.mockResolvedValue({
+      ...quiz,
+      version: {
+        ...quiz.version,
+        course: { ...quiz.version.course, archivedAt: new Date() },
+      },
+    });
+
+    await expect(service.start(student, 'quiz-id')).rejects.toBeInstanceOf(NotFoundException);
+    expect(db.quizAttempt.create).not.toHaveBeenCalled();
+  });
+
   it('prevents another attempt after a submitted Pre-Test', async () => {
     prisma.quiz.findUnique.mockResolvedValue(quiz);
     db.quizAttempt.findFirst.mockResolvedValue({
@@ -162,6 +177,29 @@ describe('PreTestService', () => {
       ],
     });
     expect(db.quizAttempt.create).not.toHaveBeenCalled();
+  });
+
+  it('finalizes an expired open attempt so the completed result can unlock learning', async () => {
+    prisma.quiz.findUnique.mockResolvedValue(quiz);
+    db.quizAttempt.findFirst.mockResolvedValue({
+      id: 'expired-attempt',
+      submittedAt: null,
+      expiresAt: new Date(Date.now() - 1_000),
+      quiz: { version: { courseId: 'course-id' } },
+      presentedQuestions: [],
+      presentedOptions: [],
+    });
+    db.quizAttempt.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.start(student, 'quiz-id')).rejects.toBeInstanceOf(ConflictException);
+    expect(db.quizAttempt.updateMany).toHaveBeenCalledWith({
+      where: { id: 'expired-attempt', submittedAt: null },
+      data: {
+        score: 0,
+        result: QuizResult.COMPLETED,
+        submittedAt: expect.any(Date),
+      },
+    });
   });
 
   it('requires enrollment in the published Course', async () => {
@@ -247,7 +285,7 @@ describe('PreTestService', () => {
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
-  it('rejects submission after the server deadline', async () => {
+  it('finalizes an expired attempt at zero without requiring answers', async () => {
     db.quizAttempt.findUnique.mockResolvedValue({
       id: 'attempt-id',
       studentId: 'student-id',
@@ -257,12 +295,38 @@ describe('PreTestService', () => {
       presentedQuestions: quiz.questions.map((question) => ({ question })),
     });
 
-    await expect(
-      service.submit(student, 'attempt-id', [
-        { questionId: 'question-1', optionId: 'option-1a' },
-        { questionId: 'question-2', optionId: 'option-2b' },
-      ]),
-    ).rejects.toBeInstanceOf(ConflictException);
+    db.quizAttempt.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(service.finalizeExpired(student, 'attempt-id')).resolves.toEqual({
+      score: 0,
+      result: QuizResult.COMPLETED,
+      courseId: 'course-id',
+    });
+    expect(db.quizAttemptAnswer.createMany).not.toHaveBeenCalled();
+    expect(db.quizAttempt.updateMany).toHaveBeenCalledWith({
+      where: { id: 'attempt-id', submittedAt: null },
+      data: {
+        score: 0,
+        result: QuizResult.COMPLETED,
+        submittedAt: expect.any(Date),
+      },
+    });
+  });
+
+  it('does not finalize an attempt before its deadline', async () => {
+    db.quizAttempt.findUnique.mockResolvedValue({
+      id: 'attempt-id',
+      studentId: 'student-id',
+      submittedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      quiz,
+      presentedQuestions: quiz.questions.map((question) => ({ question })),
+    });
+
+    await expect(service.finalizeExpired(student, 'attempt-id')).rejects.toBeInstanceOf(
+      UnprocessableEntityException,
+    );
+    expect(db.quizAttempt.updateMany).not.toHaveBeenCalled();
   });
 
   it('returns the Student stored Pre-Test score without answer keys', async () => {
@@ -290,19 +354,6 @@ describe('PreTestService', () => {
         submittedAt: { not: null },
         quiz: {
           quizType: QuizType.PRE_TEST,
-          version: {
-            status: CourseVersionStatus.PUBLISHED,
-            course: {
-              OR: [
-                { eligibilityMode: 'OPEN' },
-                {
-                  eligibilityMode: 'LIMITED',
-                  allowedMajors: { some: { majorId: 'major-it' } },
-                },
-              ],
-              enrollments: { some: { studentId: 'student-id' } },
-            },
-          },
         },
       },
       select: {

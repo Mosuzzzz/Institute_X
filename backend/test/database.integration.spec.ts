@@ -81,8 +81,7 @@ describeDatabase('PostgreSQL integration', () => {
             id: versionId,
             versionNumber: 1,
             title: 'Integration Course',
-            status: CourseVersionStatus.PUBLISHED,
-            publishedAt: new Date(),
+            status: CourseVersionStatus.DRAFT,
             quizzes: {
               create: {
                 id: quizId,
@@ -93,6 +92,10 @@ describeDatabase('PostgreSQL integration', () => {
           },
         },
       },
+    });
+    await prisma.courseVersion.update({
+      where: { id: versionId },
+      data: { status: CourseVersionStatus.PUBLISHED, publishedAt: new Date() },
     });
   });
 

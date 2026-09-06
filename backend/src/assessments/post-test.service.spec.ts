@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import {
   AccountStatus,
   CourseVersionStatus,
@@ -42,6 +42,7 @@ describe('PostTestService', () => {
     version: {
       status: CourseVersionStatus.PUBLISHED,
       course: {
+        archivedAt: null,
         enrollments: [{ studentId: 'student-id' }],
         allowedMajors: [{ majorId: 'major-it' }],
       },
@@ -90,6 +91,19 @@ describe('PostTestService', () => {
       expect.objectContaining({ imageAssetId: 'question-image-1' }),
     );
     expect(JSON.stringify(result)).not.toContain('isCorrect');
+  });
+
+  it('denies starting a Post-Test after the Course is archived', async () => {
+    prisma.quiz.findUnique.mockResolvedValue({
+      ...postTest,
+      version: {
+        ...postTest.version,
+        course: { ...postTest.version.course, archivedAt: new Date() },
+      },
+    });
+
+    await expect(service.start(student, 'post-test-id')).rejects.toBeInstanceOf(NotFoundException);
+    expect(db.quizAttempt.create).not.toHaveBeenCalled();
   });
 
   it('allows unlimited attempts without checking earlier Post-Test results', async () => {
@@ -213,19 +227,6 @@ describe('PostTestService', () => {
           submittedAt: { not: null },
           quiz: {
             quizType: QuizType.POST_TEST,
-            version: {
-              status: CourseVersionStatus.PUBLISHED,
-              course: {
-                OR: [
-                  { eligibilityMode: 'OPEN' },
-                  {
-                    eligibilityMode: 'LIMITED',
-                    allowedMajors: { some: { majorId: 'major-it' } },
-                  },
-                ],
-                enrollments: { some: { studentId: 'student-id' } },
-              },
-            },
           },
         }),
       }),

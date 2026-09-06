@@ -114,6 +114,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
       ? pathname === item.href
       : pathname.startsWith(item.href),
   );
+  const isCourseEditor = /^\/teacher\/courses\/[^/]+$/.test(pathname);
   const displayName = profile?.name ?? profile?.username ?? "Teacher";
   const initials = displayName
     .split(/\s+/)
@@ -126,7 +127,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
     <div className={workspaceUi.shell("teacher")}>
       <aside className={workspaceUi.sidebar(mobileNavOpen)}>
         <header className={workspaceUi.brandHeader}>
-          <Link className={workspaceUi.brandLink} href="/teacher" aria-label="Institute X teacher home">
+          <Link className={workspaceUi.brandLink} href="/teacher/courses" aria-label="Institute X teacher courses dashboard">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
@@ -173,7 +174,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className={workspaceUi.workspace}>
-        <header className={workspaceUi.topbar}>
+        <header className={isCourseEditor ? "hidden" : workspaceUi.topbar}>
           <button
             className={workspaceUi.menuButton}
             type="button"

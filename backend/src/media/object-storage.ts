@@ -9,6 +9,8 @@ export interface StoredObjectMetadata {
 }
 
 export abstract class ObjectStorage {
+  abstract isReady(): Promise<boolean>;
+
   abstract createUploadUrl(
     storageKey: string,
     mimeType: string,

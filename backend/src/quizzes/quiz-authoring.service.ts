@@ -239,12 +239,14 @@ export class QuizAuthoringService {
 
   async clearQuestions(actor: QuizActor, quizId: string): Promise<void> {
     const quiz = await this.requireOwnedDraftQuiz(actor, quizId);
-    await Promise.all(
-      quiz.questions.flatMap((question) =>
-        question.imageAsset ? [this.storage.deleteObject(question.imageAsset.storageKey)] : [],
-      ),
-    );
-    await this.prisma.question.deleteMany({ where: { quizId } });
+    await this.withLockedDraftVersion(quiz.version.id, actor.id, async (tx) => {
+      await Promise.all(
+        quiz.questions.flatMap((question) =>
+          question.imageAsset ? [this.storage.deleteObject(question.imageAsset.storageKey)] : [],
+        ),
+      );
+      await tx.question.deleteMany({ where: { quizId } });
+    });
   }
 
   async deleteQuestion(actor: QuizActor, questionId: string): Promise<void> {
@@ -267,26 +269,51 @@ export class QuizAuthoringService {
     if (question.quiz.version.status !== CourseVersionStatus.DRAFT) {
       throw new ConflictException('Only a Draft Version may be changed');
     }
-    if (question.imageAsset) {
-      await this.storage.deleteObject(question.imageAsset.storageKey);
-    }
-    await this.prisma.question.delete({ where: { id: questionId } });
+    await this.withLockedDraftVersion(question.quiz.version.id, actor.id, async (tx) => {
+      if (question.imageAsset) {
+        await this.storage.deleteObject(question.imageAsset.storageKey);
+      }
+      await tx.question.delete({ where: { id: questionId } });
+    });
   }
 
   async deleteQuiz(actor: QuizActor, quizId: string): Promise<void> {
     const quiz = await this.requireOwnedDraftQuiz(actor, quizId);
-    await Promise.all(
-      quiz.questions.flatMap((question) =>
-        question.imageAsset ? [this.storage.deleteObject(question.imageAsset.storageKey)] : [],
-      ),
-    );
-    await this.prisma.quiz.delete({ where: { id: quizId } });
+    await this.withLockedDraftVersion(quiz.version.id, actor.id, async (tx) => {
+      await Promise.all(
+        quiz.questions.flatMap((question) =>
+          question.imageAsset ? [this.storage.deleteObject(question.imageAsset.storageKey)] : [],
+        ),
+      );
+      await tx.quiz.delete({ where: { id: quizId } });
+    });
   }
 
-  private async requireOwnedDraftQuiz(
-    actor: QuizActor,
-    quizId: string,
-  ): Promise<OwnedDraftQuiz> {
+  private async withLockedDraftVersion<T>(
+    versionId: string,
+    teacherId: string,
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const locked = await tx.courseVersion.updateMany({
+          where: {
+            id: versionId,
+            status: CourseVersionStatus.DRAFT,
+            course: { teacherId, archivedAt: null },
+          },
+          data: { updatedAt: new Date() },
+        });
+        if (locked.count !== 1) {
+          throw new ConflictException('Version state changed concurrently');
+        }
+        return operation(tx);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  private async requireOwnedDraftQuiz(actor: QuizActor, quizId: string): Promise<OwnedDraftQuiz> {
     this.requireTeacher(actor);
     const quiz = await this.prisma.quiz.findUnique({
       where: { id: quizId },

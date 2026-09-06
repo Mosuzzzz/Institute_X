@@ -2,6 +2,7 @@ import {
   CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   HeadObjectCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
@@ -13,14 +14,19 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
 
 describe('S3ObjectStorage', () => {
   const client = { send: jest.fn() };
+  const signingClient = { send: jest.fn() };
   let storage: S3ObjectStorage;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    storage = new S3ObjectStorage(client as never, {
-      bucket: 'institute-x-private',
-      signedUrlTtlSeconds: 300,
-    });
+    storage = new S3ObjectStorage(
+      client as never,
+      {
+        bucket: 'institute-x-private',
+        signedUrlTtlSeconds: 300,
+      },
+      signingClient as never,
+    );
   });
 
   it('creates a short-lived signed upload command with enforced metadata', async () => {
@@ -29,7 +35,7 @@ describe('S3ObjectStorage', () => {
     const { getSignedUrl } = jest.requireMock('@aws-sdk/s3-request-presigner') as {
       getSignedUrl: jest.Mock;
     };
-    expect(getSignedUrl).toHaveBeenCalledWith(client, expect.any(PutObjectCommand), {
+    expect(getSignedUrl).toHaveBeenCalledWith(signingClient, expect.any(PutObjectCommand), {
       expiresIn: 300,
     });
     const command = getSignedUrl.mock.calls[0][1] as PutObjectCommand;
@@ -42,6 +48,15 @@ describe('S3ObjectStorage', () => {
       }),
     );
     expect(result.url).toBe('https://storage.example/signed');
+  });
+
+  it('reports whether the private bucket is reachable', async () => {
+    client.send.mockResolvedValue({});
+    await expect(storage.isReady()).resolves.toBe(true);
+    expect(client.send).toHaveBeenCalledWith(expect.any(HeadBucketCommand));
+
+    client.send.mockRejectedValueOnce(new Error('offline'));
+    await expect(storage.isReady()).resolves.toBe(false);
   });
 
   it('creates an inline private view URL', async () => {

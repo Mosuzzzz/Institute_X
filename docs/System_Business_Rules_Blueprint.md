@@ -84,7 +84,7 @@ A Draft Course Version cannot be submitted to the Approver until all mandatory i
 | **Post-Test** | Mandatory | Must have at least 1 Question conforming to the same question rules ($\ge 2$ options, exactly 1 correct answer). |
 
 ### UI Experience:
-- The editor continuously autosaves/persists state into the database.
+- The editor uses explicit **Save Draft** actions. Unsaved typed changes remain local to the current page and are not persisted until the Teacher presses Save Draft or another clearly labelled save/add action.
 - A **Pre-submission Checklist card** in the Teacher UI indicates green checkmarks for completed requirements and highlights remaining missing items.
 - The "Submit for Review" button remains disabled until all mandatory checklist items are green.
 

@@ -21,9 +21,13 @@ describe('CoursesService', () => {
     courseCategory: { createMany: jest.fn(), deleteMany: jest.fn() },
     courseSection: { create: jest.fn() },
     contentItem: { updateMany: jest.fn() },
+    mediaAsset: { aggregate: jest.fn() },
+    courseCoverAsset: { aggregate: jest.fn() },
+    questionImageAsset: { aggregate: jest.fn() },
     courseVersion: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       create: jest.fn(),
       deleteMany: jest.fn(),
     },
@@ -40,6 +44,9 @@ describe('CoursesService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    db.mediaAsset.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
+    db.courseCoverAsset.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
+    db.questionImageAsset.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
     service = new CoursesService(prisma as never, storage as never);
   });
 
@@ -399,18 +406,29 @@ describe('CoursesService', () => {
         status: CourseVersionStatus.DRAFT,
         course: { teacherId: 'teacher-id' },
       });
-      db.courseVersion.update.mockResolvedValue({
-        id: 'version-id',
-        title: 'Updated title',
-      });
+      db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
+      db.courseVersion.findUnique
+        .mockResolvedValueOnce({
+          id: 'version-id',
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id' },
+        })
+        .mockResolvedValueOnce({
+          id: 'version-id',
+          title: 'Updated title',
+        });
 
       await service.updateDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id', {
         title: 'Updated title',
         languageCode: 'ja',
       });
 
-      expect(db.courseVersion.update).toHaveBeenCalledWith({
-        where: { id: 'version-id' },
+      expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'version-id',
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id', archivedAt: null },
+        },
         data: { title: 'Updated title', languageCode: 'ja' },
       });
     });

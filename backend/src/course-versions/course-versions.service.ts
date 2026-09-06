@@ -62,7 +62,7 @@ export class CourseVersionsService {
   async listSubmitted(actor: VersionActor): Promise<SubmittedVersion[]> {
     this.requireRole(actor, UserRole.APPROVER);
     return this.prisma.courseVersion.findMany({
-      where: { status: CourseVersionStatus.SUBMITTED },
+      where: { status: CourseVersionStatus.SUBMITTED, course: { archivedAt: null } },
       include: {
         course: {
           include: {
@@ -96,62 +96,88 @@ export class CourseVersionsService {
 
   async submit(actor: VersionActor, versionId: string): Promise<void> {
     this.requireRole(actor, UserRole.TEACHER);
-    const version = await this.prisma.courseVersion.findUnique({
-      where: { id: versionId },
-      include: {
-        course: { include: { allowedMajors: true, categories: true } },
-        coverAsset: { select: { status: true } },
-        contentItems: {
-          select: {
-            id: true,
-            contentType: true,
-            mediaAsset: { select: { status: true } },
-          },
-        },
-        quizzes: {
-          include: {
-            questions: {
-              include: {
-                options: true,
-                imageAsset: { select: { status: true } },
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            const locked = await tx.courseVersion.updateMany({
+              where: {
+                id: versionId,
+                status: CourseVersionStatus.DRAFT,
+                course: { teacherId: actor.id, archivedAt: null },
               },
-            },
-          },
-        },
-      },
-    });
-    if (!version) {
-      throw new NotFoundException('Course Version was not found');
-    }
-    if (version.course.teacherId !== actor.id) {
-      throw new ForbiddenException('Only the owning Teacher may submit this Version');
-    }
-    if (version.status !== CourseVersionStatus.DRAFT) {
-      throw new ConflictException('Only a Draft Version may be submitted');
-    }
-    this.validateSubmission(version);
+              data: { updatedAt: new Date() },
+            });
+            if (locked.count !== 1) {
+              const current = await tx.courseVersion.findUnique({
+                where: { id: versionId },
+                include: { course: { select: { teacherId: true, archivedAt: true } } },
+              });
+              if (!current) throw new NotFoundException('Course Version was not found');
+              if (current.course.teacherId !== actor.id) {
+                throw new ForbiddenException('Only the owning Teacher may submit this Version');
+              }
+              throw new ConflictException('Only an active Draft Version may be submitted');
+            }
 
-    await this.prisma.$transaction(async (tx) => {
-      const submission = await tx.courseVersionReview.aggregate({
-        where: { versionId },
-        _max: { submissionNumber: true },
-      });
-      const submittedAt = new Date();
-      const updated = await tx.courseVersion.updateMany({
-        where: { id: versionId, status: CourseVersionStatus.DRAFT },
-        data: { status: CourseVersionStatus.SUBMITTED, submittedAt },
-      });
-      if (updated.count !== 1) {
-        throw new ConflictException('Version state changed concurrently');
+            const version = await tx.courseVersion.findUnique({
+              where: { id: versionId },
+              include: {
+                course: { include: { allowedMajors: true, categories: true } },
+                coverAsset: { select: { status: true } },
+                contentItems: {
+                  select: {
+                    id: true,
+                    contentType: true,
+                    mediaAsset: { select: { status: true } },
+                  },
+                },
+                quizzes: {
+                  include: {
+                    questions: {
+                      include: {
+                        options: true,
+                        imageAsset: { select: { status: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            if (!version) throw new NotFoundException('Course Version was not found');
+            this.validateSubmission(version);
+
+            const submission = await tx.courseVersionReview.aggregate({
+              where: { versionId },
+              _max: { submissionNumber: true },
+            });
+            const submittedAt = new Date();
+            const updated = await tx.courseVersion.updateMany({
+              where: { id: versionId, status: CourseVersionStatus.DRAFT },
+              data: { status: CourseVersionStatus.SUBMITTED, submittedAt },
+            });
+            if (updated.count !== 1) {
+              throw new ConflictException('Version state changed concurrently');
+            }
+            await tx.courseVersionReview.create({
+              data: {
+                versionId,
+                submissionNumber: (submission._max.submissionNumber ?? 0) + 1,
+                submittedAt,
+              },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        return;
+      } catch (error: unknown) {
+        if (!this.isSerializableWriteConflict(error)) throw error;
+        if (attempt === maxAttempts) {
+          throw new ConflictException('Version changed concurrently; retry submission');
+        }
       }
-      await tx.courseVersionReview.create({
-        data: {
-          versionId,
-          submissionNumber: (submission._max.submissionNumber ?? 0) + 1,
-          submittedAt,
-        },
-      });
-    });
+    }
   }
 
   async review(
@@ -168,13 +194,21 @@ export class CourseVersionsService {
 
     const version = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
-      select: { id: true, courseId: true, status: true },
+      select: {
+        id: true,
+        courseId: true,
+        status: true,
+        course: { select: { archivedAt: true } },
+      },
     });
     if (!version) {
       throw new NotFoundException('Course Version was not found');
     }
     if (version.status !== CourseVersionStatus.SUBMITTED) {
       throw new ConflictException('Only a submitted Version may be reviewed');
+    }
+    if (version.course?.archivedAt) {
+      throw new ConflictException('An archived Course may not be reviewed');
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -190,7 +224,11 @@ export class CourseVersionsService {
         });
       }
       const updated = await tx.courseVersion.updateMany({
-        where: { id: versionId, status: CourseVersionStatus.SUBMITTED },
+        where: {
+          id: versionId,
+          status: CourseVersionStatus.SUBMITTED,
+          course: { archivedAt: null },
+        },
         data:
           decision === ReviewDecision.APPROVED
             ? {
@@ -248,38 +286,99 @@ export class CourseVersionsService {
 
   async discardDraft(actor: VersionActor, versionId: string): Promise<void> {
     this.requireRole(actor, UserRole.TEACHER);
-    const version = await this.prisma.courseVersion.findUnique({
+    const candidate = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
       select: {
-        courseId: true,
         status: true,
-        course: {
-          select: {
-            id: true,
-            teacherId: true,
-            _count: { select: { versions: true } },
-          },
-        },
-        coverAsset: { select: { storageKey: true } },
-        contentItems: { select: { mediaAsset: { select: { storageKey: true } } } },
-        quizzes: {
-          select: {
-            questions: { select: { imageAsset: { select: { storageKey: true } } } },
-          },
-        },
+        course: { select: { teacherId: true } },
       },
     });
-    if (!version) {
+    if (!candidate) {
       throw new NotFoundException('Course Version was not found');
     }
-    if (version.course.teacherId !== actor.id) {
+    if (candidate.course.teacherId !== actor.id) {
       throw new ForbiddenException('Only the owning Teacher may discard this Draft');
     }
-    if (version.status !== CourseVersionStatus.DRAFT) {
+    if (candidate.status !== CourseVersionStatus.DRAFT) {
       throw new ConflictException('Only a Draft Version may be discarded');
     }
 
     await this.prisma.$transaction(async (tx) => {
+      // This no-op update takes the same row lock used by submit(). It must
+      // succeed before storage is touched, so publication can never race ahead
+      // of deletion.
+      const locked = await tx.courseVersion.updateMany({
+        where: {
+          id: versionId,
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: actor.id },
+        },
+        data: { updatedAt: new Date() },
+      });
+      if (locked.count !== 1) {
+        throw new ConflictException('Version state changed concurrently');
+      }
+
+      const version = await tx.courseVersion.findUnique({
+        where: { id: versionId },
+        select: {
+          courseId: true,
+          versionNumber: true,
+          course: { select: { _count: { select: { versions: true } } } },
+          coverAsset: { select: { storageKey: true } },
+          contentItems: { select: { mediaAsset: { select: { storageKey: true } } } },
+          quizzes: {
+            select: {
+              questions: { select: { imageAsset: { select: { storageKey: true } } } },
+            },
+          },
+          reviews: {
+            select: {
+              id: true,
+              submissionNumber: true,
+              submittedAt: true,
+              reviewedById: true,
+              decision: true,
+              reviewComment: true,
+              reviewedAt: true,
+            },
+          },
+        },
+      });
+      if (!version) {
+        throw new ConflictException('Version state changed concurrently');
+      }
+
+      const storageKeys = [
+        version.coverAsset?.storageKey,
+        ...version.contentItems.map((item) => item.mediaAsset?.storageKey),
+        ...version.quizzes.flatMap((quiz) =>
+          quiz.questions.map((question) => question.imageAsset?.storageKey),
+        ),
+      ].filter((storageKey): storageKey is string => Boolean(storageKey));
+
+      // Keep the row lock until cleanup and deletion commit. If storage is
+      // unavailable the transaction rolls back and the Draft remains retryable.
+      await Promise.all(storageKeys.map((storageKey) => this.storage.deleteObject(storageKey)));
+
+      if (version.reviews?.length > 0) {
+        await tx.discardedCourseVersionReview.createMany({
+          data: version.reviews.map((review) => ({
+            originalReviewId: review.id,
+            originalVersionId: versionId,
+            courseId: version.courseId,
+            versionNumber: version.versionNumber,
+            submissionNumber: review.submissionNumber,
+            submittedAt: review.submittedAt,
+            reviewedById: review.reviewedById,
+            decision: review.decision,
+            reviewComment: review.reviewComment,
+            reviewedAt: review.reviewedAt,
+          })),
+          skipDuplicates: true,
+        });
+        await tx.courseVersionReview.deleteMany({ where: { versionId } });
+      }
       const deleted = await tx.courseVersion.deleteMany({
         where: { id: versionId, status: CourseVersionStatus.DRAFT },
       });
@@ -292,17 +391,6 @@ export class CourseVersionsService {
         });
       }
     });
-
-    const storageKeys = [
-      version.coverAsset?.storageKey,
-      ...version.contentItems.map((item) => item.mediaAsset?.storageKey),
-      ...version.quizzes.flatMap((quiz) =>
-        quiz.questions.map((question) => question.imageAsset?.storageKey),
-      ),
-    ].filter((storageKey): storageKey is string => Boolean(storageKey));
-    await Promise.allSettled(
-      storageKeys.map((storageKey) => this.storage.deleteObject(storageKey)),
-    );
   }
 
   async unpublish(actor: VersionActor, versionId: string): Promise<void> {
@@ -457,6 +545,10 @@ export class CourseVersionsService {
         }
       }
     }
+  }
+
+  private isSerializableWriteConflict(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2034';
   }
 
   private requireRole(actor: VersionActor, role: UserRole): void {

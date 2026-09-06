@@ -18,6 +18,8 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
 import { ObjectStorage } from '../media/object-storage';
 
+const ONE_GIB = 1_073_741_824;
+
 export interface CourseActor {
   id: string;
   role: UserRole;
@@ -357,10 +359,20 @@ export class CoursesService {
       data.languageCode = input.languageCode;
     }
 
-    return this.prisma.courseVersion.update({
-      where: { id: versionId },
+    const updated = await this.prisma.courseVersion.updateMany({
+      where: {
+        id: versionId,
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: actor.id, archivedAt: null },
+      },
       data,
     });
+    if (updated.count !== 1) {
+      throw new ConflictException('Version state changed concurrently');
+    }
+    const saved = await this.prisma.courseVersion.findUnique({ where: { id: versionId } });
+    if (!saved) throw new NotFoundException('Course Version was not found');
+    return saved;
   }
 
   async createRevision(actor: CourseActor, courseId: string): Promise<CourseVersion> {
@@ -496,6 +508,31 @@ export class CoursesService {
       );
     }
 
+    const revisionBytes =
+      Number(source.coverAsset?.sizeBytes ?? 0n) +
+      (source.contentItems ?? []).reduce(
+        (total, item) => total + Number(item.mediaAsset?.sizeBytes ?? 0n),
+        0,
+      ) +
+      (source.sections ?? []).reduce(
+        (total, section) =>
+          total +
+          section.contentItems.reduce(
+            (sectionTotal, item) => sectionTotal + Number(item.mediaAsset?.sizeBytes ?? 0n),
+            0,
+          ),
+        0,
+      ) +
+      (source.quizzes ?? []).reduce(
+        (total, quiz) =>
+          total +
+          quiz.questions.reduce(
+            (quizTotal, question) => quizTotal + Number(question.imageAsset?.sizeBytes ?? 0n),
+            0,
+          ),
+        0,
+      );
+
     const copiedKeys: string[] = [];
     const copyAsset = async (
       asset: {
@@ -595,48 +632,82 @@ export class CoursesService {
         });
       }
 
-      return await this.prisma.$transaction(async (tx) => {
-        const draft = await tx.courseVersion.create({
-          data: {
-            courseId,
-            versionNumber: (course.versions[0]?.versionNumber ?? 0) + 1,
-            title: source.title,
-            description: source.description,
-            languageCode: source.languageCode ?? 'th',
-            status: CourseVersionStatus.DRAFT,
-            ...(coverAsset ? { coverAsset: { create: coverAsset } } : {}),
-            ...(contentItems.length ? { contentItems: { create: contentItems } } : {}),
-            ...(quizzes.length ? { quizzes: { create: quizzes } } : {}),
-          },
-        });
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const [lessonTotal, coverTotal, questionImageTotal] = await Promise.all([
+            tx.mediaAsset.aggregate({
+              where: {
+                status: { not: AssetStatus.DELETED },
+                contentItem: { version: { courseId } },
+              },
+              _sum: { sizeBytes: true },
+            }),
+            tx.courseCoverAsset.aggregate({
+              where: { status: { not: AssetStatus.DELETED }, version: { courseId } },
+              _sum: { sizeBytes: true },
+            }),
+            tx.questionImageAsset.aggregate({
+              where: {
+                status: { not: AssetStatus.DELETED },
+                question: { quiz: { version: { courseId } } },
+              },
+              _sum: { sizeBytes: true },
+            }),
+          ]);
+          const reservedBytes =
+            Number(lessonTotal._sum.sizeBytes ?? 0n) +
+            Number(coverTotal._sum.sizeBytes ?? 0n) +
+            Number(questionImageTotal._sum.sizeBytes ?? 0n);
+          if (reservedBytes + revisionBytes > ONE_GIB) {
+            throw new ConflictException('Course revision would exceed the 1 GiB media limit');
+          }
 
-        for (const section of sections) {
-          const createdSection = await tx.courseSection.create({
+          const draft = await tx.courseVersion.create({
             data: {
-              versionId: draft.id,
-              title: section.title,
-              position: section.position,
+              courseId,
+              versionNumber: (course.versions[0]?.versionNumber ?? 0) + 1,
+              title: source.title,
+              description: source.description,
+              languageCode: source.languageCode ?? 'th',
+              status: CourseVersionStatus.DRAFT,
+              ...(coverAsset ? { coverAsset: { create: coverAsset } } : {}),
+              ...(contentItems.length ? { contentItems: { create: contentItems } } : {}),
+              ...(quizzes.length ? { quizzes: { create: quizzes } } : {}),
             },
           });
-          if (section.contentPositions.length > 0) {
-            await tx.contentItem.updateMany({
-              where: {
-                versionId: draft.id,
-                position: { in: section.contentPositions },
-              },
-              data: { sectionId: createdSection.id },
-            });
-          }
-        }
 
-        return draft;
-      });
+          for (const section of sections) {
+            const createdSection = await tx.courseSection.create({
+              data: {
+                versionId: draft.id,
+                title: section.title,
+                position: section.position,
+              },
+            });
+            if (section.contentPositions.length > 0) {
+              await tx.contentItem.updateMany({
+                where: {
+                  versionId: draft.id,
+                  position: { in: section.contentPositions },
+                },
+                data: { sectionId: createdSection.id },
+              });
+            }
+          }
+
+          return draft;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error: unknown) {
       await Promise.allSettled(
         copiedKeys.map((storageKey) => this.storage.deleteObject(storageKey)),
       );
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('A Course revision was created concurrently');
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        throw new ConflictException('Course media changed concurrently; retry the revision');
       }
       throw error;
     }

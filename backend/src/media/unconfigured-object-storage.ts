@@ -3,6 +3,10 @@ import { ObjectStorage, SignedStorageUrl, StoredObjectMetadata } from './object-
 
 @Injectable()
 export class UnconfiguredObjectStorage extends ObjectStorage {
+  isReady(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+
   createUploadUrl(): Promise<SignedStorageUrl> {
     throw new ServiceUnavailableException('Object storage is not configured');
   }

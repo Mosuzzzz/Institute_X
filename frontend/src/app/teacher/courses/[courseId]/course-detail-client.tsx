@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import {
   backendApi,
+  type CategoryDto,
   type CreatedQuestionDto,
   type InitializedUploadDto,
   type TeacherCourseDetailDto,
@@ -30,7 +31,8 @@ const primaryButton =
   "inline-flex min-h-11 cursor-pointer items-center justify-center bg-[#073d78] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#052e5b] disabled:cursor-not-allowed disabled:bg-[#aeb5c0]";
 const secondaryButton =
   "inline-flex min-h-11 cursor-pointer items-center justify-center border border-[#073d78] bg-white px-5 py-2.5 text-sm font-semibold text-[#073d78] transition hover:bg-[#edf3f8] disabled:cursor-not-allowed disabled:border-[#c8ccd3] disabled:text-[#949aa4]";
-const panelClass = "scroll-mt-28 border border-[#d8dde5] bg-white p-6 sm:p-8";
+const panelClass =
+  "scroll-mt-28 border-b border-[#e2e4eb] bg-white p-6 last:border-b-0 sm:p-10";
 const checklistLabels: Record<keyof TeacherCourseDetailDto["checks"], string> = {
   details: "Title and language",
   categories: "Category",
@@ -78,21 +80,26 @@ function QuizEditor({
   const [correctOption, setCorrectOption] = useState("0");
 
   async function storeQuestionImage(questionId: string, file: File) {
-    const upload = await backendApi<InitializedUploadDto>(
-      `questions/${questionId}/image/uploads`,
-      {
+    try {
+      const upload = await backendApi<InitializedUploadDto>(
+        `questions/${questionId}/image/uploads`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            fileName: file.name,
+            mimeType: file.type,
+            sizeBytes: file.size,
+          }),
+        },
+      );
+      await putSignedFile(upload.uploadUrl, file);
+      await backendApi(`question-images/${upload.assetId}/complete`, {
         method: "POST",
-        body: JSON.stringify({
-          fileName: file.name,
-          mimeType: file.type,
-          sizeBytes: file.size,
-        }),
-      },
-    );
-    await putSignedFile(upload.uploadUrl, file);
-    await backendApi(`question-images/${upload.assetId}/complete`, {
-      method: "POST",
-    });
+      });
+    } catch (error: unknown) {
+      await onChanged();
+      throw error;
+    }
   }
 
   async function addQuestion(event: FormEvent<HTMLFormElement>) {
@@ -121,7 +128,7 @@ function QuizEditor({
           body: JSON.stringify({
             questionText: String(values.get("questionText") ?? ""),
             points: Number(values.get("points") ?? 1),
-            position: quiz.questions.length + 1,
+            position: Math.max(0, ...quiz.questions.map((question) => question.position)) + 1,
             options: options.map((option, index) => ({
               optionText: option.text,
               isCorrect: option.index === correct,
@@ -524,6 +531,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   const [language] = useAppLanguage();
   const { data, error, loading, refresh } =
     useBackendQuery<TeacherCourseDetailDto>(`courses/${courseId}`);
+  const categoryOptions = useBackendQuery<CategoryDto[]>('categories');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -576,6 +584,9 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   const canCreateRevision =
     version.status === "PUBLISHED" ||
     version.status === "UNPUBLISHED";
+  const videoLessonCount = version.contentItems.filter(
+    (item) => item.contentType === "VIDEO",
+  ).length;
 
   async function uploadCover(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -584,23 +595,28 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       .files?.[0];
     if (!file) return;
     await run(async () => {
-      const upload = await backendApi<InitializedUploadDto>(
-        `course-versions/${version.id}/cover/uploads`,
-        {
+      try {
+        const upload = await backendApi<InitializedUploadDto>(
+          `course-versions/${version.id}/cover/uploads`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              fileName: file.name,
+              mimeType: file.type,
+              sizeBytes: file.size,
+            }),
+          },
+        );
+        await putSignedFile(upload.uploadUrl, file);
+        await backendApi(`course-covers/${upload.assetId}/complete`, {
           method: "POST",
-          body: JSON.stringify({
-            fileName: file.name,
-            mimeType: file.type,
-            sizeBytes: file.size,
-          }),
-        },
-      );
-      await putSignedFile(upload.uploadUrl, file);
-      await backendApi(`course-covers/${upload.assetId}/complete`, {
-        method: "POST",
-      });
-      form.reset();
-      await refresh();
+        });
+        form.reset();
+        await refresh();
+      } catch (error: unknown) {
+        await refresh();
+        throw error;
+      }
     }, "Course cover uploaded.");
   }
 
@@ -618,6 +634,18 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       });
       await refresh();
     }, "Course details updated.");
+  }
+
+  async function updateCategories(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    await run(async () => {
+      await backendApi(`courses/${courseId}/categories`, {
+        method: 'PUT',
+        body: JSON.stringify({ categoryIds: values.getAll('category') }),
+      });
+      await refresh();
+    }, 'Course categories updated.');
   }
 
   async function addText(event: FormEvent<HTMLFormElement>) {
@@ -699,25 +727,30 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       .files?.[0];
     if (!file) return;
     await run(async () => {
-      const upload = await backendApi<InitializedUploadDto>(
-        `course-versions/${version.id}/media/uploads`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            contentType: String(values.get("contentType")),
-            title: String(values.get("title") ?? ""),
-            fileName: file.name,
-            mimeType: file.type,
-            sizeBytes: file.size,
-            position: nextContentPosition,
-            sectionId: String(values.get("sectionId") ?? "") || undefined,
-          }),
-        },
-      );
-      await putSignedFile(upload.uploadUrl, file);
-      await backendApi(`media/${upload.assetId}/complete`, { method: "POST" });
-      form.reset();
-      await refresh();
+      try {
+        const upload = await backendApi<InitializedUploadDto>(
+          `course-versions/${version.id}/media/uploads`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              contentType: String(values.get("contentType")),
+              title: String(values.get("title") ?? ""),
+              fileName: file.name,
+              mimeType: file.type,
+              sizeBytes: file.size,
+              position: nextContentPosition,
+              sectionId: String(values.get("sectionId") ?? "") || undefined,
+            }),
+          },
+        );
+        await putSignedFile(upload.uploadUrl, file);
+        await backendApi(`media/${upload.assetId}/complete`, { method: "POST" });
+        form.reset();
+        await refresh();
+      } catch (error: unknown) {
+        await refresh();
+        throw error;
+      }
     }, "Media lesson uploaded.");
   }
 
@@ -803,175 +836,128 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
     }, "Course published again.");
   }
 
-  async function deleteCourse() {
-    if (!window.confirm("Delete this Course? It will disappear from every active catalog.")) {
-      return;
-    }
-    await run(async () => {
-      await backendApi(`courses/${courseId}`, { method: "DELETE" });
-      router.push("/teacher/courses");
-      router.refresh();
-    }, "Course deleted.");
-  }
-
   return (
-    <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
-      <header className="flex items-end justify-between gap-8 border-b border-[#d8dde5] pb-8 max-[760px]:items-start max-[760px]:flex-col">
-        <div>
-          <Link
-            className="text-sm font-semibold text-[#073d78] no-underline hover:underline"
-            href="/teacher/courses"
-          >
-            ← My courses
-          </Link>
-          <p className="mt-6 text-xs tracking-[0.12em] text-[#747d8c] uppercase">
-            Version {version.versionNumber} · Course workspace
-          </p>
-          <h1 className="mt-2 max-w-4xl text-[clamp(2.1rem,4vw,4rem)] leading-[1.02] tracking-[-0.05em] text-[#202a38]">
-            {version.title || "Untitled Course"}
-          </h1>
-          <div className="mt-5 flex items-center gap-4">
-            <StatusBadge status={status} />
-            <span className="text-sm text-[#747d8c]">
-              {data.readiness}% ready
-            </span>
-          </div>
-        </div>
-        <div className="grid max-w-sm gap-4 border-l-4 border-[#8ccbd0] pl-5">
-          <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-            Build order
-          </p>
-          <p className="text-sm leading-6 text-[#566274]">
-            Cover → learning content → Pre-test → Post-test. Drafts remain
-            private until approval.
-          </p>
-          {isDraft ? (
-            <div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  className={primaryButton}
-                  disabled={busy}
-                  form="course-details-form"
-                  type="submit"
-                >
-                  {busy ? "Saving…" : "Save Draft"}
-                </button>
-                <button
-                  className={secondaryButton}
-                  disabled={busy || data.readiness < 100}
-                  onClick={() => void submitDraft()}
-                  type="button"
-                >
-                  {busy ? "Submitting…" : "Submit Draft for approval"}
-                </button>
-                <button
-                  className={secondaryButton}
-                  disabled={busy}
-                  onClick={() => void cancelRevision()}
-                  type="button"
-                >
-                  Discard Draft
-                </button>
-              </div>
-              <p className="mt-2 text-xs leading-5 text-[#747d8c]">
-                Changes typed into Course details are not saved until you press Save Draft.
-              </p>
-              {data.readiness < 100 ? (
-                <p className="mt-2 text-xs leading-5 text-[#747d8c]">
-                  Complete the sections marked “Needs work”. If something is
-                  required, the submission message will identify it.
-                </p>
-              ) : null}
-            </div>
-          ) : version.status === "REJECTED" ? (
-            <button
-              className={secondaryButton}
-              disabled={busy}
-              onClick={() => void reopenRejectedDraft()}
-              type="button"
-            >
-              {busy ? "Reopening…" : "Reopen Draft to edit"}
-            </button>
-          ) : (
-            <p className="text-sm font-semibold text-[#073d78]">
-              {version.status === "SUBMITTED"
-                ? "Waiting for Approver review"
-                : version.status === "UNPUBLISHED"
-                  ? "This Course is hidden from Students"
-                  : "This Version has been published"}
-            </p>
-          )}
-          {canCreateRevision ? (
-            <button
-              className={primaryButton}
-              disabled={busy}
-              onClick={() => void startRevision()}
-              type="button"
-            >
-              {busy ? "Creating Draft…" : "Edit Course"}
-            </button>
-          ) : null}
-          {!isDraft && publishedVersion ? (
-            <button
-              className={secondaryButton}
-              disabled={busy}
-              onClick={() => void unpublishCourse(publishedVersion.id)}
-              type="button"
-            >
-              {busy ? "Working…" : "Unpublish Course"}
-            </button>
-          ) : null}
-          {!isDraft && publishableVersion ? (
-            <button
-              className={primaryButton}
-              disabled={busy}
-              onClick={() => void publishCourse(publishableVersion.id)}
-              type="button"
-            >
-              {busy ? "Republishing…" : "Republish Course"}
-            </button>
-          ) : null}
-          <button
-            className="inline-flex min-h-11 w-fit cursor-pointer items-center justify-center border border-[#b42318] bg-white px-5 py-2.5 text-sm font-semibold text-[#b42318] transition hover:bg-[#fff3f2] disabled:cursor-not-allowed disabled:border-[#d5a5a1] disabled:text-[#a8736f]"
-            disabled={busy}
-            onClick={() => void deleteCourse()}
-            type="button"
-          >
-            {busy ? "Working…" : "Delete Course"}
-          </button>
-        </div>
+    <main className="min-h-full bg-[#f7f7f9] pb-16">
+      <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#17171f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
+        <Link
+          className="text-sm text-white/80 no-underline transition hover:text-white"
+          href="/teacher/courses"
+        >
+          ← Back to courses
+        </Link>
+        <strong className="max-w-[36rem] truncate text-sm font-semibold">
+          {version.title || "Untitled Course"}
+        </strong>
+        <StatusBadge status={status} />
+        <span className="text-sm text-white/70">
+          {videoLessonCount} video {videoLessonCount === 1 ? "lesson" : "lessons"} uploaded
+        </span>
+        <Link
+          className="ml-auto border border-white/40 px-3 py-1.5 text-xs font-semibold text-white no-underline hover:bg-white/10"
+          href={`/teacher/courses/${courseId}/analytics`}
+        >
+          Analytics
+        </Link>
+        <span className="text-sm font-medium text-white/80">
+          {data.readiness}% ready
+        </span>
       </header>
       {actionError || notice ? (
         <div
-          className={`mt-6 border-l-4 p-4 text-sm ${actionError ? "border-[#b42318] bg-[#fff3f2] text-[#8f1d14]" : "border-[#0b6a73] bg-[#effafa] text-[#07545b]"}`}
+          className={`mx-auto mt-6 w-[min(calc(100%-48px),1420px)] border-l-4 p-4 text-sm ${actionError ? "border-[#b42318] bg-[#fff3f2] text-[#8f1d14]" : "border-[#0b6a73] bg-[#effafa] text-[#07545b]"}`}
         >
           {actionError ?? notice}
         </div>
       ) : null}
-      <div className="mt-10 grid grid-cols-[260px_minmax(0,1fr)] gap-[clamp(28px,4vw,64px)] max-[900px]:grid-cols-1">
+      <div className="mx-auto grid w-[min(calc(100%-48px),1420px)] grid-cols-[280px_minmax(0,1fr)] py-10 max-[900px]:w-full max-[900px]:grid-cols-1 max-[900px]:py-0">
         <nav
-          className="grid content-start max-[900px]:grid-cols-4 max-[900px]:overflow-x-auto"
+          className="sticky top-[104px] grid h-fit content-start gap-8 px-7 py-8 max-[900px]:static max-[900px]:grid-cols-3 max-[900px]:gap-5 max-[900px]:overflow-x-auto max-[900px]:bg-white max-[640px]:grid-cols-1"
           aria-label="Course authoring sections"
         >
-          {checks.map(([key, ready], index) => (
-            <a
-              className={`grid min-w-40 grid-cols-[32px_1fr] gap-2 border-l-2 px-3 py-4 text-sm no-underline max-[900px]:border-t-2 max-[900px]:border-l-0 ${ready ? "border-[#073d78] bg-white text-[#073d78]" : "border-[#d8dde5] text-[#747d8c]"}`}
-              href={`#${checklistTargets[key as keyof TeacherCourseDetailDto["checks"]]}`}
-              key={key}
-            >
-              <span className="text-xs font-bold">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>
-                <strong className="block text-[#202a38]">
-                  {checklistLabels[key as keyof TeacherCourseDetailDto["checks"]]}
-                </strong>
-                <small>{ready ? "Ready" : "Needs work"}</small>
-              </span>
+          <div>
+            <h2 className="text-sm font-semibold text-[#292b3a]">Plan your course</h2>
+            <div className="mt-3 grid">
+              {[
+                ["details", "Course details", data.checks.details && data.checks.categories && data.checks.eligibility],
+                ["cover", "Course cover", Boolean(version.coverAsset)],
+              ].map(([target, label, ready]) => (
+                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(target)}>
+                  <span className={`size-5 rounded-full border ${ready ? "border-[#6d28d9] bg-[#6d28d9] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
+                  {String(label)}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[#292b3a]">Create your content</h2>
+            <div className="mt-3 grid">
+              {[
+                ["content", "Curriculum", data.checks.content && data.checks.media],
+                ["preTest", "Pre-test", data.checks.preTest],
+                ["preTest", "Post-test", data.checks.postTest],
+              ].map(([target, label, ready]) => (
+                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(label)}>
+                  <span className={`size-5 rounded-full border ${ready ? "border-[#6d28d9] bg-[#6d28d9] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
+                  {String(label)}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[#292b3a]">Publish your course</h2>
+            <a className="group mt-3 flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white hover:text-[#292b3a]" href="#submission-checklist">
+              <span className={`size-5 rounded-full border ${data.readiness === 100 ? "border-[#6d28d9] bg-[#6d28d9] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
+              Submission checklist
             </a>
-          ))}
+            {isDraft ? (
+              <button
+                className="mt-6 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-sm bg-[#6d28d9] px-5 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#b7afc9]"
+                disabled={busy || data.readiness < 100}
+                onClick={() => void submitDraft()}
+                type="button"
+              >
+                {busy ? "Submitting…" : "Submit for Review"}
+              </button>
+            ) : null}
+            <div className="mt-4 grid gap-2">
+              {version.status === "REJECTED" ? (
+                <button className={secondaryButton} disabled={busy} onClick={() => void reopenRejectedDraft()} type="button">
+                  {busy ? "Reopening…" : "Reopen Draft"}
+                </button>
+              ) : null}
+              {canCreateRevision ? (
+                <button className={secondaryButton} disabled={busy} onClick={() => void startRevision()} type="button">
+                  {busy ? "Creating Draft…" : "Edit Course"}
+                </button>
+              ) : null}
+              {!isDraft && publishedVersion ? (
+                <button className={secondaryButton} disabled={busy} onClick={() => void unpublishCourse(publishedVersion.id)} type="button">
+                  {busy ? "Working…" : "Unpublish Course"}
+                </button>
+              ) : null}
+              {!isDraft && publishableVersion ? (
+                <button className={primaryButton} disabled={busy} onClick={() => void publishCourse(publishableVersion.id)} type="button">
+                  {busy ? "Republishing…" : "Republish Course"}
+                </button>
+              ) : null}
+              {isDraft ? (
+                <button className="min-h-10 cursor-pointer text-sm font-medium text-[#8f1d14] hover:underline disabled:cursor-not-allowed disabled:text-[#a8736f]" disabled={busy} onClick={() => void cancelRevision()} type="button">
+                  Discard Draft
+                </button>
+              ) : null}
+            </div>
+            {!isDraft ? (
+              <p className="mt-4 text-xs leading-5 text-[#747d8c]">
+                {version.status === "SUBMITTED"
+                  ? "Waiting for Approver review."
+                  : version.status === "UNPUBLISHED"
+                    ? "This course is hidden from students."
+                    : "This version is published."}
+              </p>
+            ) : null}
+          </div>
         </nav>
-        <div className="min-w-0 space-y-7">
+        <div className="min-w-0 overflow-hidden bg-white shadow-[0_8px_30px_rgba(24,24,35,0.09)]">
           <section className={panelClass} id="details">
             <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
               Course readiness
@@ -1017,6 +1003,14 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     ))}
                   </select>
                 </label>
+                <div className="flex flex-wrap items-center gap-4 pt-2">
+                  <button className={primaryButton} disabled={busy} type="submit">
+                    {busy ? "Saving…" : "Save Draft"}
+                  </button>
+                  <span className="text-xs text-[#747d8c]">
+                    Typed changes are saved only when you press Save Draft.
+                  </span>
+                </div>
               </form>
             ) : (
               <p className="mt-3 max-w-2xl leading-7 text-[#687486]">
@@ -1055,6 +1049,20 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 </dd>
               </div>
             </dl>
+            {isDraft && categoryOptions.data ? (
+              <form className="mt-6 border border-[#d8dde5] bg-[#fafbfc] p-5" onSubmit={(event) => void updateCategories(event)}>
+                <h3 className="text-sm font-semibold text-[#202a38]">Edit categories</h3>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {categoryOptions.data.map((category) => (
+                    <label className="flex items-center gap-2 text-sm text-[#4d5868]" key={category.id}>
+                      <input defaultChecked={data.categories.some(({ category: assigned }) => assigned.id === category.id)} name="category" type="checkbox" value={category.id} />
+                      {translateCategory(category, language)}
+                    </label>
+                  ))}
+                </div>
+                <button className={`${secondaryButton} mt-4`} disabled={busy} type="submit">Save categories</button>
+              </form>
+            ) : null}
           </section>
           <section className={panelClass} id="cover">
             <div className="flex items-start justify-between gap-5 max-[640px]:flex-col">
@@ -1447,6 +1455,55 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 </p>
               )}
             </div>
+          </section>
+          <section className={panelClass} id="submission-checklist">
+            <p className="text-xs font-bold tracking-[0.12em] text-[#6d28d9] uppercase">
+              Final review
+            </p>
+            <h2 className="mt-2 text-2xl text-[#202a38]">
+              Submission checklist
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#687486]">
+              Every required item must be ready before this version can be sent to an Approver.
+            </p>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {checks.map(([key, ready]) => (
+                <li
+                  className={`flex items-center gap-3 border p-4 text-sm ${ready ? "border-[#d8d0ef] bg-[#faf8ff] text-[#292b3a]" : "border-[#ead8d5] bg-[#fff8f7] text-[#7a342d]"}`}
+                  key={key}
+                >
+                  <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold ${ready ? "bg-[#6d28d9] text-white" : "border border-[#c58d86]"}`}>
+                    {ready ? "✓" : "!"}
+                  </span>
+                  <a
+                    className="font-medium text-inherit no-underline hover:underline"
+                    href={`#${checklistTargets[key as keyof TeacherCourseDetailDto["checks"]]}`}
+                  >
+                    {checklistLabels[key as keyof TeacherCourseDetailDto["checks"]]}
+                  </a>
+                  <small className="ml-auto text-xs opacity-70">
+                    {ready ? "Ready" : "Needs work"}
+                  </small>
+                </li>
+              ))}
+            </ul>
+            {isDraft ? (
+              <div className="mt-7 flex flex-wrap items-center gap-4">
+                <button
+                  className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-sm bg-[#6d28d9] px-7 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#b7afc9]"
+                  disabled={busy || data.readiness < 100}
+                  onClick={() => void submitDraft()}
+                  type="button"
+                >
+                  {busy ? "Submitting…" : "Submit for Review"}
+                </button>
+                <span className="text-sm text-[#687486]">
+                  {data.readiness === 100
+                    ? "Ready to submit. Approval publishes the course automatically."
+                    : `${checks.filter(([, ready]) => !ready).length} required item(s) remaining.`}
+                </span>
+              </div>
+            ) : null}
           </section>
         </div>
       </div>

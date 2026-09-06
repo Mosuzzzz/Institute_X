@@ -4,6 +4,7 @@ export type StudentCourse = {
   instructor: string;
   category: string;
   categorySlug?: string;
+  categorySlugs?: string[];
   language: string;
   availability: "OPEN" | "LIMITED";
   accent: string;

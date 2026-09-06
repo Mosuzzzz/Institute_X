@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { ObjectStorage } from '../media/object-storage';
 
 /**
  * Dependency checks are added here as infrastructure adapters are introduced.
@@ -7,9 +8,16 @@ import { PrismaService } from '../database/prisma.service';
  */
 @Injectable()
 export class ReadinessIndicator {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: ObjectStorage,
+  ) {}
 
   async check(): Promise<boolean> {
-    return this.prisma.isReady();
+    const [databaseReady, storageReady] = await Promise.all([
+      this.prisma.isReady(),
+      this.storage.isReady(),
+    ]);
+    return databaseReady && storageReady;
   }
 }

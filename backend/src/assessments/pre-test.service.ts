@@ -98,6 +98,7 @@ export class PreTestService {
           include: {
             course: {
               select: {
+                archivedAt: true,
                 eligibilityMode: true,
                 allowedMajors: { select: { majorId: true } },
                 enrollments: {
@@ -118,6 +119,9 @@ export class PreTestService {
       throw new NotFoundException('Pre-Test was not found');
     }
     if (quiz.version.status !== CourseVersionStatus.PUBLISHED) {
+      throw new NotFoundException('Published Pre-Test was not found');
+    }
+    if (quiz.version.course.archivedAt) {
       throw new NotFoundException('Published Pre-Test was not found');
     }
     if (
@@ -153,7 +157,15 @@ export class PreTestService {
               throw new ConflictException('Pre-Test may be attempted only once');
             }
             if (existing.expiresAt && existing.expiresAt.getTime() < Date.now()) {
-              throw new ConflictException('Pre-Test time limit has expired');
+              await tx.quizAttempt.updateMany({
+                where: { id: existing.id, submittedAt: null },
+                data: {
+                  score: 0,
+                  result: QuizResult.COMPLETED,
+                  submittedAt: new Date(),
+                },
+              });
+              return { kind: 'expired' } as const;
             }
             return { kind: 'existing', attempt: existing } as const;
           }
@@ -187,6 +199,9 @@ export class PreTestService {
       if (attemptResult.kind === 'existing') {
         return this.toStartedAttempt(attemptResult.attempt);
       }
+      if (attemptResult.kind === 'expired') {
+        throw new ConflictException('Pre-Test time limit expired and the attempt was finalized');
+      }
 
       return {
         attemptId: attemptResult.attempt.id,
@@ -210,7 +225,17 @@ export class PreTestService {
         });
         if (existing && !existing.submittedAt) {
           if (existing.expiresAt && existing.expiresAt.getTime() < Date.now()) {
-            throw new ConflictException('Pre-Test time limit has expired');
+            await this.prisma.quizAttempt.updateMany({
+              where: { id: existing.id, submittedAt: null },
+              data: {
+                score: 0,
+                result: QuizResult.COMPLETED,
+                submittedAt: new Date(),
+              },
+            });
+            throw new ConflictException(
+              'Pre-Test time limit expired and the attempt was finalized',
+            );
           }
           return this.toStartedAttempt(existing);
         }
@@ -284,7 +309,22 @@ export class PreTestService {
       throw new ConflictException('Pre-Test attempt was already submitted');
     }
     if (attempt.expiresAt && attempt.expiresAt.getTime() < Date.now()) {
-      throw new ConflictException('Pre-Test time limit has expired');
+      const updated = await this.prisma.quizAttempt.updateMany({
+        where: { id: attemptId, submittedAt: null },
+        data: {
+          score: 0,
+          result: QuizResult.COMPLETED,
+          submittedAt: new Date(),
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException('Pre-Test was finalized concurrently');
+      }
+      return {
+        score: 0,
+        result: QuizResult.COMPLETED,
+        courseId: attempt.quiz.version.courseId,
+      };
     }
 
     const questions = attempt.presentedQuestions.map((item) => item.question);
@@ -331,6 +371,13 @@ export class PreTestService {
     return { score, result, courseId: attempt.quiz.version.courseId };
   }
 
+  finalizeExpired(
+    student: StudentActor,
+    attemptId: string,
+  ): Promise<{ score: number; result: QuizResult; courseId: string }> {
+    return this.submit(student, attemptId, []);
+  }
+
   async getResult(student: StudentActor, quizId: string): Promise<PreTestResultRecord> {
     this.requireActiveStudent(student);
     const attempt = await this.prisma.quizAttempt.findFirst({
@@ -340,19 +387,6 @@ export class PreTestService {
         submittedAt: { not: null },
         quiz: {
           quizType: QuizType.PRE_TEST,
-          version: {
-            status: CourseVersionStatus.PUBLISHED,
-            course: {
-              OR: [
-                { eligibilityMode: CourseEligibilityMode.OPEN },
-                {
-                  eligibilityMode: CourseEligibilityMode.LIMITED,
-                  allowedMajors: { some: { majorId: student.majorId! } },
-                },
-              ],
-              enrollments: { some: { studentId: student.id } },
-            },
-          },
         },
       },
       select: {

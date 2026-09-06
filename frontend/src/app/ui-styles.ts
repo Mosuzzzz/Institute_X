@@ -28,88 +28,88 @@ export type WorkspaceRole = 'teacher' | 'approver' | 'owner';
 
 const roleTheme: Record<WorkspaceRole, string> = {
   teacher:
-    '[--workspace-accent:#2463a8] [--workspace-accent-soft:#e8f0fa] [--workspace-rail:#101a2a]',
+    '[--workspace-accent:#2563eb] [--workspace-accent-soft:#eff6ff] [--workspace-rail:#0f172a] [--workspace-card-border:#e2e8f0]',
   approver:
-    '[--workspace-accent:#14747a] [--workspace-accent-soft:#e3f2f1] [--workspace-rail:#10272c]',
+    '[--workspace-accent:#0d9488] [--workspace-accent-soft:#f0fdfa] [--workspace-rail:#0f1d24] [--workspace-card-border:#e2e8f0]',
   owner:
-    '[--workspace-accent:#a96f1d] [--workspace-accent-soft:#f8eddc] [--workspace-rail:#1b2028]',
+    '[--workspace-accent:#d97706] [--workspace-accent-soft:#fffbeb] [--workspace-rail:#111827] [--workspace-card-border:#e2e8f0]',
 };
 
 export const workspaceUi = {
   shell: (role: WorkspaceRole) =>
-    `grid min-h-svh grid-cols-[286px_minmax(0,1fr)] bg-[#f3f5f7] text-[#20243a] max-[1100px]:grid-cols-[244px_minmax(0,1fr)] max-[820px]:block ${roleTheme[role]}`,
+    `grid min-h-svh grid-cols-[280px_minmax(0,1fr)] bg-[#f8fafc] text-slate-800 max-[1100px]:grid-cols-[240px_minmax(0,1fr)] max-[820px]:block ${roleTheme[role]}`,
   sidebar: (open: boolean) =>
-    `sticky top-0 z-50 grid h-svh grid-rows-[auto_1fr_auto] overflow-hidden bg-[var(--workspace-rail)] px-[22px] pt-[30px] pb-6 text-white shadow-[12px_0_40px_rgb(12_20_32_/_9%)] max-[820px]:fixed max-[820px]:left-0 max-[820px]:w-[min(88vw,320px)] max-[820px]:transition-transform max-[820px]:duration-200 ${open ? 'max-[820px]:translate-x-0' : 'max-[820px]:-translate-x-[105%]'}`,
+    `sticky top-0 z-50 grid h-svh grid-rows-[auto_1fr_auto] overflow-hidden bg-[var(--workspace-rail)] px-5 pt-7 pb-6 text-white shadow-xl max-[820px]:fixed max-[820px]:left-0 max-[820px]:w-[min(88vw,320px)] max-[820px]:transition-transform max-[820px]:duration-200 ${open ? 'max-[820px]:translate-x-0' : 'max-[820px]:-translate-x-[105%]'}`,
   brandHeader:
     'flex items-center justify-between [&>button]:hidden [&>button]:cursor-pointer [&>button]:border-0 [&>button]:bg-transparent [&>button]:text-3xl [&>button]:text-white max-[820px]:[&>button]:block',
   brandLink:
-    'flex min-w-0 items-center gap-[15px] text-white no-underline [&>img]:size-[42px] [&>img]:shrink-0 [&>img]:bg-white [&>img]:p-[7px] [&>img]:shadow-[0_8px_22px_rgb(0_0_0_/_18%)] [&>span]:grid [&>span]:min-w-0 [&>span]:gap-0.5 [&_small]:text-[.6rem] [&_small]:font-medium [&_small]:tracking-[.16em] [&_small]:text-[#8490a3] [&_small]:uppercase [&_strong]:overflow-hidden [&_strong]:text-[.9rem] [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-[#f8fafc]',
+    'flex min-w-0 items-center gap-3 text-white no-underline [&>img]:size-10 [&>img]:shrink-0 [&>img]:rounded-lg [&>img]:bg-white [&>img]:p-1.5 [&>img]:shadow-md [&>span]:grid [&>span]:min-w-0 [&>span]:gap-0.5 [&_small]:text-[.62rem] [&_small]:font-semibold [&_small]:tracking-[.14em] [&_small]:text-slate-400 [&_small]:uppercase [&_strong]:overflow-hidden [&_strong]:text-[.92rem] [&_strong]:font-semibold [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-white',
   navigation:
-    'mt-[62px] grid content-start gap-[7px] [&_svg]:size-5 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7]',
+    'mt-10 grid content-start gap-1.5 [&_svg]:size-5 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7]',
   navLabel:
-    'mx-[13px] mt-0 mb-[13px] text-[.6rem] font-semibold tracking-[.16em] text-[#6f7b8e] uppercase',
+    'mx-3 mt-4 mb-2 text-[.64rem] font-bold tracking-[.14em] text-slate-400/80 uppercase',
   navLink:
-    'relative grid min-h-[54px] grid-cols-[21px_minmax(0,1fr)_16px] items-center gap-[13px] border border-transparent px-3.5 py-[13px] text-[#aeb8c7] no-underline transition duration-150 hover:translate-x-0.5 hover:bg-white/5 hover:text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus [&>b]:justify-self-end [&>b]:text-[.85rem] [&>b]:opacity-0 hover:[&>b]:opacity-100',
+    'relative grid min-h-[48px] grid-cols-[20px_minmax(0,1fr)_16px] items-center gap-3 rounded-xl border border-transparent px-3.5 py-2.5 text-sm font-medium text-slate-300 no-underline transition duration-150 hover:bg-white/10 hover:text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus [&>b]:justify-self-end [&>b]:text-[.85rem] [&>b]:opacity-0 hover:[&>b]:opacity-100',
   navLinkActive:
-    'bg-[#f8fafc] text-[#101a2a] shadow-[0_12px_30px_rgb(0_0_0_/_16%)] before:absolute before:inset-y-[9px] before:left-0 before:w-[3px] before:bg-[var(--workspace-accent)] [&>b]:opacity-100',
+    'bg-white/12 font-semibold text-white shadow-xs before:absolute before:inset-y-2 before:left-0 before:w-[3.5px] before:rounded-r-full before:bg-[var(--workspace-accent)] [&>b]:opacity-100',
   accountFooter:
-    'grid min-w-0 grid-cols-[39px_minmax(0,1fr)] items-center gap-3 border-t border-white/10 pt-[18px] [&>div]:min-w-0 [&_p]:text-[.58rem] [&_p]:tracking-[.08em] [&_p]:text-[#758196] [&_p]:uppercase [&_strong]:mt-1 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-[.8rem] [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-[#f3f6fa] [&_div>span]:mt-0.5 [&_div>span]:block [&_div>span]:overflow-hidden [&_div>span]:text-[.65rem] [&_div>span]:text-ellipsis [&_div>span]:whitespace-nowrap [&_div>span]:text-[#8f9bad]',
+    'grid min-w-0 grid-cols-[38px_minmax(0,1fr)] items-center gap-3 border-t border-white/10 pt-4.5 [&>div]:min-w-0 [&_p]:text-[.6rem] [&_p]:font-semibold [&_p]:tracking-[.08em] [&_p]:text-slate-400 [&_p]:uppercase [&_strong]:mt-0.5 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-[.82rem] [&_strong]:font-medium [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-slate-100 [&_div>span]:mt-0.5 [&_div>span]:block [&_div>span]:overflow-hidden [&_div>span]:text-[.68rem] [&_div>span]:text-ellipsis [&_div>span]:whitespace-nowrap [&_div>span]:text-slate-400',
   avatar:
-    'grid size-[39px] place-items-center bg-[var(--workspace-accent)] text-[.7rem] font-bold tracking-[.06em] text-white',
+    'grid size-[38px] place-items-center rounded-xl bg-[var(--workspace-accent)] text-xs font-bold tracking-wider text-white shadow-xs',
   workspace: 'min-w-0',
   topbar:
-    'sticky top-0 z-35 flex min-h-[82px] items-center gap-[18px] border-b border-[#dfe3e8] bg-white/90 px-[clamp(22px,3.5vw,54px)] py-3 shadow-[0_6px_24px_rgb(18_30_47_/_4%)] backdrop-blur-[18px] max-[600px]:min-h-[72px] [&>div]:grid [&>div]:gap-[3px] [&>div>p]:text-[.62rem] [&>div>p]:font-bold [&>div>p]:tracking-[.13em] [&>div>p]:text-[var(--workspace-accent)] [&>div>p]:uppercase [&>div>strong]:text-base [&>div>strong]:font-semibold [&>div>strong]:text-[#182333] [&>nav]:ml-auto [&>nav]:flex [&>nav]:items-center [&>nav]:gap-3.5 max-[560px]:[&>div]:hidden',
+    'sticky top-0 z-35 flex min-h-[74px] items-center gap-4 border-b border-slate-200/80 bg-white/80 px-[clamp(20px,3.5vw,48px)] py-2.5 shadow-xs backdrop-blur-md max-[600px]:min-h-[66px] [&>div]:grid [&>div]:gap-0.5 [&>div>p]:text-[.64rem] [&>div>p]:font-bold [&>div>p]:tracking-[.12em] [&>div>p]:text-[var(--workspace-accent)] [&>div>p]:uppercase [&>div>strong]:text-[.95rem] [&>div>strong]:font-bold [&>div>strong]:text-slate-900 [&>nav]:ml-auto [&>nav]:flex [&>nav]:items-center [&>nav]:gap-3 max-[560px]:[&>div]:hidden',
   menuButton:
-    'hidden size-[42px] cursor-pointer place-items-center border border-line bg-transparent p-[9px] max-[820px]:grid [&>span]:mx-auto [&>span]:my-1 [&>span]:block [&>span]:h-px [&>span]:w-5 [&>span]:bg-[#20243a]',
+    'hidden size-10 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white p-2 text-slate-700 shadow-xs max-[820px]:grid [&>span]:mx-auto [&>span]:my-0.5 [&>span]:block [&>span]:h-0.5 [&>span]:w-5 [&>span]:bg-slate-700',
   rolePill:
-    'inline-flex min-h-[31px] items-center border border-[color-mix(in_srgb,var(--workspace-accent)_24%,transparent)] bg-[var(--workspace-accent-soft)] px-[11px] py-1.5 text-[.64rem] font-bold tracking-[.08em] text-[var(--workspace-accent)] uppercase max-[600px]:hidden',
+    'inline-flex min-h-[30px] items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--workspace-accent)_24%,transparent)] bg-[var(--workspace-accent-soft)] px-3 py-1 text-[.66rem] font-bold tracking-[.06em] text-[var(--workspace-accent)] uppercase max-[600px]:hidden',
   scrim:
-    'fixed inset-0 z-40 hidden cursor-pointer border-0 bg-[#071124]/45 max-[820px]:block',
+    'fixed inset-0 z-40 hidden cursor-pointer border-0 bg-slate-900/50 backdrop-blur-xs max-[820px]:block',
 } as const;
 
 export const staffUi = {
   page:
-    'mx-auto w-[min(calc(100%-72px),1420px)] pt-[clamp(52px,5.5vw,82px)] pb-[72px] max-[820px]:w-[min(calc(100%-36px),760px)] [&_h1]:text-[#182333] [&_h2]:text-[#182333] [&_h3]:text-[#182333]',
+    'mx-auto w-[min(calc(100%-48px),1440px)] pt-[clamp(36px,4vw,64px)] pb-16 max-[820px]:w-[min(calc(100%-28px),760px)]',
   narrowPage:
-    'mx-auto w-[min(calc(100%-64px),1050px)] pt-[clamp(52px,5.5vw,82px)] pb-[72px] max-[820px]:w-[min(calc(100%-36px),760px)]',
+    'mx-auto w-[min(calc(100%-48px),1040px)] pt-[clamp(36px,4vw,64px)] pb-16 max-[820px]:w-[min(calc(100%-28px),760px)]',
   heading:
-    'relative mb-[46px] flex items-end justify-between gap-8 border-b border-[#d8dde4] pb-[30px] after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-[74px] after:bg-[var(--workspace-accent,#2463a8)] max-[560px]:flex-col max-[560px]:items-start max-[560px]:pb-6 [&_h1]:text-[clamp(2.6rem,4.5vw,4.8rem)] [&_h1]:leading-none [&_h1]:font-medium [&_h1]:tracking-[-.055em] [&_h1]:text-[#182333] [&>div>p:last-child]:mt-[15px] [&>div>p:last-child]:max-w-[650px] [&>div>p:last-child]:leading-[1.6] [&>div>p:last-child]:text-[#747b8d]',
+    'relative mb-8 flex items-end justify-between gap-6 border-b border-slate-200/80 pb-6 max-[640px]:flex-col max-[640px]:items-start max-[640px]:pb-4 [&_h1]:text-[clamp(1.8rem,3vw,2.5rem)] [&_h1]:leading-tight [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:text-slate-900 [&>div>p:last-child]:mt-2 [&>div>p:last-child]:max-w-2xl [&>div>p:last-child]:text-sm [&>div>p:last-child]:leading-relaxed [&>div>p:last-child]:text-slate-500',
   eyebrow:
-    'mb-2 text-xs font-bold tracking-[.13em] text-[var(--workspace-accent,#2463a8)] uppercase',
+    'mb-1.5 text-xs font-bold tracking-[.14em] text-[var(--workspace-accent,#2563eb)] uppercase',
   primaryAction:
-    'inline-grid min-h-12 cursor-pointer place-items-center border border-[var(--workspace-accent,#2463a8)] bg-[var(--workspace-accent,#2463a8)] px-[22px] py-3 font-bold whitespace-nowrap text-white no-underline shadow-[0_10px_24px_rgb(18_60_110_/_18%)] hover:brightness-90 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-65 max-[560px]:w-full',
+    'inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--workspace-accent,#2563eb)] px-5 py-2.5 text-sm font-semibold whitespace-nowrap text-white no-underline shadow-md shadow-blue-500/20 transition-all duration-150 hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-wait disabled:opacity-65 max-[560px]:w-full',
   sectionHeading:
-    'mb-[22px] flex items-end justify-between gap-6 [&_h2]:text-[clamp(1.6rem,2.5vw,2.2rem)] [&_a]:text-sm [&_a]:font-bold [&_a]:text-[var(--workspace-accent,#2463a8)] [&_a]:no-underline [&>span]:border [&>span]:border-line [&>span]:px-2 [&>span]:py-1 [&>span]:text-[.67rem] [&>span]:tracking-[.08em] [&>span]:text-[#747b8d] [&>span]:uppercase',
+    'mb-5 flex items-end justify-between gap-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:text-slate-900 [&_a]:text-sm [&_a]:font-semibold [&_a]:text-[var(--workspace-accent,#2563eb)] [&_a]:no-underline hover:[&_a]:underline [&>span]:rounded-md [&>span]:border [&>span]:border-slate-200 [&>span]:bg-white [&>span]:px-2.5 [&>span]:py-1 [&>span]:text-[.68rem] [&>span]:font-bold [&>span]:tracking-[.06em] [&>span]:text-slate-500 [&>span]:uppercase',
   empty: commonUi.empty,
-  help: 'mt-3.5 text-xs leading-6 text-[#8b631e]',
+  help: 'mt-3 text-xs leading-5 text-amber-700',
   count:
-    'inline-flex items-center gap-2 border border-line bg-white px-3 py-[9px] text-xs font-bold tracking-[.04em] text-[#52616c]',
+    'inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-xs',
   backLink:
-    'mb-[34px] inline-block text-[.82rem] font-bold text-[var(--workspace-accent,#2463a8)] no-underline',
+    'mb-6 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--workspace-accent,#2563eb)] no-underline hover:underline',
   permissionStrip:
-    'grid min-h-[88px] grid-cols-[minmax(250px,.7fr)_1fr_auto] items-center gap-7 border-y border-[#b8d9ca] bg-[#edf6f2] px-6 py-[18px] max-[820px]:grid-cols-[1fr_auto] max-[820px]:[&>p]:col-span-full max-[560px]:grid-cols-1 [&>div]:flex [&>div]:items-center [&>div]:gap-3.5 [&_p]:text-sm [&_p]:text-[#52635c] [&_strong]:mt-0.5 [&_strong]:block [&_strong]:text-[#18553f] [&_a]:font-bold [&_a]:text-[#18553f] [&_a]:no-underline',
+    'grid min-h-[80px] grid-cols-[minmax(240px,.7fr)_1fr_auto] items-center gap-6 rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-5 shadow-xs max-[820px]:grid-cols-[1fr_auto] max-[820px]:[&>p]:col-span-full max-[560px]:grid-cols-1 [&>div]:flex [&>div]:items-center [&>div]:gap-3.5 [&_p]:text-sm [&_p]:text-emerald-950 [&_strong]:mt-0.5 [&_strong]:block [&_strong]:text-emerald-800 [&_a]:font-bold [&_a]:text-emerald-700 [&_a]:no-underline hover:[&_a]:underline',
   permissionMark:
-    'grid size-[38px] shrink-0 place-items-center rounded-full bg-[#237858] font-extrabold text-white',
-  lifecycleBoard: 'mt-[66px]',
+    'grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-600 text-sm font-black text-white shadow-xs',
+  lifecycleBoard: 'mt-10',
   lifecycleGrid:
-    'grid grid-cols-3 gap-px border border-[#dce1e7] bg-[#dce1e7] shadow-[0_18px_50px_rgb(16_27_44_/_8%)] max-[820px]:grid-cols-1 [&_article]:grid [&_article]:min-h-[190px] [&_article]:content-between [&_article]:bg-white [&_article]:p-6 [&_article]:transition [&_article:hover]:-translate-y-0.5 [&_article:hover]:bg-[#f5f8fc] [&_article>p]:text-xs [&_article>p]:font-bold [&_article>p]:tracking-[.08em] [&_article>p]:text-[#747b8d] [&_article>p]:uppercase [&_article>strong]:text-6xl [&_article>strong]:leading-none [&_article>span]:text-sm [&_article>span]:text-[#747b8d]',
-  courseSection: 'mt-[66px]',
-  courseList: 'border-t border-line',
+    'grid grid-cols-3 gap-4 max-[820px]:grid-cols-1 [&_article]:flex [&_article]:flex-col [&_article]:justify-between [&_article]:rounded-2xl [&_article]:border [&_article]:border-slate-200/80 [&_article]:bg-white [&_article]:p-6 [&_article]:shadow-xs [&_article]:transition-all [&_article]:duration-150 hover:[&_article]:-translate-y-0.5 hover:[&_article]:shadow-md [&_article>p]:text-xs [&_article>p]:font-bold [&_article>p]:tracking-[.06em] [&_article>p]:text-slate-500 [&_article>p]:uppercase [&_article>strong]:my-2 [&_article>strong]:text-4xl [&_article>strong]:font-bold [&_article>strong]:text-slate-900 [&_article>span]:text-xs [&_article>span]:text-slate-500',
+  courseSection: 'mt-10',
+  courseList: 'grid gap-3',
   courseRow:
-    'grid min-h-[88px] grid-cols-[56px_minmax(0,1fr)_120px_28px] items-center gap-5 border-b border-line px-1 py-3.5 text-inherit no-underline hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus max-[560px]:grid-cols-[48px_minmax(0,1fr)_24px] max-[560px]:gap-3 [&_h3]:text-base [&_p]:mt-1 [&_p]:text-xs [&_p]:text-[#747b8d]',
+    'flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-4.5 text-inherit no-underline shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus max-[560px]:flex-col max-[560px]:items-start [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 [&_p]:mt-0.5 [&_p]:text-xs [&_p]:text-slate-500',
   courseIndex:
-    'grid size-[45px] place-items-center bg-[#e8eef5] text-xs font-extrabold text-[#073d78]',
-  courseArrow: 'text-xl text-[#073d78]',
+    'grid size-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-xs font-bold text-blue-700 ring-1 ring-blue-600/10',
+  courseArrow: 'text-lg font-bold text-blue-600',
   status:
-    'inline-grid w-max min-w-[88px] place-items-center border px-2.5 py-1.5 text-[.66rem] font-extrabold tracking-[.06em]',
-  statusDraft: 'border-[#e4ca72] bg-[#fff6d8] text-[#6e5510]',
-  statusSubmitted: 'border-[#89bdd7] bg-[#e5f3fa] text-[#185578]',
-  statusPublished: 'border-[#86c5a9] bg-[#e8f5ef] text-[#176044]',
-  statusRejected: 'border-[#d99da2] bg-[#fae9eb] text-[#8b343b]',
+    'inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-[.7rem] font-bold tracking-wide',
+  statusDraft: 'border-amber-200 bg-amber-50 text-amber-700',
+  statusSubmitted: 'border-sky-200 bg-sky-50 text-sky-700',
+  statusPublished: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  statusRejected: 'border-rose-200 bg-rose-50 text-rose-700',
   courseTable:
-    'overflow-x-auto border border-[#dce1e7] bg-white shadow-[0_14px_38px_rgb(18_30_47_/_5%)] [&>header]:grid [&>header]:min-w-[880px] [&>header]:grid-cols-[minmax(260px,1.5fr)_100px_112px_minmax(150px,.7fr)_105px_28px] [&>header]:items-center [&>header]:gap-[18px] [&>header]:border-b [&>header]:border-line [&>header]:bg-[#e9edf1] [&>header]:px-5 [&>header]:py-[17px] [&>header]:text-[.68rem] [&>header]:font-bold [&>header]:tracking-[.07em] [&>header]:text-[#747b8d] [&>header]:uppercase [&>a]:grid [&>a]:min-h-[84px] [&>a]:min-w-[880px] [&>a]:grid-cols-[minmax(260px,1.5fr)_100px_112px_minmax(150px,.7fr)_105px_28px] [&>a]:items-center [&>a]:gap-[18px] [&>a]:border-b [&>a]:border-line [&>a]:px-5 [&>a]:py-[17px] [&>a]:text-inherit [&>a]:no-underline [&>a:hover]:bg-[#f4f7fb] [&>a>div:first-child]:grid [&>a>div:first-child]:gap-1 [&>a>span]:text-xs [&>a>span]:text-[#747b8d] [&_b]:text-xl [&_b]:text-[#073d78]',
+    'overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs [&>header]:grid [&>header]:min-w-[880px] [&>header]:grid-cols-[minmax(260px,1.5fr)_100px_112px_minmax(150px,.7fr)_105px_28px] [&>header]:items-center [&>header]:gap-4 [&>header]:border-b [&>header]:border-slate-200 [&>header]:bg-slate-50/80 [&>header]:px-5 [&>header]:py-3.5 [&>header]:text-[.68rem] [&>header]:font-bold [&>header]:tracking-wider [&>header]:text-slate-500 [&>header]:uppercase [&>a]:grid [&>a]:min-h-[76px] [&>a]:min-w-[880px] [&>a]:grid-cols-[minmax(260px,1.5fr)_100px_112px_minmax(150px,.7fr)_105px_28px] [&>a]:items-center [&>a]:gap-4 [&>a]:border-b [&>a]:border-slate-100 [&>a]:px-5 [&>a]:py-3.5 [&>a]:text-inherit [&>a]:no-underline [&>a:last-child]:border-0 hover:[&>a]:bg-slate-50/80 [&>a>div:first-child]:grid [&>a>div:first-child]:gap-1 [&>a>span]:text-xs [&>a>span]:text-slate-500 [&_b]:text-lg [&_b]:text-blue-600',
   progress:
-    'flex items-center gap-2.5 [&>span]:h-1.5 [&>span]:w-full [&>span]:overflow-hidden [&>span]:bg-[#e0e3e9] [&_i]:block [&_i]:h-full [&_i]:bg-[#073d78] [&_small]:w-[34px] [&_small]:text-[#747b8d]',
+    'flex items-center gap-2.5 [&>span]:h-2 [&>span]:w-full [&>span]:overflow-hidden [&>span]:rounded-full [&>span]:bg-slate-100 [&_i]:block [&_i]:h-full [&_i]:rounded-full [&_i]:bg-blue-600 [&_small]:w-[34px] [&_small]:text-xs [&_small]:font-medium [&_small]:text-slate-500',
   timeline:
     'border border-[#dce1e7] bg-white p-[30px] shadow-[0_14px_38px_rgb(18_30_47_/_5%)] [&>header]:flex [&>header]:items-center [&>header]:gap-[18px] [&>header]:border-b [&>header]:border-line [&>header]:pb-[26px] [&_header_p]:text-xs [&_header_p]:text-[#747b8d] [&_header_span]:text-xs [&_header_span]:text-[#747b8d] [&_h2]:my-[3px] [&_h2]:text-[1.8rem] [&_h2]:text-[#176044]',
   permissionDetails:

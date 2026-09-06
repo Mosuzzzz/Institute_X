@@ -24,7 +24,7 @@ export class CourseCoversController {
   constructor(private readonly media: MediaService) {}
 
   @Get(':assetId/view-url')
-  @Roles(UserRole.TEACHER, UserRole.STUDENT, UserRole.APPROVER)
+  @Roles(UserRole.TEACHER, UserRole.STUDENT, UserRole.APPROVER, UserRole.OWNER)
   @ApiOkResponse({ description: 'Short-lived private Course cover URL' })
   viewUrl(
     @CurrentUser() user: CurrentUserValue,

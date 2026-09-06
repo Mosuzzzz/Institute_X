@@ -50,6 +50,17 @@ export class AssessmentsController {
     return this.preTests.submit(user, attemptId, input.answers);
   }
 
+  @Post('pre-test-attempts/:attemptId/finalize-expired')
+  @HttpCode(200)
+  @Roles(UserRole.STUDENT)
+  @ApiOkResponse({ description: 'Expired Pre-Test finalized at zero and content unlocked' })
+  finalizeExpiredPreTest(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('attemptId', new ParseUUIDPipe({ version: '4' })) attemptId: string,
+  ): ReturnType<PreTestService['finalizeExpired']> {
+    return this.preTests.finalizeExpired(user, attemptId);
+  }
+
   @Get('pre-tests/:quizId/result')
   @Roles(UserRole.STUDENT)
   @ApiOkResponse({ description: 'Authenticated Student completed Pre-Test score' })

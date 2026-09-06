@@ -26,6 +26,7 @@ import { QuestionImagesController } from './question-images.controller';
       inject: [ConfigService],
       useFactory: (config: ConfigService): ObjectStorage => {
         const endpoint = config.get<string>('S3_ENDPOINT');
+        const publicEndpoint = config.get<string>('S3_PUBLIC_ENDPOINT');
         const region = config.get<string>('S3_REGION');
         const bucket = config.get<string>('S3_BUCKET');
         const accessKeyId = config.get<string>('S3_ACCESS_KEY_ID');
@@ -39,10 +40,22 @@ import { QuestionImagesController } from './question-images.controller';
           forcePathStyle: config.get<boolean>('S3_FORCE_PATH_STYLE', true),
           credentials: { accessKeyId, secretAccessKey },
         });
-        return new S3ObjectStorage(client, {
-          bucket,
-          signedUrlTtlSeconds: config.get<number>('S3_SIGNED_URL_TTL_SECONDS', 300),
-        });
+        const signingClient = publicEndpoint
+          ? new S3Client({
+              endpoint: publicEndpoint,
+              region,
+              forcePathStyle: config.get<boolean>('S3_FORCE_PATH_STYLE', true),
+              credentials: { accessKeyId, secretAccessKey },
+            })
+          : client;
+        return new S3ObjectStorage(
+          client,
+          {
+            bucket,
+            signedUrlTtlSeconds: config.get<number>('S3_SIGNED_URL_TTL_SECONDS', 300),
+          },
+          signingClient,
+        );
       },
     },
   ],

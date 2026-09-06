@@ -29,4 +29,20 @@ describe('validateEnvironment', () => {
       validateEnvironment({ ...baseEnvironment, AUTH_SESSION_CACHE_TTL_SECONDS: 901 }),
     ).toThrow('Environment validation failed');
   });
+
+  it('accepts a browser-facing object-storage endpoint and rejects invalid URLs', () => {
+    expect(
+      validateEnvironment({
+        ...baseEnvironment,
+        S3_PUBLIC_ENDPOINT: 'https://media.example.edu',
+      }),
+    ).toMatchObject({ S3_PUBLIC_ENDPOINT: 'https://media.example.edu' });
+
+    expect(() =>
+      validateEnvironment({
+        ...baseEnvironment,
+        S3_PUBLIC_ENDPOINT: 'minio:9000',
+      }),
+    ).toThrow('Environment validation failed');
+  });
 });

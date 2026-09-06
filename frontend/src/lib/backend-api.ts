@@ -357,3 +357,24 @@ export type OwnerDashboardDto = {
   postTestResults: { pass: number; notPass: number };
   peakUsage: Array<{ hour: number; accesses: number }>;
 };
+
+export type TeacherCourseAnalyticsDto = {
+  enrollments: number;
+  accesses: number;
+  preTest: { attempts: number; averageScore: number | null };
+  postTest: {
+    attempts: number;
+    averageScore: number | null;
+    pass: number;
+    notPass: number;
+    passRate: number;
+  };
+};
+
+export type PostTestResultDto = {
+  id: string;
+  score: number | null;
+  result: "PASS" | "NOT_PASS" | null;
+  startedAt: string;
+  submittedAt: string | null;
+};

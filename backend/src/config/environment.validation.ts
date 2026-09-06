@@ -35,6 +35,9 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
   OIDC_ACCOUNT_STATUS_CLAIM: Joi.string().default('account_status'),
   OIDC_MAJOR_CODE_CLAIM: Joi.string().default('major_code'),
   S3_ENDPOINT: Joi.string().uri().optional(),
+  S3_PUBLIC_ENDPOINT: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .optional(),
   S3_REGION: Joi.string().optional(),
   S3_BUCKET: Joi.string().optional(),
   S3_ACCESS_KEY_ID: Joi.string().optional(),

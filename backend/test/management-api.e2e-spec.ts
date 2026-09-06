@@ -29,6 +29,7 @@ describe('Management REST API', () => {
     completeCoverUpload: jest.fn(),
     createCoverViewUrl: jest.fn(),
     createStudentViewUrl: jest.fn(),
+    createReviewViewUrl: jest.fn(),
     deleteDraftAsset: jest.fn(),
     deleteDraftCover: jest.fn(),
   };
@@ -184,6 +185,27 @@ describe('Management REST API', () => {
       .set('x-test-role', UserRole.TEACHER)
       .expect(200)
       .expect({ id: 'asset-id', status: 'READY' });
+  });
+
+  it('GET /media/:id/review-url gives an Approver a submitted lesson preview', async () => {
+    media.createReviewViewUrl.mockResolvedValue({
+      url: 'https://storage.example/signed-review-preview',
+      expiresAt: '2026-08-27T01:00:00.000Z',
+    });
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/media/11111111-1111-4111-8111-111111111111/review-url')
+      .set('x-test-role', UserRole.APPROVER)
+      .expect(200)
+      .expect({
+        url: 'https://storage.example/signed-review-preview',
+        expiresAt: '2026-08-27T01:00:00.000Z',
+      });
+
+    await request(app.getHttpServer() as Server)
+      .get('/api/media/11111111-1111-4111-8111-111111111111/review-url')
+      .set('x-test-role', UserRole.TEACHER)
+      .expect(403);
   });
 
   it('DELETE /media/:id removes an owned Draft asset', async () => {

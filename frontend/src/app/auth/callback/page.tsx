@@ -101,7 +101,7 @@ export default function SsoCallbackPage() {
         const applicationRole = resolveApplicationRole(profile);
         router.replace(
           applicationRole === 'TEACHER'
-            ? '/teacher'
+            ? '/teacher/courses'
             : applicationRole === 'APPROVER'
               ? '/approver'
               : applicationRole === 'OWNER'

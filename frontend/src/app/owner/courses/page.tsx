@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { backendApi, type ApproverCourseDto } from '../../../lib/backend-api';
 import { useBackendQuery } from '../../../lib/use-backend-query';
@@ -88,7 +89,10 @@ export default function OwnerCoursesPage() {
           <h1>Course moderation</h1>
           <p>Unpublish or archive a published Course when institutional policy requires it.</p>
         </div>
-        <span className={ownerUi.liveLabel}>{data.length} published courses</span>
+        <div className="flex items-center gap-3">
+          <Link className="border border-[#073d78] bg-white px-4 py-2 text-sm font-semibold text-[#073d78] no-underline" href="/owner/categories">Manage categories</Link>
+          <span className={ownerUi.liveLabel}>{data.length} published courses</span>
+        </div>
       </header>
 
       {actionNotice && (

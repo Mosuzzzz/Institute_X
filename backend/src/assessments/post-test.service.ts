@@ -64,6 +64,7 @@ export class PostTestService {
           include: {
             course: {
               select: {
+                archivedAt: true,
                 eligibilityMode: true,
                 allowedMajors: { select: { majorId: true } },
                 enrollments: {
@@ -99,6 +100,9 @@ export class PostTestService {
       throw new NotFoundException('Post-Test was not found');
     }
     if (quiz.version.status !== CourseVersionStatus.PUBLISHED) {
+      throw new NotFoundException('Published Post-Test was not found');
+    }
+    if (quiz.version.course.archivedAt) {
       throw new NotFoundException('Published Post-Test was not found');
     }
     if (
@@ -245,19 +249,6 @@ export class PostTestService {
         submittedAt: { not: null },
         quiz: {
           quizType: QuizType.POST_TEST,
-          version: {
-            status: CourseVersionStatus.PUBLISHED,
-            course: {
-              OR: [
-                { eligibilityMode: CourseEligibilityMode.OPEN },
-                {
-                  eligibilityMode: CourseEligibilityMode.LIMITED,
-                  allowedMajors: { some: { majorId: student.majorId! } },
-                },
-              ],
-              enrollments: { some: { studentId: student.id } },
-            },
-          },
         },
       },
       select: {

@@ -130,6 +130,7 @@ function toStudentCourse(
     instructor: course.description ?? "Institute X learning programme",
     category,
     categorySlug: categoryRecord?.slug,
+    categorySlugs: course.categories.map((item) => item.slug),
     language: courseLanguageLabel(course.languageCode, language),
     availability: course.eligibilityMode,
     accent: palette[course.title.length % palette.length],
@@ -166,7 +167,7 @@ export default function StudentCatalogClient({
   const enrolled = allCourses.filter((course) => course.progress !== undefined);
   const visible = allCourses.filter(
     (course) =>
-      (!category || course.categorySlug === category) &&
+      (!category || course.categorySlugs?.includes(category)) &&
       (!normalizedQuery ||
         `${course.title} ${course.instructor} ${course.category}`
           .toLowerCase()

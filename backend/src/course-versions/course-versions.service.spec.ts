@@ -26,8 +26,11 @@ describe('CourseVersionsService', () => {
     courseVersionReview: {
       aggregate: jest.fn(),
       create: jest.fn(),
+      createMany: jest.fn(),
+      deleteMany: jest.fn(),
       updateMany: jest.fn(),
     },
+    discardedCourseVersionReview: { createMany: jest.fn() },
   };
   const prisma = {
     ...db,
@@ -72,6 +75,7 @@ describe('CourseVersionsService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     prisma.$transaction.mockImplementation((operation) => operation(db));
+    db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
     service = new CourseVersionsService(prisma as never, storage as never);
   });
 
@@ -95,6 +99,23 @@ describe('CourseVersionsService', () => {
         submissionNumber: 1,
       }),
     });
+  });
+
+  it('retries submission after a serializable transaction write conflict', async () => {
+    db.courseVersion.findUnique.mockResolvedValue(validDraft);
+    db.courseVersionReview.aggregate.mockResolvedValue({
+      _max: { submissionNumber: null },
+    });
+    db.courseVersionReview.create.mockResolvedValue({ id: 'review-id' });
+    (prisma.$transaction as jest.Mock).mockRejectedValueOnce({ code: 'P2034' });
+    (prisma.$transaction as jest.Mock).mockImplementationOnce(
+      (operation: (tx: typeof db) => unknown): unknown => operation(db),
+    );
+
+    await service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(db.courseVersionReview.create).toHaveBeenCalledTimes(1);
   });
 
   it('rejects submission without a Pre-Test', async () => {
@@ -150,7 +171,7 @@ describe('CourseVersionsService', () => {
     await expect(
       service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
-    expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
+    expect(db.courseVersion.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it('rejects submission while a question image is not READY', async () => {
@@ -172,7 +193,7 @@ describe('CourseVersionsService', () => {
     await expect(
       service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
-    expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
+    expect(db.courseVersion.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a mandatory Post-Test that has no valid questions', async () => {
@@ -190,6 +211,7 @@ describe('CourseVersionsService', () => {
 
   it('denies submission by a different Teacher', async () => {
     db.courseVersion.findUnique.mockResolvedValue(validDraft);
+    db.courseVersion.updateMany.mockResolvedValueOnce({ count: 0 });
 
     await expect(
       service.submit({ id: 'other-id', role: UserRole.TEACHER }, 'version-id'),
@@ -202,6 +224,7 @@ describe('CourseVersionsService', () => {
       courseId: 'course-id',
       status: CourseVersionStatus.SUBMITTED,
     });
+    db.courseVersion.updateMany.mockResolvedValueOnce({ count: 0 });
     db.courseVersion.updateMany
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 1 });
@@ -222,7 +245,11 @@ describe('CourseVersionsService', () => {
       data: { status: CourseVersionStatus.SUPERSEDED },
     });
     expect(db.courseVersion.updateMany).toHaveBeenNthCalledWith(2, {
-      where: { id: 'version-id', status: CourseVersionStatus.SUBMITTED },
+      where: {
+        id: 'version-id',
+        status: CourseVersionStatus.SUBMITTED,
+        course: { archivedAt: null },
+      },
       data: {
         status: CourseVersionStatus.PUBLISHED,
         publishedAt: expect.any(Date),
@@ -240,7 +267,7 @@ describe('CourseVersionsService', () => {
     await expect(
       service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
-    expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
+    expect(db.courseVersion.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it('requires a comment when rejecting', async () => {
@@ -377,6 +404,72 @@ describe('CourseVersionsService', () => {
       await expect(
         service.discardDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('locks the Draft state before deleting any storage object', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'draft-id',
+        courseId: 'course-id',
+        versionNumber: 1,
+        status: CourseVersionStatus.DRAFT,
+        course: { id: 'course-id', teacherId: 'teacher-id', _count: { versions: 1 } },
+        coverAsset: { storageKey: 'course-covers/draft' },
+        contentItems: [],
+        quizzes: [],
+        reviews: [],
+      });
+      db.courseVersion.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.discardDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id'),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'draft-id',
+          status: CourseVersionStatus.DRAFT,
+          course: { teacherId: 'teacher-id' },
+        },
+        data: { updatedAt: expect.any(Date) },
+      });
+      expect(storage.deleteObject).not.toHaveBeenCalled();
+    });
+
+    it('archives review history before discarding a reopened rejected Draft', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'draft-id',
+        courseId: 'course-id',
+        versionNumber: 2,
+        status: CourseVersionStatus.DRAFT,
+        course: { id: 'course-id', teacherId: 'teacher-id', _count: { versions: 2 } },
+        coverAsset: null,
+        contentItems: [],
+        quizzes: [],
+        reviews: [
+          {
+            id: 'review-id',
+            submissionNumber: 1,
+            submittedAt: new Date('2026-09-01T00:00:00Z'),
+            reviewedById: 'approver-id',
+            decision: ReviewDecision.REJECTED,
+            reviewComment: 'Revise this course',
+            reviewedAt: new Date('2026-09-02T00:00:00Z'),
+          },
+        ],
+      });
+      db.discardedCourseVersionReview.createMany.mockResolvedValue({ count: 1 });
+      db.courseVersionReview.deleteMany.mockResolvedValue({ count: 1 });
+      db.courseVersion.deleteMany.mockResolvedValue({ count: 1 });
+
+      await service.discardDraft({ id: 'teacher-id', role: UserRole.TEACHER }, 'draft-id');
+
+      expect(db.discardedCourseVersionReview.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ originalReviewId: 'review-id', courseId: 'course-id' })],
+        skipDuplicates: true,
+      });
+      expect(db.courseVersionReview.deleteMany).toHaveBeenCalledWith({
+        where: { versionId: 'draft-id' },
+      });
     });
   });
 
@@ -530,7 +623,10 @@ describe('CourseVersionsService', () => {
         service.listSubmitted({ id: 'approver-id', role: UserRole.APPROVER }),
       ).resolves.toEqual([{ id: 'version-id' }]);
       expect(db.courseVersion.findMany).toHaveBeenCalledWith({
-        where: { status: CourseVersionStatus.SUBMITTED },
+        where: {
+          status: CourseVersionStatus.SUBMITTED,
+          course: { archivedAt: null },
+        },
         include: {
           course: {
             include: {

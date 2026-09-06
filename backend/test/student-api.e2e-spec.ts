@@ -29,7 +29,12 @@ describe('Student REST API', () => {
     getPublishedContent: jest.fn(),
     listEligibleCourses: jest.fn(),
   };
-  const preTest = { start: jest.fn(), submit: jest.fn(), getResult: jest.fn() };
+  const preTest = {
+    start: jest.fn(),
+    submit: jest.fn(),
+    finalizeExpired: jest.fn(),
+    getResult: jest.fn(),
+  };
   const postTest = { start: jest.fn(), submit: jest.fn(), getResults: jest.fn() };
   const media = { createStudentViewUrl: jest.fn() };
 
@@ -172,6 +177,26 @@ describe('Student REST API', () => {
       })
       .expect(200)
       .expect({ score: 100, result: QuizResult.COMPLETED });
+  });
+
+  it('POST /pre-test-attempts/:id/finalize-expired reaches the service without answers', async () => {
+    preTest.finalizeExpired.mockResolvedValue({
+      score: 0,
+      result: QuizResult.COMPLETED,
+      courseId: 'course-id',
+    });
+
+    await request(app.getHttpServer() as Server)
+      .post('/api/pre-test-attempts/11111111-1111-4111-8111-111111111111/finalize-expired')
+      .set('x-test-role', UserRole.STUDENT)
+      .expect(200)
+      .expect({ score: 0, result: QuizResult.COMPLETED, courseId: 'course-id' });
+
+    expect(preTest.finalizeExpired).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'student-id', role: UserRole.STUDENT }),
+      '11111111-1111-4111-8111-111111111111',
+    );
+    expect(preTest.submit).not.toHaveBeenCalled();
   });
 
   it('GET /pre-tests/:id/result returns the stored Student score', async () => {

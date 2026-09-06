@@ -2,12 +2,17 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { backendApi, type SubmittedVersionDto } from '../../../../lib/backend-api';
+import { useEffect, useState } from 'react';
+import {
+  backendApi,
+  type SignedViewUrlDto,
+  type SubmittedVersionDto,
+} from '../../../../lib/backend-api';
 import { useBackendQuery } from '../../../../lib/use-backend-query';
 import { useAppLanguage } from '../../../../lib/language';
 import { translateMajor } from '../../../../lib/reference-translations';
 import ApiState from '../../../api-state';
+import QuestionImage from '../../../question-image';
 import { formatSubmitted, formatWaiting } from '../../approver-api';
 import { commonUi, staffUi } from '../../../ui-styles';
 
@@ -19,6 +24,24 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [previewingAssetId, setPreviewingAssetId] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<Record<string, SignedViewUrlDto>>({});
+  const [previewClock, setPreviewClock] = useState(() => Date.now());
+
+  useEffect(() => {
+    const nextExpiry = Math.min(
+      ...Object.values(previewUrls)
+        .map((preview) => Date.parse(preview.expiresAt))
+        .filter((expiresAt) => expiresAt > previewClock),
+    );
+    if (!Number.isFinite(nextExpiry)) return;
+
+    const timer = window.setTimeout(
+      () => setPreviewClock(Date.now()),
+      Math.max(0, nextExpiry - previewClock + 50),
+    );
+    return () => window.clearTimeout(timer);
+  }, [previewClock, previewUrls]);
 
   if (!data) {
     return (
@@ -60,7 +83,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
     {
       label: 'Post-Test',
       detail: postTest ? `${postTest.questions.length} questions configured` : 'Missing (Required)',
-      ready: true,
+      ready: (postTest?.questions.length ?? 0) > 0,
     },
     {
       label: 'Eligible Majors',
@@ -88,6 +111,24 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
     } catch (requestError) {
       setActionError(requestError instanceof Error ? requestError.message : 'Unable to record review.');
       setSaving(false);
+    }
+  };
+
+  const prepareMediaPreview = async (assetId: string) => {
+    setPreviewingAssetId(assetId);
+    setActionError(null);
+    try {
+      const signed = await backendApi<SignedViewUrlDto>(`media/${assetId}/review-url`);
+      setPreviewUrls((current) => ({ ...current, [assetId]: signed }));
+      window.setTimeout(() => setPreviewClock(Date.now()), 0);
+    } catch (requestError) {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Unable to prepare this media preview.',
+      );
+    } finally {
+      setPreviewingAssetId(null);
     }
   };
 
@@ -198,9 +239,37 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
                         </div>
                       )}
                       {item.mediaAsset && (
-                        <p className="mt-2 text-xs text-[#687486]">
-                          File: <strong>{item.mediaAsset.fileName}</strong> ({item.mediaAsset.mimeType})
-                        </p>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#eef1f5] pt-3">
+                          <p className="text-xs text-[#687486]">
+                            File: <strong>{item.mediaAsset.fileName}</strong> ({item.mediaAsset.mimeType})
+                          </p>
+                          {item.mediaAsset.status === 'READY' ? (
+                            previewUrls[item.mediaAsset.id] &&
+                            Date.parse(previewUrls[item.mediaAsset.id].expiresAt) > previewClock ? (
+                              <a
+                                className="inline-flex min-h-9 items-center border border-[#073d78] px-3 text-xs font-semibold text-[#073d78] no-underline hover:bg-[#edf3f8]"
+                                href={previewUrls[item.mediaAsset.id].url}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                Open preview ↗
+                              </a>
+                            ) : (
+                              <button
+                                className="min-h-9 cursor-pointer border border-[#073d78] bg-white px-3 text-xs font-semibold text-[#073d78] hover:bg-[#edf3f8] disabled:cursor-wait disabled:opacity-60"
+                                disabled={previewingAssetId === item.mediaAsset.id}
+                                onClick={() => void prepareMediaPreview(item.mediaAsset!.id)}
+                                type="button"
+                              >
+                                {previewingAssetId === item.mediaAsset.id
+                                  ? 'Preparing…'
+                                  : previewUrls[item.mediaAsset.id]
+                                    ? 'Renew preview'
+                                    : 'Prepare preview'}
+                              </button>
+                            )
+                          ) : null}
+                        </div>
                       )}
                     </article>
                   ))}
@@ -235,6 +304,14 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
                             <p className="font-medium text-[#202a38]">
                               Q{qIdx + 1}. {question.questionText}
                             </p>
+                            {question.imageAsset ? (
+                              <QuestionImage
+                                assetId={question.imageAsset.id}
+                                alt={`Question ${qIdx + 1}: ${question.questionText}`}
+                                className="mt-3 max-h-80 max-w-full rounded border border-[#d8dde5] object-contain"
+                                fallback={<p className="mt-2 text-xs text-[#8b343b]">Question image unavailable.</p>}
+                              />
+                            ) : null}
                             <ul className="mt-2 space-y-1 pl-4">
                               {question.options.map((opt) => (
                                 <li
