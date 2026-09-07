@@ -20,6 +20,26 @@ export type SsoProfile = {
 
 export type ApplicationRole = 'STUDENT' | 'TEACHER' | 'APPROVER' | 'OWNER' | null;
 
+export function getRoleHomePath(role: ApplicationRole): string | null {
+  switch (role) {
+    case 'STUDENT': return '/student';
+    case 'TEACHER': return '/teacher/courses';
+    case 'APPROVER': return '/approver';
+    case 'OWNER': return '/owner';
+    default: return null;
+  }
+}
+
+export function getSessionHomePath(): string | null {
+  try {
+    if (!hasActiveSsoSession()) return null;
+    return getRoleHomePath(resolveApplicationRole(readStoredProfile()));
+  } catch {
+    // Unavailable browser storage or an invalid profile must not trap sign-in.
+    return null;
+  }
+}
+
 export function resolveApplicationRole(profile: SsoProfile | null): ApplicationRole {
   if (!profile) return null;
 

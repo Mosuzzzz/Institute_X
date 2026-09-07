@@ -21,6 +21,7 @@ import { useAppLanguage } from "../../lib/language";
 import LanguageSelector from "../language-selector";
 import ProfileMenu from "../profile-menu";
 import { commonUi, workspaceUi } from "../ui-styles";
+import styles from "../workspace-sidebar.module.css";
 
 const subscribeToSession = () => () => undefined;
 
@@ -115,18 +116,11 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
       : pathname.startsWith(item.href),
   );
   const isCourseEditor = /^\/teacher\/courses\/[^/]+$/.test(pathname);
-  const displayName = profile?.name ?? profile?.username ?? "Teacher";
-  const initials = displayName
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
-    <div className={workspaceUi.shell("teacher")}>
-      <aside className={workspaceUi.sidebar(mobileNavOpen)}>
-        <header className={workspaceUi.brandHeader}>
+    <div className={`${workspaceUi.shell("teacher")} ${styles.shell}`}>
+      <aside className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
+        <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
           <Link className={workspaceUi.brandLink} href="/teacher/courses" aria-label="Institute X teacher courses dashboard">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
@@ -134,15 +128,9 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
               <strong>{shell.teacherWorkspace}</strong>
             </span>
           </Link>
-          <button
-            type="button"
-            aria-label="Close navigation"
-            onClick={() => setMobileNavOpen(false)}
-          >
-            ×
-          </button>
+          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
         </header>
-        <nav className={workspaceUi.navigation} aria-label="Teacher navigation">
+        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Teacher navigation">
           <p className={workspaceUi.navLabel}>Workspace · 01</p>
           {navigation.map((item) => {
             const active =
@@ -154,27 +142,20 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
                 key={item.href}
                 className={`${workspaceUi.navLink} ${active ? workspaceUi.navLinkActive : ""}`}
                 href={item.href}
+                aria-label={shell[item.label]}
+                aria-current={active ? "page" : undefined}
                 onClick={() => setMobileNavOpen(false)}
               >
                 <NavIcon icon={item.icon} />
                 <span>{shell[item.label]}</span>
-                <b>→</b>
               </Link>
             );
           })}
         </nav>
-        <footer className={workspaceUi.accountFooter}>
-          <span className={workspaceUi.avatar}>{initials}</span>
-          <div>
-            <p>Teacher account</p>
-            <strong>{displayName}</strong>
-            <span>{profile?.email}</span>
-          </div>
-        </footer>
       </aside>
 
       <div className={workspaceUi.workspace}>
-        <header className={isCourseEditor ? "hidden" : workspaceUi.topbar}>
+        <header className={isCourseEditor ? `${workspaceUi.topbar} ${styles.topbar} min-[821px]:hidden` : `${workspaceUi.topbar} ${styles.topbar}`}>
           <button
             className={workspaceUi.menuButton}
             type="button"

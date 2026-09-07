@@ -28,34 +28,30 @@ export type WorkspaceRole = 'teacher' | 'approver' | 'owner';
 
 const roleTheme: Record<WorkspaceRole, string> = {
   teacher:
-    '[--workspace-accent:#2563eb] [--workspace-accent-soft:#eff6ff] [--workspace-rail:#0f172a] [--workspace-card-border:#e2e8f0]',
+    '[--workspace-accent:#063777] [--workspace-accent-soft:#eff6ff] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
   approver:
-    '[--workspace-accent:#0d9488] [--workspace-accent-soft:#f0fdfa] [--workspace-rail:#0f1d24] [--workspace-card-border:#e2e8f0]',
+    '[--workspace-accent:#0d9488] [--workspace-accent-soft:#f0fdfa] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
   owner:
-    '[--workspace-accent:#d97706] [--workspace-accent-soft:#fffbeb] [--workspace-rail:#111827] [--workspace-card-border:#e2e8f0]',
+    '[--workspace-accent:#d97706] [--workspace-accent-soft:#fffbeb] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
 };
 
 export const workspaceUi = {
   shell: (role: WorkspaceRole) =>
     `grid min-h-svh grid-cols-[280px_minmax(0,1fr)] bg-[#f8fafc] text-slate-800 max-[1100px]:grid-cols-[240px_minmax(0,1fr)] max-[820px]:block ${roleTheme[role]}`,
   sidebar: (open: boolean) =>
-    `sticky top-0 z-50 grid h-svh grid-rows-[auto_1fr_auto] overflow-hidden bg-[var(--workspace-rail)] px-5 pt-7 pb-6 text-white shadow-xl max-[820px]:fixed max-[820px]:left-0 max-[820px]:w-[min(88vw,320px)] max-[820px]:transition-transform max-[820px]:duration-200 ${open ? 'max-[820px]:translate-x-0' : 'max-[820px]:-translate-x-[105%]'}`,
+    `sticky top-0 z-50 grid h-svh grid-rows-[auto_1fr] overflow-hidden bg-[var(--workspace-rail)] px-5 pt-7 pb-6 text-slate-900 shadow-xl max-[820px]:fixed max-[820px]:left-0 max-[820px]:w-[min(88vw,320px)] max-[820px]:transition-transform max-[820px]:duration-200 ${open ? 'max-[820px]:translate-x-0' : 'max-[820px]:-translate-x-[105%]'}`,
   brandHeader:
-    'flex items-center justify-between [&>button]:hidden [&>button]:cursor-pointer [&>button]:border-0 [&>button]:bg-transparent [&>button]:text-3xl [&>button]:text-white max-[820px]:[&>button]:block',
+    'flex items-center justify-between [&>button]:hidden [&>button]:cursor-pointer [&>button]:border-0 [&>button]:bg-transparent [&>button]:text-3xl [&>button]:text-slate-900 max-[820px]:[&>button]:block',
   brandLink:
-    'flex min-w-0 items-center gap-3 text-white no-underline [&>img]:size-10 [&>img]:shrink-0 [&>img]:rounded-lg [&>img]:bg-white [&>img]:p-1.5 [&>img]:shadow-md [&>span]:grid [&>span]:min-w-0 [&>span]:gap-0.5 [&_small]:text-[.62rem] [&_small]:font-semibold [&_small]:tracking-[.14em] [&_small]:text-slate-400 [&_small]:uppercase [&_strong]:overflow-hidden [&_strong]:text-[.92rem] [&_strong]:font-semibold [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-white',
+    'flex min-w-0 items-center gap-3 text-slate-900 no-underline [&>img]:size-10 [&>img]:shrink-0 [&>img]:rounded-lg [&>img]:bg-white [&>img]:p-1.5 [&>img]:shadow-md [&>span]:grid [&>span]:min-w-0 [&>span]:gap-0.5 [&_small]:text-[.62rem] [&_small]:font-semibold [&_small]:tracking-[.14em] [&_small]:text-slate-500 [&_small]:uppercase [&_strong]:overflow-hidden [&_strong]:text-[.92rem] [&_strong]:font-semibold [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-slate-900',
   navigation:
     'mt-10 grid content-start gap-1.5 [&_svg]:size-5 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7]',
   navLabel:
     'mx-3 mt-4 mb-2 text-[.64rem] font-bold tracking-[.14em] text-slate-400/80 uppercase',
   navLink:
-    'relative grid min-h-[48px] grid-cols-[20px_minmax(0,1fr)_16px] items-center gap-3 rounded-xl border border-transparent px-3.5 py-2.5 text-sm font-medium text-slate-300 no-underline transition duration-150 hover:bg-white/10 hover:text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus [&>b]:justify-self-end [&>b]:text-[.85rem] [&>b]:opacity-0 hover:[&>b]:opacity-100',
+    'relative grid min-h-[48px] grid-cols-[20px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-transparent px-3.5 py-2.5 text-sm font-medium text-slate-900 no-underline transition duration-150 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
   navLinkActive:
-    'bg-white/12 font-semibold text-white shadow-xs before:absolute before:inset-y-2 before:left-0 before:w-[3.5px] before:rounded-r-full before:bg-[var(--workspace-accent)] [&>b]:opacity-100',
-  accountFooter:
-    'grid min-w-0 grid-cols-[38px_minmax(0,1fr)] items-center gap-3 border-t border-white/10 pt-4.5 [&>div]:min-w-0 [&_p]:text-[.6rem] [&_p]:font-semibold [&_p]:tracking-[.08em] [&_p]:text-slate-400 [&_p]:uppercase [&_strong]:mt-0.5 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-[.82rem] [&_strong]:font-medium [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-slate-100 [&_div>span]:mt-0.5 [&_div>span]:block [&_div>span]:overflow-hidden [&_div>span]:text-[.68rem] [&_div>span]:text-ellipsis [&_div>span]:whitespace-nowrap [&_div>span]:text-slate-400',
-  avatar:
-    'grid size-[38px] place-items-center rounded-xl bg-[var(--workspace-accent)] text-xs font-bold tracking-wider text-white shadow-xs',
+    'bg-slate-100 font-semibold text-slate-900 shadow-xs before:absolute before:inset-y-2 before:left-0 before:w-[3.5px] before:rounded-r-full before:bg-[var(--workspace-accent)]',
   workspace: 'min-w-0',
   topbar:
     'sticky top-0 z-35 flex min-h-[74px] items-center gap-4 border-b border-slate-200/80 bg-white/80 px-[clamp(20px,3.5vw,48px)] py-2.5 shadow-xs backdrop-blur-md max-[600px]:min-h-[66px] [&>div]:grid [&>div]:gap-0.5 [&>div>p]:text-[.64rem] [&>div>p]:font-bold [&>div>p]:tracking-[.12em] [&>div>p]:text-[var(--workspace-accent)] [&>div>p]:uppercase [&>div>strong]:text-[.95rem] [&>div>strong]:font-bold [&>div>strong]:text-slate-900 [&>nav]:ml-auto [&>nav]:flex [&>nav]:items-center [&>nav]:gap-3 max-[560px]:[&>div]:hidden',

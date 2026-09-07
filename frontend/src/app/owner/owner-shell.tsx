@@ -21,6 +21,7 @@ import { useAppLanguage } from "../../lib/language";
 import LanguageSelector from "../language-selector";
 import ProfileMenu from "../profile-menu";
 import { commonUi, workspaceUi } from "../ui-styles";
+import styles from "../workspace-sidebar.module.css";
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
@@ -119,18 +120,12 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
       ? pathname === item.href
       : pathname.startsWith(item.href),
   );
-  const displayName = profile?.name ?? profile?.username ?? "Owner";
-  const initials = displayName
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+
 
   return (
-    <div className={workspaceUi.shell("owner")}>
-      <aside className={workspaceUi.sidebar(mobileNavOpen)}>
-        <header className={workspaceUi.brandHeader}>
+    <div className={`${workspaceUi.shell("owner")} ${styles.shell}`}>
+      <aside className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
+        <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
           <Link className={workspaceUi.brandLink} href="/owner" aria-label="Institute X Owner home">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
@@ -138,15 +133,9 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
               <strong>{shell.ownerWorkspace}</strong>
             </span>
           </Link>
-          <button
-            type="button"
-            aria-label="Close navigation"
-            onClick={() => setMobileNavOpen(false)}
-          >
-            ×
-          </button>
+          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
         </header>
-        <nav className={workspaceUi.navigation} aria-label="Owner navigation">
+        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Owner navigation">
           <p className={workspaceUi.navLabel}>Workspace · 03</p>
           {navigation.map((item) => {
             const active =
@@ -158,26 +147,19 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
                 key={item.href}
                 className={`${workspaceUi.navLink} ${active ? workspaceUi.navLinkActive : ""}`}
                 href={item.href}
+                aria-label={shell[item.label]}
+                aria-current={active ? "page" : undefined}
                 onClick={() => setMobileNavOpen(false)}
               >
                 <NavIcon icon={item.icon} />
                 <span>{shell[item.label]}</span>
-                <b>→</b>
               </Link>
             );
           })}
         </nav>
-        <footer className={workspaceUi.accountFooter}>
-          <span className={workspaceUi.avatar}>{initials}</span>
-          <div>
-            <p>System authority</p>
-            <strong>{displayName}</strong>
-            <span>{profile?.email}</span>
-          </div>
-        </footer>
       </aside>
       <div className={workspaceUi.workspace}>
-        <header className={workspaceUi.topbar}>
+        <header className={`${workspaceUi.topbar} ${styles.topbar}`}>
           <button
             className={workspaceUi.menuButton}
             type="button"

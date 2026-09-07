@@ -180,7 +180,7 @@ export default function ApproverCoursesPage() {
                 className="text-lg font-bold text-[#687486] hover:text-[#202a38]"
                 onClick={() => setActiveCourse(null)}
               >
-                ✕
+                Close
               </button>
             </div>
 

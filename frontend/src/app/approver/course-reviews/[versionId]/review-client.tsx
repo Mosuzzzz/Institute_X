@@ -320,7 +320,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
                                     opt.isCorrect ? 'font-semibold text-[#07545b]' : 'text-[#687486]'
                                   }`}
                                 >
-                                  {opt.isCorrect ? '✓ ' : '• '} {opt.optionText} {opt.isCorrect ? '(Correct)' : ''}
+                                  {opt.isCorrect ? '' : '• '} {opt.optionText} {opt.isCorrect ? '(Correct)' : ''}
                                 </li>
                               ))}
                             </ul>

@@ -1,0 +1,38 @@
+.page {
+  display: grid;
+  min-height: 100svh;
+  align-items: center;
+  padding: clamp(24px, 5vw, 64px);
+  background: #f5f7fb;
+  color: #18314c;
+}
+.frame { width: min(100%, 1120px); margin-inline: auto; }
+.panel { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(28px, 6vw, 80px); margin-block: 40px; padding: clamp(24px, 5vw, 64px); border: 1px solid #dce3ed; border-radius: 24px; background: white; box-shadow: 0 16px 60px rgb(25 48 80 / 4%); }
+.art { position: relative; display: grid; min-width: 0; min-height: 300px; place-items: center; overflow: hidden; border-radius: 18px; background: radial-gradient(circle at center, #edf4fb, #f8fafc 70%); }
+.orbit { position: absolute; width: 78%; aspect-ratio: 1; border: 1px solid #c6d8e9; border-radius: 50%; }
+.orbit::after { content: ''; position: absolute; inset: 24px; border: 1px dashed #c6d8e9; border-radius: 50%; }
+.code { z-index: 1; font-family: 'Kanit', sans-serif; font-size: clamp(90px, 11vw, 152px); font-weight: 600; line-height: 1; letter-spacing: -.065em; color: #073d78; }
+.dot { position: absolute; top: 21%; right: 15%; width: 13px; height: 13px; border: 3px solid white; border-radius: 50%; background: #54a99b; box-shadow: 0 0 0 1px #c6d8e9; }
+.eyebrow { margin: 0 0 14px; color: #437989; font-size: 12px; font-weight: 500; }
+.content { min-width: 0; }
+.content h1 { margin: 0; font-size: clamp(28px, 3.3vw, 42px); font-weight: 500; line-height: 1.4; text-wrap: balance; }
+.description { margin: 18px 0 0; color: #58677c; font-size: 16px; line-height: 1.8; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 30px; }
+.primary, .secondary { display: inline-flex; min-height: 46px; justify-content: center; align-items: center; gap: 12px; padding: 10px 20px; border: 1px solid #073d78; border-radius: 10px; font: inherit; font-size: 14px; text-decoration: none; cursor: pointer; }
+.primary { background: #073d78; color: white; }
+.primary:hover { background: #052e5b; }
+.secondary { border-color: #dce3ed; background: white; color: #334b64; }
+.secondary:hover { background: #f5f7fb; }
+.primary:focus-visible, .secondary:focus-visible { outline: 3px solid #177dd1; outline-offset: 4px; }
+.footer { color: #58677c; font-size: 12px; text-align: center; }
+@media (max-width: 760px) {
+  .panel { grid-template-columns: 1fr; margin-block: 28px; gap: 28px; }
+  .art { min-height: 210px; }
+  .orbit { width: 210px; }
+  .content { text-align: center; }
+  .actions { justify-content: center; }
+}
+@media (max-width: 400px) {
+  .page { padding: 16px; }
+  .actions { flex-direction: column; align-items: stretch; }
+}

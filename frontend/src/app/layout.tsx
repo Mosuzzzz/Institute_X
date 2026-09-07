@@ -7,7 +7,6 @@ import "@fontsource/kanit/600.css";
 import "@fontsource/kanit/700.css";
 import "@fontsource/kanit/800.css";
 import "./globals.css";
-import AppFooter from "./app-footer";
 
 export const metadata: Metadata = {
   title: "Institute X Authentication Service",
@@ -25,7 +24,6 @@ export default function RootLayout({
     <html lang="th">
       <body className="bg-canvas font-sans text-ink antialiased">
         {children}
-        <AppFooter />
       </body>
     </html>
   );

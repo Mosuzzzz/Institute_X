@@ -881,8 +881,8 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 ["details", "Course details", data.checks.details && data.checks.categories && data.checks.eligibility],
                 ["cover", "Course cover", Boolean(version.coverAsset)],
               ].map(([target, label, ready]) => (
-                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(target)}>
-                  <span className={`size-5 rounded-full border ${ready ? "border-[#6d28d9] bg-[#6d28d9] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
+                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(target)}>
+                  <span className={`size-5 rounded-full border ${ready ? "border-[#063777] bg-[#063777] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
                   {String(label)}
                 </a>
               ))}
@@ -896,8 +896,8 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 ["preTest", "Pre-test", data.checks.preTest],
                 ["preTest", "Post-test", data.checks.postTest],
               ].map(([target, label, ready]) => (
-                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(label)}>
-                  <span className={`size-5 rounded-full border ${ready ? "border-[#6d28d9] bg-[#6d28d9] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
+                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(label)}>
+                  <span className={`size-5 rounded-full border ${ready ? "border-[#063777] bg-[#063777] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
                   {String(label)}
                 </a>
               ))}
@@ -905,13 +905,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-[#292b3a]">Publish your course</h2>
-            <a className="group mt-3 flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white hover:text-[#292b3a]" href="#submission-checklist">
-              <span className={`size-5 rounded-full border ${data.readiness === 100 ? "border-[#6d28d9] bg-[#6d28d9] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
+            <a className="group mt-3 flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white hover:text-[#292b3a]" href="#submission-checklist">
+              <span className={`size-5 rounded-full border ${data.readiness === 100 ? "border-[#063777] bg-[#063777] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
               Submission checklist
             </a>
             {isDraft ? (
               <button
-                className="mt-6 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-sm bg-[#6d28d9] px-5 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#b7afc9]"
+                className="mt-6 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-5 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]"
                 disabled={busy || data.readiness < 100}
                 onClick={() => void submitDraft()}
                 type="button"
@@ -1104,14 +1104,6 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                   }
                   alt={`${version.title} cover`}
                   className="h-full w-full object-cover"
-                  fallback={
-                    <div className="grid h-full place-content-center text-center text-white">
-                      <span className="text-4xl font-bold">IX</span>
-                      <small className="mt-2 text-[#cbd3dc]">
-                        No cover yet
-                      </small>
-                    </div>
-                  }
                 />
               </div>
               {isDraft && !version.coverAsset ? (
@@ -1301,17 +1293,17 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                   onSubmit={(event) => void createSection(event)}
                 >
                   <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                    New section title
+                    Section title
                     <input className={fieldClass} name="title" placeholder={`Section ${nextSectionPosition}`} required />
                   </label>
-                  <button className={primaryButton} disabled={busy} type="submit">Add section</button>
+                  <button className={primaryButton} disabled={busy} type="submit">+ Section</button>
                 </form>
                 <div className="grid gap-5 xl:grid-cols-2">
                 <form
                   className="grid content-start gap-4 border-t-4 border-[#073d78] bg-[#f8fafc] p-5"
                   onSubmit={(event) => void addText(event)}
                 >
-                  <h3 className="text-lg text-[#202a38]">Add text lesson</h3>
+                  <h3 className="text-lg text-[#202a38]">Add lecture</h3>
                   <select className={fieldClass} name="sectionId" required={version.sections.length > 0}>
                     <option value="">{version.sections.length ? "Choose section" : "General (no section)"}</option>
                     {version.sections.map((section) => <option key={section.id} value={section.id}>{section.position}. {section.title}</option>)}
@@ -1319,13 +1311,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                   <input
                     className={fieldClass}
                     name="title"
-                    placeholder="Lesson title"
+                    placeholder="Lecture title"
                     required
                   />
                   <textarea
                     className={`${fieldClass} min-h-32 resize-y`}
                     name="textBody"
-                    placeholder="Lesson content"
+                    placeholder="Lecture content"
                     required
                   />
                   <button
@@ -1333,7 +1325,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     disabled={busy}
                     type="submit"
                   >
-                    Add text lesson
+                    + Lecture
                   </button>
                 </form>
                 <form
@@ -1341,7 +1333,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                   onSubmit={(event) => void addMedia(event)}
                 >
                   <h3 className="text-lg text-[#202a38]">
-                    Upload media lesson
+                    Add content
                   </h3>
                   <select className={fieldClass} name="sectionId" required={version.sections.length > 0}>
                     <option value="">{version.sections.length ? "Choose section" : "General (no section)"}</option>
@@ -1360,7 +1352,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                   <input
                     className={fieldClass}
                     name="title"
-                    placeholder="Lesson title"
+                    placeholder="Content title"
                     required
                   />
                   <input
@@ -1374,7 +1366,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     disabled={busy}
                     type="submit"
                   >
-                    Upload media
+                    + Content
                   </button>
                 </form>
                 </div>
@@ -1457,7 +1449,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             </div>
           </section>
           <section className={panelClass} id="submission-checklist">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#6d28d9] uppercase">
+            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">
               Final review
             </p>
             <h2 className="mt-2 text-2xl text-[#202a38]">
@@ -1472,9 +1464,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                   className={`flex items-center gap-3 border p-4 text-sm ${ready ? "border-[#d8d0ef] bg-[#faf8ff] text-[#292b3a]" : "border-[#ead8d5] bg-[#fff8f7] text-[#7a342d]"}`}
                   key={key}
                 >
-                  <span className={`grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold ${ready ? "bg-[#6d28d9] text-white" : "border border-[#c58d86]"}`}>
-                    {ready ? "✓" : "!"}
-                  </span>
+
                   <a
                     className="font-medium text-inherit no-underline hover:underline"
                     href={`#${checklistTargets[key as keyof TeacherCourseDetailDto["checks"]]}`}
@@ -1490,7 +1480,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             {isDraft ? (
               <div className="mt-7 flex flex-wrap items-center gap-4">
                 <button
-                  className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-sm bg-[#6d28d9] px-7 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#b7afc9]"
+                  className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-7 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]"
                   disabled={busy || data.readiness < 100}
                   onClick={() => void submitDraft()}
                   type="button"

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   clearSsoSession,
+  getRoleHomePath,
   resolveApplicationRole,
   SSO_PROFILE_KEY,
   SSO_STATE_KEY,
@@ -99,15 +100,9 @@ export default function SsoCallbackPage() {
         sessionStorage.setItem(SSO_TOKEN_EXPIRY_KEY, String(expiresAt(fragment.get('expires_in'))));
         sessionStorage.setItem(SSO_PROFILE_KEY, JSON.stringify(profile));
         const applicationRole = resolveApplicationRole(profile);
-        router.replace(
-          applicationRole === 'TEACHER'
-            ? '/teacher/courses'
-            : applicationRole === 'APPROVER'
-              ? '/approver'
-              : applicationRole === 'OWNER'
-                ? '/owner'
-                : '/student',
-        );
+        const homePath = getRoleHomePath(applicationRole);
+        if (!homePath) throw new Error('SSO profile has no supported application role');
+        router.replace(homePath);
       } catch {
         clearSsoSession();
         setError('We could not verify your SSO account. Please try again.');

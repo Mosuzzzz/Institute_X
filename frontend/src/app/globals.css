@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f7f8fa;
+  --canvas: #f5f7fb;
   --surface: #ffffff;
   --text: #20242b;
-  --text-muted: #69717d;
-  --border: #cfd4da;
+  --text-muted: #58677c;
+  --border: #dce3ed;
   --border-strong: #aeb5bd;
   --action: #075ca8;
   --action-hover: #064b89;
   --action-active: #043d70;
   --focus: #177dd1;
-  --panel-radius: 8px;
-  --control-radius: 6px;
+  --panel-radius: 16px;
+  --control-radius: 10px;
 }
 
 @theme inline {
@@ -44,6 +44,29 @@
   body {
     @apply m-0 bg-canvas font-sans text-ink;
     text-rendering: optimizeLegibility;
+    line-height: 1.6;
+  }
+
+  ::selection {
+    background: #dbeafe;
+    color: #102e55;
+  }
+
+  :where(a, button, input, select, textarea, summary):focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 4px;
+  }
+
+  :where(input, textarea, select) {
+    accent-color: var(--action);
+  }
+
+  :where(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
+  :where(button, a, input, textarea, select) {
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1,
@@ -58,5 +81,14 @@
   select,
   textarea {
     font: inherit;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

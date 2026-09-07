@@ -19,7 +19,11 @@ export default function CourseCoverImage({
     assetId ? `course-covers/${assetId}/view-url` : null,
   );
 
-  if (!data?.url) return <>{fallback}</>;
+  if (!data?.url) {
+    if (fallback) return <>{fallback}</>;
+    // Keep the course editor visually complete before a teacher uploads a cover.
+    return <img alt={alt} className={className} src="/no_cover.png" />;
+  }
 
   // Signed object-storage URLs can come from institute-managed S3 or local MinIO.
   // eslint-disable-next-line @next/next/no-img-element

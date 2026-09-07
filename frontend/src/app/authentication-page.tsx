@@ -1,11 +1,26 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppLanguage } from '../lib/language';
-import { SSO_STATE_KEY } from '../lib/sso-session';
+import { getSessionHomePath, SSO_STATE_KEY } from '../lib/sso-session';
+import { commonCopy } from '../lib/app-copy';
 import LanguageSelector from './language-selector';
-import { authUi } from './ui-styles';
+import { authUi, commonUi } from './ui-styles';
+
+function subscribeToSession(listener: () => void) {
+  window.addEventListener('storage', listener);
+  window.addEventListener('pageshow', listener);
+  window.addEventListener('focus', listener);
+  return () => {
+    window.removeEventListener('storage', listener);
+    window.removeEventListener('pageshow', listener);
+    window.removeEventListener('focus', listener);
+  };
+}
+
+const pendingSession = () => undefined;
 
 const copy = {
   th: {
@@ -39,8 +54,14 @@ interface AuthenticationPageProps {
 }
 
 export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPageProps) {
+  const router = useRouter();
   const [language, setLanguage] = useAppLanguage();
   const text = copy[language];
+  const homePath = useSyncExternalStore(subscribeToSession, getSessionHomePath, pendingSession);
+
+  useEffect(() => {
+    if (homePath) router.replace(homePath);
+  }, [homePath, router]);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -56,6 +77,18 @@ export default function AuthenticationPage({ ssoLoginUrl }: AuthenticationPagePr
     loginUrl.searchParams.set('state', state);
     window.location.assign(loginUrl.toString());
   };
+
+  // Hide the sign-in form during hydration and while routing an active session.
+  if (homePath !== null) {
+    return (
+      <main className={commonUi.callbackShell}>
+        <section className={commonUi.callbackPanel} role="status" aria-live="polite">
+          <span className={commonUi.spinner} aria-hidden="true" />
+          <h1>{commonCopy[language].checking}</h1>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className={authUi.shell}>

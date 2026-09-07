@@ -77,15 +77,15 @@ export default function CreateCourseClient() {
           <div>
             <h2 className="text-sm font-semibold text-[#292b3a]">Plan your course</h2>
             <div className="mt-3 grid">
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-[#6d28d9] bg-white px-4 py-2.5 text-sm text-[#292b3a] no-underline" href="#course-information">
+              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-[#063777] bg-white px-4 py-2.5 text-sm text-[#292b3a] no-underline" href="#course-information">
                 <span className="size-5 rounded-full border border-[#77798a]" />
                 Course information
               </a>
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white" href="#discovery">
+              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white" href="#discovery">
                 <span className="size-5 rounded-full border border-[#77798a]" />
                 Discovery
               </a>
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#6d28d9] hover:bg-white" href="#eligibility">
+              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white" href="#eligibility">
                 <span className="size-5 rounded-full border border-[#77798a]" />
                 Student eligibility
               </a>
@@ -99,10 +99,10 @@ export default function CreateCourseClient() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-[#292b3a]">Continue editing</h2>
-            <button className="mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-sm bg-[#6d28d9] px-5 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#b7afc9]" type="submit" disabled={saving}>
+            <button className="mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-5 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]" type="submit" disabled={saving}>
               {saving ? 'Creating…' : 'Create Draft & Continue'}
             </button>
-            <Link className="mt-3 flex min-h-10 items-center justify-center text-sm font-medium text-[#5b21b6] no-underline hover:underline" href="/teacher/courses">
+            <Link className="mt-3 flex min-h-10 items-center justify-center text-sm font-medium text-[#052b5b] no-underline hover:underline" href="/teacher/courses">
               Cancel
             </Link>
           </div>
@@ -110,7 +110,7 @@ export default function CreateCourseClient() {
 
         <div className="min-w-0 overflow-hidden bg-white shadow-[0_8px_30px_rgba(24,24,35,0.09)]">
           <section className="scroll-mt-28 border-b border-[#e2e4eb] p-6 sm:p-10" id="course-information">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#6d28d9] uppercase">Course setup</p>
+            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">Course setup</p>
             <h1 className="mt-2 text-3xl tracking-[-0.04em] text-[#202a38]">Course information</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[#687486]">
               Enter the title and description that students will see in the course catalog.
@@ -118,17 +118,17 @@ export default function CreateCourseClient() {
             <div className="mt-7 grid max-w-3xl gap-5">
               <label className="grid gap-2 text-sm font-semibold text-[#292b3a]">
                 Course title
-                <input className="min-h-12 border border-[#cfd2df] px-4 font-normal outline-none transition focus:border-[#6d28d9] focus:ring-2 focus:ring-[#6d28d9]/15" name="title" required maxLength={255} placeholder="e.g. Network Fundamentals" />
+                <input className="min-h-12 border border-[#cfd2df] px-4 font-normal outline-none transition focus:border-[#063777] focus:ring-2 focus:ring-[#063777]/15" name="title" required maxLength={255} placeholder="e.g. Network Fundamentals" />
               </label>
               <label className="grid gap-2 text-sm font-semibold text-[#292b3a]">
                 Description
-                <textarea className="min-h-36 resize-y border border-[#cfd2df] px-4 py-3 font-normal outline-none transition focus:border-[#6d28d9] focus:ring-2 focus:ring-[#6d28d9]/15" name="description" rows={5} maxLength={10000} placeholder="What will students learn in this course?" />
+                <textarea className="min-h-36 resize-y border border-[#cfd2df] px-4 py-3 font-normal outline-none transition focus:border-[#063777] focus:ring-2 focus:ring-[#063777]/15" name="description" rows={5} maxLength={10000} placeholder="What will students learn in this course?" />
               </label>
             </div>
           </section>
 
           <section className="scroll-mt-28 border-b border-[#e2e4eb] p-6 sm:p-10" id="discovery">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#6d28d9] uppercase">Catalog discovery</p>
+            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">Catalog discovery</p>
             <h2 className="mt-2 text-2xl text-[#202a38]">Categories</h2>
             <p className="mt-2 text-sm text-[#687486]">Choose at least one category so students can find the course.</p>
             <fieldset className="mt-6">
@@ -145,15 +145,15 @@ export default function CreateCourseClient() {
           </section>
 
           <section className="scroll-mt-28 p-6 sm:p-10" id="eligibility">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#6d28d9] uppercase">Audience access</p>
+            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">Audience access</p>
             <h2 className="mt-2 text-2xl text-[#202a38]">Student eligibility</h2>
             <p className="mt-2 text-sm text-[#687486]">Choose whether every active student or only selected majors can access this course.</p>
             <fieldset className="mt-6">
               <legend className="sr-only">Course access</legend>
               <div className="grid grid-cols-2 border border-[#d7dce5] max-[600px]:grid-cols-1">
                 {(['OPEN', 'LIMITED'] as const).map((mode) => (
-                  <label className={`grid min-h-24 cursor-pointer grid-cols-[20px_1fr] items-center gap-3 px-5 py-4 transition-colors ${eligibilityMode === mode ? 'bg-[#f1edff] text-[#5b21b6]' : 'bg-white hover:bg-[#f7f7f9]'}`} key={mode}>
-                    <input className="size-[17px] accent-[#6d28d9]" type="radio" name="eligibilityMode" value={mode} checked={eligibilityMode === mode} onChange={() => { setEligibilityMode(mode); setError(null); }} />
+                  <label className={`grid min-h-24 cursor-pointer grid-cols-[20px_1fr] items-center gap-3 px-5 py-4 transition-colors ${eligibilityMode === mode ? 'bg-[#edf3fa] text-[#052b5b]' : 'bg-white hover:bg-[#f7f7f9]'}`} key={mode}>
+                    <input className="size-[17px] accent-[#063777]" type="radio" name="eligibilityMode" value={mode} checked={eligibilityMode === mode} onChange={() => { setEligibilityMode(mode); setError(null); }} />
                     <span>
                       <strong className="block text-sm">{mode}</strong>
                       <small className="mt-1 block font-normal leading-5 text-[#667182]">{mode === 'OPEN' ? 'All active students can enter; no major selection required.' : 'Only students from selected majors can enter.'}</small>
@@ -179,7 +179,7 @@ export default function CreateCourseClient() {
             )}
             {error ? <p className="mt-6 border-l-4 border-[#b42318] bg-[#fff3f2] p-4 text-sm text-[#8f1d14]" role="alert">{error}</p> : null}
             <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-[#e2e4eb] pt-6">
-              <button className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-sm bg-[#6d28d9] px-7 text-sm font-semibold text-white transition hover:bg-[#5b21b6] disabled:cursor-not-allowed disabled:bg-[#b7afc9]" type="submit" disabled={saving}>
+              <button className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-7 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]" type="submit" disabled={saving}>
                 {saving ? 'Creating…' : 'Create Draft & Continue'}
               </button>
               <span className="text-sm text-[#687486]">You will add the cover, curriculum and assessments on the next page.</span>
