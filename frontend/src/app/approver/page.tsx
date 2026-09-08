@@ -6,6 +6,7 @@ import { useBackendQuery } from '../../lib/use-backend-query';
 import ApiState from '../api-state';
 import { formatWaiting } from './approver-api';
 import { staffUi } from '../ui-styles';
+import BootstrapIcon from '../bootstrap-icon';
 
 export default function ApproverOverviewPage() {
   const permissions = useBackendQuery<TeacherPermissionDto[]>('teacher-permissions/pending');
@@ -60,9 +61,7 @@ export default function ApproverOverviewPage() {
                 Queue 01
               </span>
               <div className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-600/20 group-hover:bg-teal-100">
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                </svg>
+                <BootstrapIcon name="people" className="text-xl" />
               </div>
             </div>
             <div className="my-5">
@@ -71,16 +70,14 @@ export default function ApproverOverviewPage() {
                 {permissions.data.length} <span className="text-lg font-normal text-slate-500">pending</span>
               </strong>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">
-                <svg className="size-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
+                <BootstrapIcon name="clock" className="text-sm text-slate-400" />
                 Oldest waiting: {formatWaiting(nextPermission?.requestedAt ?? null)}
               </p>
             </div>
           </div>
           <div className="flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-teal-700 group-hover:text-teal-800">
             <span>Open permission review queue</span>
-            <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+            <BootstrapIcon name="arrow-right" className="transition-transform group-hover:translate-x-1" />
           </div>
         </Link>
 
@@ -95,9 +92,7 @@ export default function ApproverOverviewPage() {
                 Queue 02
               </span>
               <div className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-600/20 group-hover:bg-teal-100">
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                </svg>
+                <BootstrapIcon name="book" className="text-xl" />
               </div>
             </div>
             <div className="my-5">
@@ -106,16 +101,14 @@ export default function ApproverOverviewPage() {
                 {versions.data.length} <span className="text-lg font-normal text-slate-500">pending</span>
               </strong>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500">
-                <svg className="size-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
+                <BootstrapIcon name="clock" className="text-sm text-slate-400" />
                 Oldest waiting: {formatWaiting(nextVersion?.submittedAt ?? null)}
               </p>
             </div>
           </div>
           <div className="flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-teal-700 group-hover:text-teal-800">
             <span>Open course submissions queue</span>
-            <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+            <BootstrapIcon name="arrow-right" className="transition-transform group-hover:translate-x-1" />
           </div>
         </Link>
       </section>
@@ -156,7 +149,7 @@ export default function ApproverOverviewPage() {
                   </span>
                   <div className="flex items-center gap-1 text-xs font-semibold text-teal-700 group-hover:translate-x-1 transition-transform">
                     <span>Review Decision</span>
-                    <span aria-hidden="true">→</span>
+                    <BootstrapIcon name="arrow-right" />
                   </div>
                 </div>
               </Link>
@@ -185,7 +178,7 @@ export default function ApproverOverviewPage() {
                   </span>
                   <div className="flex items-center gap-1 text-xs font-semibold text-teal-700 group-hover:translate-x-1 transition-transform">
                     <span>Inspect Course</span>
-                    <span aria-hidden="true">→</span>
+                    <BootstrapIcon name="arrow-right" />
                   </div>
                 </div>
               </Link>
@@ -194,9 +187,7 @@ export default function ApproverOverviewPage() {
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white p-12 text-center shadow-xs">
             <div className="grid size-14 place-items-center rounded-2xl bg-teal-50 text-teal-600 ring-1 ring-teal-600/20">
-              <svg className="size-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
+              <BootstrapIcon name="check-circle" className="text-3xl" />
             </div>
             <h3 className="mt-4 text-base font-bold text-slate-900">All review queues are cleared!</h3>
             <p className="mt-1 max-w-sm text-xs text-slate-500">

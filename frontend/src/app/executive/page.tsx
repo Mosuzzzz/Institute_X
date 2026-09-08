@@ -1,13 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import type { OwnerDashboardDto } from '../../lib/backend-api';
 import { useBackendQuery } from '../../lib/use-backend-query';
 import ApiState from '../api-state';
 import { staffUi } from '../ui-styles';
+import BootstrapIcon from '../bootstrap-icon';
 
 export default function OwnerOverviewPage() {
-  const { data, error, loading } = useBackendQuery<OwnerDashboardDto>('owner/dashboard');
+  const { data, error, loading } = useBackendQuery<OwnerDashboardDto>('executive/dashboard');
 
   if (!data) {
     return (
@@ -23,55 +23,35 @@ export default function OwnerOverviewPage() {
       value: data.overview.activeUsers,
       sublabel: `${data.overview.users.toLocaleString()} total registered`,
       accent: 'blue',
-      icon: (
-        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-        </svg>
-      ),
+      icon: <BootstrapIcon name="people" className="text-xl" />,
     },
     {
       label: 'Course Catalog',
       value: data.overview.courses,
       sublabel: 'All institutional courses',
       accent: 'indigo',
-      icon: (
-        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
-        </svg>
-      ),
+      icon: <BootstrapIcon name="book" className="text-xl" />,
     },
     {
       label: 'Enrollments',
       value: data.overview.enrollments,
       sublabel: 'Student registrations',
       accent: 'emerald',
-      icon: (
-        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-        </svg>
-      ),
+      icon: <BootstrapIcon name="check-circle" className="text-xl" />,
     },
     {
       label: 'Learning Accesses',
       value: data.overview.accesses,
       sublabel: 'Lesson entries recorded',
       accent: 'amber',
-      icon: (
-        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-        </svg>
-      ),
+      icon: <BootstrapIcon name="play-circle" className="text-xl" />,
     },
     {
       label: 'Assessment Attempts',
       value: data.overview.assessmentAttempts,
       sublabel: 'Pre & Post-tests taken',
       accent: 'teal',
-      icon: (
-        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75" />
-        </svg>
-      ),
+      icon: <BootstrapIcon name="clipboard-check" className="text-xl" />,
     },
   ] as const;
 
@@ -105,20 +85,6 @@ export default function OwnerOverviewPage() {
           <p className="mt-1 text-sm text-slate-500">
             Platform throughput, learning engagement, and assessment quality indicators.
           </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <Link
-            href="/owner/users"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50"
-          >
-            Users Directory →
-          </Link>
-          <Link
-            href="/owner/operations"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-slate-800"
-          >
-            Operations →
-          </Link>
         </div>
       </header>
 
@@ -242,14 +208,11 @@ export default function OwnerOverviewPage() {
       <section aria-label="Platform distributions" className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {/* Users by Role */}
         <article className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5">
             <div>
               <h2 className="text-sm font-bold text-slate-900">Account Distribution by Role</h2>
               <p className="text-xs text-slate-500">Total institutional profiles</p>
             </div>
-            <Link href="/owner/users" className="text-xs font-semibold text-blue-600 hover:underline">
-              Manage →
-            </Link>
           </div>
           <div className="grid gap-3.5">
             {data.usersByRole.map((item) => (
@@ -269,16 +232,13 @@ export default function OwnerOverviewPage() {
 
         {/* Course Versions by Status */}
         <article className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5">
             <div>
               <h2 className="text-sm font-bold text-slate-900">Publishing Pipeline Status</h2>
               <p className="text-xs text-slate-500">
                 {data.overview.pendingTeacherPermissions} teacher permissions pending
               </p>
             </div>
-            <Link href="/owner/courses" className="text-xs font-semibold text-amber-700 hover:underline">
-              Moderation →
-            </Link>
           </div>
           <div className="grid gap-3.5">
             {data.courseVersionsByStatus.map((item) => (

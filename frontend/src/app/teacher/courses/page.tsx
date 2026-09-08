@@ -9,29 +9,12 @@ import { toTeacherCourse } from '../teacher-api';
 import { useAppLanguage } from '../../../lib/language';
 import { staffUi } from '../../ui-styles';
 import styles from './courses.module.css';
+import BootstrapIcon from '../../bootstrap-icon';
 
 type SortOrder = 'newest' | 'oldest' | 'title';
 
 function CourseArtwork() {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <g transform="rotate(-17 40 30)">
-        <rect x="29" y="9" width="25" height="36" rx="1" />
-        <path d="M33 9v36M37 15h12M37 19h10M37 38h12" />
-      </g>
-      <g transform="rotate(12 66 64)">
-        <rect x="46" y="48" width="40" height="29" rx="1" />
-        <path d="M50 53h12M50 57h10M50 61h9M50 65h7" />
-        <rect x="65" y="53" width="16" height="19" />
-        <circle cx="75" cy="58" r="2" />
-        <path d="m66 69 5-7 4 4 5-3" />
-      </g>
-      <g transform="rotate(-24 25 78)">
-        <rect x="10" y="68" width="29" height="20" rx="2" />
-        <path d="m23 73 7 5-7 5zM15 69v18M34 69v18M11 74h4M11 82h4M34 74h4M34 82h4" />
-      </g>
-    </svg>
-  );
+  return <BootstrapIcon name="collection-play" className="text-[84px] leading-none" />;
 }
 
 export default function TeacherCoursesPage() {
@@ -104,7 +87,7 @@ export default function TeacherCoursesPage() {
         <section className={styles.notice}>
           <strong>Teaching permission is required</strong>
           <p>An Approver must approve your request before you can create a new course.</p>
-          <Link href="/teacher/permission">Open permission request →</Link>
+          <Link href="/teacher/permission">Open permission request <BootstrapIcon name="arrow-right" /></Link>
         </section>
       ) : null}
 

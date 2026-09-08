@@ -2,6 +2,7 @@
 
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import type { Language } from '../lib/language';
+import BootstrapIcon from './bootstrap-icon';
 
 export type { Language } from '../lib/language';
 
@@ -95,13 +96,7 @@ export default function LanguageSelector({
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="truncate whitespace-nowrap">{selectedLanguage.label}</span>
-        <svg
-          className={`h-[18px] w-[18px] fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.7] transition-transform duration-150 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`}
-          viewBox="0 0 20 20"
-          aria-hidden="true"
-        >
-          <path d="m5.75 7.5 4.25 4.25 4.25-4.25" />
-        </svg>
+        <BootstrapIcon name="chevron-down" className={`text-sm transition-transform duration-150 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen ? (
@@ -119,9 +114,7 @@ export default function LanguageSelector({
                 onKeyDown={moveBetweenOptions}
               >
                 <span className="block min-w-0 truncate whitespace-nowrap text-[0.925rem] font-normal">{option.label}</span>
-                <svg className="h-5 w-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:2]" viewBox="0 0 20 20" aria-hidden="true">
-                  {isSelected ? <path d="m4.5 10.25 3.5 3.5 7.5-7.5" /> : null}
-                </svg>
+                {isSelected ? <BootstrapIcon name="check-lg" className="text-lg" /> : <span />}
               </button>
             );
           })}

@@ -61,13 +61,13 @@ describe('Categories REST API', () => {
 
     await request(app.getHttpServer() as Server)
       .post('/api/categories')
-      .set('x-test-role', UserRole.OWNER)
+      .set('x-test-role', UserRole.EXECUTIVE)
       .send({ slug: 'technology', name: 'Technology' })
       .expect(201)
       .expect({ id: 'category-id', slug: 'technology' });
 
     expect(categories.create).toHaveBeenCalledWith(
-      expect.objectContaining({ role: UserRole.OWNER }),
+      expect.objectContaining({ role: UserRole.EXECUTIVE }),
       { slug: 'technology', name: 'Technology' },
     );
   });
@@ -75,7 +75,7 @@ describe('Categories REST API', () => {
   it('POST /api/categories rejects invalid slugs before the service', async () => {
     await request(app.getHttpServer() as Server)
       .post('/api/categories')
-      .set('x-test-role', UserRole.OWNER)
+      .set('x-test-role', UserRole.EXECUTIVE)
       .send({ slug: 'Not Valid', name: '' })
       .expect(400);
 

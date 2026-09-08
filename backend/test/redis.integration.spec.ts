@@ -3,7 +3,7 @@ import { AccountStatus, UserRole } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { createClient } from 'redis';
 import type { AuthenticatedSession } from '../src/auth/auth-session-cache';
-import { OidcAuthGuard } from '../src/auth/oidc-auth.guard';
+import { AuthGuard } from '../src/auth/auth.guard';
 import { RedisAuthSessionCache } from '../src/auth/redis-auth-session-cache';
 
 const describeRedis = process.env.RUN_REDIS_INTEGRATION === 'true' ? describe : describe.skip;
@@ -36,7 +36,7 @@ describeRedis('Redis authentication cache integration', () => {
         majorId: randomUUID(),
       }),
     };
-    const guard = new OidcAuthGuard(verifier as never, users as never, cache);
+    const guard = new AuthGuard({ get: jest.fn() } as never);
     type TestRequest = {
       headers: { authorization: string };
       user?: AuthenticatedSession;

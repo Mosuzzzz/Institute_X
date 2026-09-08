@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   clearSsoSession,
+  endSession,
   hasActiveSsoSession,
   readStoredProfile,
   resolveApplicationRole,
@@ -20,6 +21,7 @@ import { commonCopy, shellCopy } from "../../lib/app-copy";
 import { useAppLanguage } from "../../lib/language";
 import LanguageSelector from "../language-selector";
 import ProfileMenu from "../profile-menu";
+import BootstrapIcon from "../bootstrap-icon";
 import { commonUi, workspaceUi } from "../ui-styles";
 import styles from "../workspace-sidebar.module.css";
 
@@ -36,35 +38,8 @@ const navigation = [
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
-  if (icon === "courses")
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
-        <path d="M4 5.5v16M8 7h8M8 11h7" />
-      </svg>
-    );
-  if (icon === "users")
-    return (
-      <svg viewBox="0 0 24 24">
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 19c.4-4 2.2-6 5.5-6s5.1 2 5.5 6M16 6a3 3 0 0 1 0 6M17 14c2.2.5 3.4 2.1 3.5 5" />
-      </svg>
-    );
-  if (icon === "review")
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M6 3h9l4 4v14H6z" />
-        <path d="M14 3v5h5M9 13l2 2 4-4" />
-      </svg>
-    );
-  return (
-    <svg viewBox="0 0 24 24">
-      <rect x="4" y="4" width="6" height="6" />
-      <rect x="14" y="4" width="6" height="6" />
-      <rect x="4" y="14" width="6" height="6" />
-      <rect x="14" y="14" width="6" height="6" />
-    </svg>
-  );
+  const names: Record<string, string> = { grid: "grid", courses: "book", users: "people", review: "file-earmark-check" };
+  return <BootstrapIcon name={names[icon] ?? "circle"} />;
 }
 
 export default function ApproverShell({ children }: { children: ReactNode }) {
@@ -98,7 +73,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
     if (!isAuthenticated) router.replace("/");
     else if (applicationRole === "STUDENT") router.replace("/student");
     else if (applicationRole === "TEACHER") router.replace("/teacher");
-    else if (applicationRole === "OWNER") router.replace("/owner");
+    else if (applicationRole === "EXECUTIVE") router.replace("/executive");
     else if (applicationRole === null) {
       clearSsoSession();
       router.replace("/");
@@ -117,8 +92,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
   }
 
   const signOut = () => {
-    clearSsoSession();
-    router.replace("/");
+    void endSession().finally(() => router.replace("/"));
   };
   const currentNavigation = navigation.find((item) =>
     item.href === "/approver"
@@ -138,7 +112,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
               <strong>{shell.approverWorkspace}</strong>
             </span>
           </Link>
-          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
+          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
         </header>
         <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Approver navigation">
           <p className={workspaceUi.navLabel}>Workspace · 02</p>

@@ -8,6 +8,8 @@ describe('database schema contract', () => {
   it.each([
     'Major',
     'User',
+    'UserRoleAssignment',
+    'AuthSession',
     'TeacherPermissionRequest',
     'Course',
     'Category',
@@ -50,15 +52,20 @@ describe('database schema contract', () => {
     expect(migration).toContain('ON DELETE CASCADE');
   });
 
-  it('defines exactly the four mutually exclusive user roles from the SRS', () => {
+  it('defines four roles and stores them as multi-role assignments', () => {
     const userRole = Prisma.dmmf.datamodel.enums.find((item) => item.name === 'UserRole');
 
     expect(userRole?.values.map((item) => item.name)).toEqual([
       'STUDENT',
       'TEACHER',
       'APPROVER',
-      'OWNER',
+      'EXECUTIVE',
     ]);
+    const user = Prisma.dmmf.datamodel.models.find((model) => model.name === 'User');
+    expect(user?.fields.map((field) => field.name)).toEqual(
+      expect.arrayContaining(['passwordHash', 'roles', 'authSessions']),
+    );
+    expect(user?.fields.map((field) => field.name)).not.toContain('role');
   });
 
   it('stores major-only eligibility without education or year fields', () => {

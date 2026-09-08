@@ -3,6 +3,7 @@ import { AccountStatus, UserRole } from '@prisma/client';
 export interface AuthenticatedSession {
   id: string;
   role: UserRole;
+  roles?: UserRole[];
   accountStatus: AccountStatus;
   majorId: string | null;
 }

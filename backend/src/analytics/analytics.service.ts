@@ -61,7 +61,7 @@ type OwnerUser = Prisma.UserGetPayload<{
     username: true;
     universityEmail: true;
     fullName: true;
-    role: true;
+    roles: { select: { role: true } };
     accountStatus: true;
     createdAt: true;
     updatedAt: true;
@@ -148,7 +148,7 @@ export class AnalyticsService {
   }
 
   async getOwnerDashboard(actor: AnalyticsActor): Promise<OwnerDashboard> {
-    this.requireRole(actor, UserRole.OWNER);
+    this.requireRole(actor, UserRole.EXECUTIVE);
     const [
       users,
       activeUsers,
@@ -165,7 +165,7 @@ export class AnalyticsService {
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({ where: { accountStatus: AccountStatus.ACTIVE } }),
-      this.prisma.user.groupBy({
+      this.prisma.userRoleAssignment.groupBy({
         by: ['role'],
         _count: { _all: true },
       }),
@@ -265,14 +265,14 @@ export class AnalyticsService {
   }
 
   async listOwnerUsers(actor: AnalyticsActor): Promise<OwnerUser[]> {
-    this.requireRole(actor, UserRole.OWNER);
+    this.requireRole(actor, UserRole.EXECUTIVE);
     return this.prisma.user.findMany({
       select: {
         id: true,
         username: true,
         universityEmail: true,
         fullName: true,
-        role: true,
+        roles: { select: { role: true }, orderBy: { assignedAt: 'asc' } },
         accountStatus: true,
         createdAt: true,
         updatedAt: true,
@@ -283,7 +283,7 @@ export class AnalyticsService {
   }
 
   async listOwnerActivity(actor: AnalyticsActor): Promise<OwnerActivity[]> {
-    this.requireRole(actor, UserRole.OWNER);
+    this.requireRole(actor, UserRole.EXECUTIVE);
     const [accesses, permissions, versions] = await Promise.all([
       this.prisma.courseAccessEvent.findMany({
         take: 20,
@@ -302,10 +302,30 @@ export class AnalyticsService {
       }),
     ]);
     return [
-      ...accesses.map((event) => ({ id: event.id, type: 'COURSE_ACCESS' as const, occurredAt: event.accessedAt, actor: event.student.fullName, detail: `Accessed course ${event.course.id}` })),
-      ...permissions.map((request) => ({ id: request.id, type: 'TEACHER_PERMISSION' as const, occurredAt: request.requestedAt, actor: request.teacher.fullName, detail: `Permission ${request.status.toLowerCase()}` })),
-      ...versions.map((version) => ({ id: version.id, type: 'COURSE_VERSION' as const, occurredAt: version.updatedAt, actor: 'Course authoring', detail: `${version.title} · ${version.status}` })),
-    ].sort((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime()).slice(0, 30);
+      ...accesses.map((event) => ({
+        id: event.id,
+        type: 'COURSE_ACCESS' as const,
+        occurredAt: event.accessedAt,
+        actor: event.student.fullName,
+        detail: `Accessed course ${event.course.id}`,
+      })),
+      ...permissions.map((request) => ({
+        id: request.id,
+        type: 'TEACHER_PERMISSION' as const,
+        occurredAt: request.requestedAt,
+        actor: request.teacher.fullName,
+        detail: `Permission ${request.status.toLowerCase()}`,
+      })),
+      ...versions.map((version) => ({
+        id: version.id,
+        type: 'COURSE_VERSION' as const,
+        occurredAt: version.updatedAt,
+        actor: 'Course authoring',
+        detail: `${version.title} · ${version.status}`,
+      })),
+    ]
+      .sort((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime())
+      .slice(0, 30);
   }
 
   private outcomeCount(

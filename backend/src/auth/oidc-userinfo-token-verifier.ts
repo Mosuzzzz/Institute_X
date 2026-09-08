@@ -47,8 +47,7 @@ export class OidcUserInfoTokenVerifier implements OidcTokenVerifier {
       .toLowerCase()
       .replace(/^@/, '');
     const role = claims[this.config.getOrThrow<string>('OIDC_ROLE_CLAIM')];
-    const accountStatus =
-      claims[this.config.getOrThrow<string>('OIDC_ACCOUNT_STATUS_CLAIM')];
+    const accountStatus = claims[this.config.getOrThrow<string>('OIDC_ACCOUNT_STATUS_CLAIM')];
     const majorCode = claims[this.config.getOrThrow<string>('OIDC_MAJOR_CODE_CLAIM')];
 
     if (
@@ -68,9 +67,7 @@ export class OidcUserInfoTokenVerifier implements OidcTokenVerifier {
       fullName,
       role: role as UserRole,
       accountStatus: accountStatus as AccountStatus,
-      ...(typeof majorCode === 'string' && majorCode.trim()
-        ? { majorCode: majorCode.trim() }
-        : {}),
+      ...(typeof majorCode === 'string' && majorCode.trim() ? { majorCode: majorCode.trim() } : {}),
     };
   }
 

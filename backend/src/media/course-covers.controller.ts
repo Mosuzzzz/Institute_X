@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { MediaService } from './media.service';
@@ -19,12 +19,12 @@ import { MediaService } from './media.service';
 @ApiTags('course-covers')
 @ApiBearerAuth()
 @Controller('course-covers')
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class CourseCoversController {
   constructor(private readonly media: MediaService) {}
 
   @Get(':assetId/view-url')
-  @Roles(UserRole.TEACHER, UserRole.STUDENT, UserRole.APPROVER, UserRole.OWNER)
+  @Roles(UserRole.TEACHER, UserRole.STUDENT, UserRole.APPROVER)
   @ApiOkResponse({ description: 'Short-lived private Course cover URL' })
   viewUrl(
     @CurrentUser() user: CurrentUserValue,

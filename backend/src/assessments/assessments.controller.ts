@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { SubmitAttemptDto } from './dto/submit-attempt.dto';
@@ -21,7 +21,7 @@ import { PreTestService } from './pre-test.service';
 @ApiTags('student-assessments')
 @ApiBearerAuth()
 @Controller()
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class AssessmentsController {
   constructor(
     private readonly preTests: PreTestService,

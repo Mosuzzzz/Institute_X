@@ -9,10 +9,16 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { InitializeQuestionImageUploadDto } from './dto/initialize-question-image-upload.dto';
@@ -21,7 +27,7 @@ import { MediaService } from './media.service';
 @ApiTags('question-images')
 @ApiBearerAuth()
 @Controller()
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class QuestionImagesController {
   constructor(private readonly media: MediaService) {}
 

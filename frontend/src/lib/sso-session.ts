@@ -1,68 +1,46 @@
-export const SSO_STATE_KEY = 'institute-x:sso-state';
+export const SSO_STATE_KEY = 'institute-x:unused-sso-state';
 export const SSO_TOKEN_KEY = 'institute-x:access-token';
 export const SSO_TOKEN_EXPIRY_KEY = 'institute-x:token-expiry';
-export const SSO_PROFILE_KEY = 'institute-x:sso-profile';
+export const SSO_PROFILE_KEY = 'institute-x:user-profile';
+export const ACTIVE_ROLE_KEY = 'institute-x:active-role';
+
+export type ApplicationRole = 'STUDENT' | 'TEACHER' | 'APPROVER' | 'EXECUTIVE' | null;
 
 export type SsoProfile = {
-  user_id?: string;
+  id?: string;
   username?: string;
   name?: string;
   email?: string;
-  affiliation?: string;
-  role?: string;
-  major_code?: string | null;
-  year_level?: number | null;
-  is_active?: boolean;
-  is_current_student?: boolean;
-  is_educational_personnel?: boolean;
-  personnel_type?: string | null;
+  roles?: Exclude<ApplicationRole, null>[];
+  accountStatus?: 'ACTIVE' | 'INACTIVE';
 };
-
-export type ApplicationRole = 'STUDENT' | 'TEACHER' | 'APPROVER' | 'OWNER' | null;
 
 export function getRoleHomePath(role: ApplicationRole): string | null {
   switch (role) {
     case 'STUDENT': return '/student';
     case 'TEACHER': return '/teacher/courses';
     case 'APPROVER': return '/approver';
-    case 'OWNER': return '/owner';
+    case 'EXECUTIVE': return '/executive';
     default: return null;
   }
 }
 
-export function getSessionHomePath(): string | null {
-  try {
-    if (!hasActiveSsoSession()) return null;
-    return getRoleHomePath(resolveApplicationRole(readStoredProfile()));
-  } catch {
-    // Unavailable browser storage or an invalid profile must not trap sign-in.
-    return null;
-  }
+export function resolveApplicationRole(profile: SsoProfile | null): ApplicationRole {
+  if (!profile?.roles?.length) return null;
+  const selected = sessionStorage.getItem(ACTIVE_ROLE_KEY) as ApplicationRole;
+  return selected && profile.roles.includes(selected) ? selected : profile.roles[0];
 }
 
-export function resolveApplicationRole(profile: SsoProfile | null): ApplicationRole {
-  if (!profile) return null;
+export function setActiveRole(role: Exclude<ApplicationRole, null>): string | null {
+  const profile = readStoredProfile();
+  if (!profile?.roles?.includes(role)) return null;
+  sessionStorage.setItem(ACTIVE_ROLE_KEY, role);
+  return getRoleHomePath(role);
+}
 
-  const explicitRole = profile.role?.trim().toUpperCase();
-  if (explicitRole === 'TEACHER') return 'TEACHER';
-  if (explicitRole === 'STUDENT') return 'STUDENT';
-  if (explicitRole === 'APPROVER') return 'APPROVER';
-  if (explicitRole === 'OWNER') return 'OWNER';
-
-  const affiliation = profile.affiliation?.trim().toLowerCase();
-  const personnelType = profile.personnel_type?.trim().toLowerCase();
-  if (
-    affiliation === 'lecturer' ||
-    affiliation === 'teacher' ||
-    personnelType === 'lecturer' ||
-    personnelType === 'teacher'
-  ) {
-    return 'TEACHER';
-  }
-  if (profile.is_current_student === true || affiliation === 'student') return 'STUDENT';
-  if (personnelType === 'approver') return 'APPROVER';
-  if (personnelType === 'owner') return 'OWNER';
-  return null;
+export function getSessionHomePath(): string | null {
+  if (!hasActiveSsoSession()) return null;
+  return getRoleHomePath(resolveApplicationRole(readStoredProfile()));
 }
 
 export function clearSsoSession() {
@@ -70,28 +48,37 @@ export function clearSsoSession() {
   sessionStorage.removeItem(SSO_TOKEN_KEY);
   sessionStorage.removeItem(SSO_TOKEN_EXPIRY_KEY);
   sessionStorage.removeItem(SSO_PROFILE_KEY);
+  sessionStorage.removeItem(ACTIVE_ROLE_KEY);
+}
+
+export async function endSession(): Promise<void> {
+  const token = sessionStorage.getItem(SSO_TOKEN_KEY);
+  if (token) {
+    await fetch('/api/auth/logout', { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => undefined);
+  }
+  clearSsoSession();
 }
 
 export function readStoredProfile(): SsoProfile | null {
-  const storedProfile = sessionStorage.getItem(SSO_PROFILE_KEY);
-  if (!storedProfile) return null;
+  const value = sessionStorage.getItem(SSO_PROFILE_KEY);
+  if (!value) return null;
+  try { return JSON.parse(value) as SsoProfile; }
+  catch { clearSsoSession(); return null; }
+}
 
-  try {
-    return JSON.parse(storedProfile) as SsoProfile;
-  } catch {
-    sessionStorage.removeItem(SSO_PROFILE_KEY);
-    return null;
-  }
+export function storeSession(token: string, expiresAt: string, profile: SsoProfile) {
+  sessionStorage.setItem(SSO_TOKEN_KEY, token);
+  sessionStorage.setItem(SSO_TOKEN_EXPIRY_KEY, String(new Date(expiresAt).getTime()));
+  sessionStorage.setItem(SSO_PROFILE_KEY, JSON.stringify(profile));
+  if (profile.roles?.length) sessionStorage.setItem(ACTIVE_ROLE_KEY, profile.roles[0]);
 }
 
 export function hasActiveSsoSession() {
   const token = sessionStorage.getItem(SSO_TOKEN_KEY);
   const expiry = Number(sessionStorage.getItem(SSO_TOKEN_EXPIRY_KEY));
-
   if (!token || !Number.isFinite(expiry) || expiry <= Date.now()) {
     clearSsoSession();
     return false;
   }
-
   return true;
 }

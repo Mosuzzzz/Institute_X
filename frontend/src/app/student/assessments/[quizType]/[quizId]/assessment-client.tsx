@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import BootstrapIcon from '../../../../bootstrap-icon';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { backendApi, type CompletedPreTestDto, type PostTestResultDto, type QuizSubmissionDto, type StartedQuizDto } from '../../../../../lib/backend-api';
@@ -156,7 +157,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
     return (
       <main className={pageClasses}>
         <Link className="text-sm font-bold text-[#073d78]" href="/student/learning">
-          ← My learning
+          <BootstrapIcon name="arrow-left" /> My learning
         </Link>
         <section className="mt-10 border border-[#d8dde5] bg-white p-6" aria-label="Post-Test attempt history">
           <p className="text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase">Post-Test</p>
@@ -226,7 +227,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
                 </table>
               </div>
             ) : null}
-            <Link className="mt-5 font-bold text-[#073d78]" href={completedPreTest ? `/student/courses/${encodeURIComponent(completedPreTest.courseId)}` : '/student/learning'}>{completedPreTest ? 'Continue to Course' : 'Return to My learning'} →</Link>
+            <Link className="mt-5 font-bold text-[#073d78]" href={completedPreTest ? `/student/courses/${encodeURIComponent(completedPreTest.courseId)}` : '/student/learning'}>{completedPreTest ? 'Continue to Course' : 'Return to My learning'} <BootstrapIcon name="arrow-right" /></Link>
           </section>
         ) : <ApiState loading={loading} error={error} />}
       </main>
@@ -236,7 +237,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   return (
     <main className={pageClasses}>
       <header className="mb-[42px] grid gap-2.5">
-        <Link className="mb-6 w-fit text-[0.78rem] font-bold text-[#073d78] no-underline" href={returnTo}>← {returnTo === '/student/learning' ? 'My learning' : 'Back to course'}</Link>
+        <Link className="mb-6 w-fit text-[0.78rem] font-bold text-[#073d78] no-underline" href={returnTo}><BootstrapIcon name="arrow-left" /> {returnTo === '/student/learning' ? 'My learning' : 'Back to course'}</Link>
         <p className="mb-2 text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase">{isPostTest ? 'Post-Test' : 'Pre-Test'}</p>
         <h1 className="text-[clamp(2.3rem,5vw,4.8rem)] font-medium tracking-[-0.055em] text-[#202a38]">{isPostTest ? 'Check your mastery' : 'Before you begin'}</h1>
         <div className="flex flex-wrap items-center justify-between gap-4">

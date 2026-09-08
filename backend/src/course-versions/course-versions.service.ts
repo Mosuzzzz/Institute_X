@@ -558,8 +558,8 @@ export class CourseVersionsService {
   }
 
   private requireTeacherOrOwner(actor: VersionActor): void {
-    if (actor.role !== UserRole.TEACHER && actor.role !== UserRole.OWNER) {
-      throw new ForbiddenException('TEACHER or OWNER role is required');
+    if (actor.role !== UserRole.TEACHER && actor.role !== UserRole.EXECUTIVE) {
+      throw new ForbiddenException('TEACHER or EXECUTIVE role is required');
     }
   }
 }

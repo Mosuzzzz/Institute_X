@@ -117,10 +117,7 @@ export class MockSsoTokenVerifier implements OidcTokenVerifier {
     }
 
     const role = this.resolveRole(user, status);
-    const majorCode =
-      role === UserRole.STUDENT
-        ? this.optionalString(user.major_code)
-        : undefined;
+    const majorCode = role === UserRole.STUDENT ? this.optionalString(user.major_code) : undefined;
 
     return {
       subject,
@@ -157,7 +154,7 @@ export class MockSsoTokenVerifier implements OidcTokenVerifier {
         return UserRole.APPROVER;
       }
       if (personnelType === 'owner') {
-        return UserRole.OWNER;
+        return UserRole.EXECUTIVE;
       }
       throw new UnauthorizedException('Educational personnel type is not supported');
     }

@@ -1,9 +1,7 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -14,13 +12,12 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
-  ApiNoContentResponse,
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CoursesService } from './courses.service';
@@ -30,7 +27,7 @@ import { ReplaceCourseCategoriesDto } from './dto/replace-course-categories.dto'
 @ApiTags('courses')
 @ApiBearerAuth()
 @Controller('courses')
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class CoursesController {
   constructor(private readonly courses: CoursesService) {}
 
@@ -48,15 +45,6 @@ export class CoursesController {
     @CurrentUser() user: CurrentUserValue,
   ): ReturnType<CoursesService['listPublishedForApprover']> {
     return this.courses.listPublishedForApprover(user);
-  }
-
-  @Get('owner/catalog')
-  @Roles(UserRole.OWNER)
-  @ApiOkResponse({ description: 'All non-archived published Courses for Owner moderation' })
-  ownerCatalog(
-    @CurrentUser() user: CurrentUserValue,
-  ): ReturnType<CoursesService['listPublishedForOwner']> {
-    return this.courses.listPublishedForOwner(user);
   }
 
   @Get(':courseId')
@@ -101,14 +89,4 @@ export class CoursesController {
     return this.courses.replaceCategories(user, courseId, input.categoryIds);
   }
 
-  @Delete(':courseId')
-  @HttpCode(204)
-  @Roles(UserRole.OWNER)
-  @ApiNoContentResponse({ description: 'Course archived and removed from active catalogs' })
-  delete(
-    @CurrentUser() user: CurrentUserValue,
-    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
-  ): ReturnType<CoursesService['archiveCourse']> {
-    return this.courses.archiveCourse(user, courseId);
-  }
 }

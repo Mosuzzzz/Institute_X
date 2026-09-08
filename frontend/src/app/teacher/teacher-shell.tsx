@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   clearSsoSession,
+  endSession,
   hasActiveSsoSession,
   readStoredProfile,
   resolveApplicationRole,
@@ -20,6 +21,7 @@ import { commonCopy, shellCopy } from "../../lib/app-copy";
 import { useAppLanguage } from "../../lib/language";
 import LanguageSelector from "../language-selector";
 import ProfileMenu from "../profile-menu";
+import BootstrapIcon from "../bootstrap-icon";
 import { commonUi, workspaceUi } from "../ui-styles";
 import styles from "../workspace-sidebar.module.css";
 
@@ -32,28 +34,8 @@ const navigation = [
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
-  if (icon === "book")
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
-        <path d="M4 5.5v16M8 7h8" />
-      </svg>
-    );
-  if (icon === "shield")
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M12 3 20 6v5c0 5-3.3 8.4-8 10-4.7-1.6-8-5-8-10V6z" />
-        <path d="m9 12 2 2 4-5" />
-      </svg>
-    );
-  return (
-    <svg viewBox="0 0 24 24">
-      <rect x="4" y="4" width="6" height="6" />
-      <rect x="14" y="4" width="6" height="6" />
-      <rect x="4" y="14" width="6" height="6" />
-      <rect x="14" y="14" width="6" height="6" />
-    </svg>
-  );
+  const names: Record<string, string> = { grid: "grid", book: "book", shield: "shield-check" };
+  return <BootstrapIcon name={names[icon] ?? "circle"} />;
 }
 
 export default function TeacherShell({ children }: { children: ReactNode }) {
@@ -88,7 +70,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
     if (!isAuthenticated) router.replace("/");
     else if (applicationRole === "STUDENT") router.replace("/student");
     else if (applicationRole === "APPROVER") router.replace("/approver");
-    else if (applicationRole === "OWNER") router.replace("/owner");
+    else if (applicationRole === "EXECUTIVE") router.replace("/executive");
     else if (applicationRole === null) {
       clearSsoSession();
       router.replace("/");
@@ -107,8 +89,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
   }
 
   const signOut = () => {
-    clearSsoSession();
-    router.replace("/");
+    void endSession().finally(() => router.replace("/"));
   };
   const currentNavigation = navigation.find((item) =>
     item.href === "/teacher"
@@ -133,7 +114,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
               <strong>{shell.teacherWorkspace}</strong>
             </span>
           </Link>
-          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
+          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
         </header>
         <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Teacher navigation">
           <p className={workspaceUi.navLabel}>Workspace · 01</p>

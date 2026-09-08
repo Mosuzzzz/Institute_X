@@ -26,7 +26,9 @@ describe('CategoriesService', () => {
 
   it('lists Majors by code for Course eligibility forms', async () => {
     majors.findMany.mockResolvedValue([{ id: 'major-id', code: 'CS', name: 'Computer Science' }]);
-    await expect(service.listMajors()).resolves.toEqual([{ id: 'major-id', code: 'CS', name: 'Computer Science' }]);
+    await expect(service.listMajors()).resolves.toEqual([
+      { id: 'major-id', code: 'CS', name: 'Computer Science' },
+    ]);
     expect(majors.findMany).toHaveBeenCalledWith({ orderBy: { code: 'asc' } });
   });
 
@@ -34,7 +36,7 @@ describe('CategoriesService', () => {
     categories.create.mockResolvedValue({ id: 'category-id', slug: 'technology' });
 
     await service.create(
-      { id: 'owner-id', role: UserRole.OWNER },
+      { id: 'owner-id', role: UserRole.EXECUTIVE },
       { slug: 'technology', name: ' Technology ' },
     );
 
@@ -62,7 +64,7 @@ describe('CategoriesService', () => {
 
     await expect(
       service.create(
-        { id: 'owner-id', role: UserRole.OWNER },
+        { id: 'owner-id', role: UserRole.EXECUTIVE },
         { slug: 'technology', name: 'Technology' },
       ),
     ).rejects.toBeInstanceOf(ConflictException);
@@ -72,7 +74,9 @@ describe('CategoriesService', () => {
     categories.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.update({ id: 'owner-id', role: UserRole.OWNER }, 'category-id', { name: 'Updated' }),
+      service.update({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'category-id', {
+        name: 'Updated',
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

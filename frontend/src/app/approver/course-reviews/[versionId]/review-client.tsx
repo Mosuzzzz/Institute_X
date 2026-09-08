@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import BootstrapIcon from '../../../bootstrap-icon';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -137,7 +138,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
       <header className={staffUi.reviewHeader}>
         <div>
           <Link className={staffUi.backLink} href="/approver/course-reviews">
-            ← Course reviews
+            <BootstrapIcon name="arrow-left" /> Course reviews
           </Link>
           <p className={staffUi.eyebrow}>Submitted Version {review.versionNumber}</p>
           <h1>{review.title}</h1>

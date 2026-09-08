@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 import {
   clearSsoSession,
+  endSession,
   hasActiveSsoSession,
   readStoredProfile,
   resolveApplicationRole,
@@ -18,6 +19,7 @@ import { translateCategory } from '../../lib/reference-translations';
 import { useBackendQuery } from '../../lib/use-backend-query';
 import LanguageSelector from '../language-selector';
 import ProfileMenu from '../profile-menu';
+import BootstrapIcon from '../bootstrap-icon';
 import { commonUi } from '../ui-styles';
 
 const subscribeToSession = () => () => undefined;
@@ -57,14 +59,14 @@ export default function StudentShell({ children }: { children: ReactNode }) {
     } else if (
       applicationRole === 'TEACHER' ||
       applicationRole === 'APPROVER' ||
-      applicationRole === 'OWNER'
+      applicationRole === 'EXECUTIVE'
     ) {
       router.replace(
         applicationRole === 'TEACHER'
           ? '/teacher'
           : applicationRole === 'APPROVER'
             ? '/approver'
-            : '/owner',
+            : '/executive',
       );
     }
   }, [applicationRole, isAuthenticated, router, sessionReady]);
@@ -74,7 +76,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
     isAuthenticated !== true ||
     applicationRole === 'TEACHER' ||
     applicationRole === 'APPROVER' ||
-    applicationRole === 'OWNER'
+    applicationRole === 'EXECUTIVE'
   ) {
     return (
       <main className={commonUi.callbackShell}>
@@ -87,8 +89,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
   }
 
   const signOut = () => {
-    clearSsoSession();
-    router.replace('/');
+    void endSession().finally(() => router.replace('/'));
   };
 
   return (
@@ -99,10 +100,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
         </Link>
 
         <form className="grid h-[58px] grid-cols-[24px_minmax(0,1fr)] items-center gap-3 rounded-[30px] border border-[#ccd1df] bg-[#f5f7fa] px-[22px] focus-within:border-focus focus-within:shadow-[0_0_0_3px_rgb(23_125_209_/_14%)] max-[820px]:col-span-full max-[820px]:row-start-2 max-[820px]:h-[50px]" action="/student/courses" role="search">
-          <svg className="w-[22px] fill-none stroke-[#747b92] [stroke-width:1.7]" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="6.5" />
-            <path d="m16 16 4 4" />
-          </svg>
+          <BootstrapIcon name="search" className="text-[22px] text-[#747b92]" />
           <label className="sr-only" htmlFor="course-search">Search courses</label>
           <input className="w-full border-0 bg-transparent text-base text-[#20243a] outline-0 placeholder:text-[#82899d]" id="course-search" name="q" type="search" placeholder={text.search} />
         </form>

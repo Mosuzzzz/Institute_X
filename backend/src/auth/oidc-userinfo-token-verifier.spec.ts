@@ -86,8 +86,6 @@ describe('OidcUserInfoTokenVerifier', () => {
       ),
     );
 
-    await expect(verifier.verify('invalid-claims')).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(verifier.verify('invalid-claims')).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });

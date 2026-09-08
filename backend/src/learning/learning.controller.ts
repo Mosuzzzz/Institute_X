@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CourseAccessService } from './course-access.service';
@@ -11,7 +11,7 @@ import { ListCoursesQueryDto } from './dto/list-courses-query.dto';
 @ApiTags('student-learning')
 @ApiBearerAuth()
 @Controller('courses')
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class LearningController {
   constructor(private readonly access: CourseAccessService) {}
 

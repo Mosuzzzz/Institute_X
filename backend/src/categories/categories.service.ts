@@ -87,8 +87,8 @@ export class CategoriesService {
   }
 
   private requireOwner(actor: CategoryActor): void {
-    if (actor.role !== UserRole.OWNER) {
-      throw new ForbiddenException('OWNER role is required');
+    if (actor.role !== UserRole.EXECUTIVE) {
+      throw new ForbiddenException('EXECUTIVE role is required');
     }
   }
 

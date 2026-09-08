@@ -11,7 +11,7 @@ enum UserRole {
   STUDENT
   TEACHER
   APPROVER
-  OWNER
+  EXECUTIVE
 }
 
 enum AccountStatus {
@@ -89,11 +89,10 @@ model Major {
 
 model User {
   id                 String                     @id @default(uuid()) @map("user_id") @db.Uuid
-  ssoSubject         String                     @unique @map("sso_subject") @db.VarChar(255)
   username           String                     @unique @db.VarChar(255)
   universityEmail    String                     @unique @map("university_email") @db.VarChar(320)
+  passwordHash       String                     @map("password_hash") @db.VarChar(512)
   fullName           String                     @map("full_name") @db.VarChar(255)
-  role               UserRole
   accountStatus      AccountStatus              @map("account_status")
   majorId            String?                    @map("major_id") @db.Uuid
   createdAt          DateTime                   @default(now()) @map("created_at") @db.Timestamptz
@@ -106,8 +105,34 @@ model User {
   enrollments        CourseEnrollment[]
   quizAttempts       QuizAttempt[]
   courseAccessEvents CourseAccessEvent[]
+  roles              UserRoleAssignment[]
+  authSessions       AuthSession[]
 
   @@map("users")
+}
+
+model UserRoleAssignment {
+  userId     String   @map("user_id") @db.Uuid
+  role       UserRole
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+  @@index([role])
+  @@map("user_roles")
+}
+
+model AuthSession {
+  id        String   @id @default(uuid()) @map("session_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }
 
 model TeacherPermissionRequest {

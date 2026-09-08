@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   clearSsoSession,
+  endSession,
   hasActiveSsoSession,
   readStoredProfile,
   resolveApplicationRole,
@@ -20,46 +21,18 @@ import { commonCopy, shellCopy } from "../../lib/app-copy";
 import { useAppLanguage } from "../../lib/language";
 import LanguageSelector from "../language-selector";
 import ProfileMenu from "../profile-menu";
+import BootstrapIcon from "../bootstrap-icon";
 import { commonUi, workspaceUi } from "../ui-styles";
 import styles from "../workspace-sidebar.module.css";
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
-  { href: "/owner", label: "systemOverview", icon: "grid" },
-  { href: "/owner/users", label: "users", icon: "users" },
-  { href: "/owner/courses", label: "courses", icon: "book" },
-  { href: "/owner/operations", label: "operations", icon: "pulse" },
+  { href: "/executive", label: "systemOverview", icon: "grid" },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
-  if (icon === "users")
-    return (
-      <svg viewBox="0 0 24 24">
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 19c.4-4 2.2-6 5.5-6s5.1 2 5.5 6M16 6a3 3 0 0 1 0 6M17 14c2.2.5 3.4 2.1 3.5 5" />
-      </svg>
-    );
-  if (icon === "book")
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
-        <path d="M4 5.5v16M8 7h8" />
-      </svg>
-    );
-  if (icon === "pulse")
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M3 13h4l2-6 4 11 2-5h6" />
-      </svg>
-    );
-  return (
-    <svg viewBox="0 0 24 24">
-      <rect x="4" y="4" width="6" height="6" />
-      <rect x="14" y="4" width="6" height="6" />
-      <rect x="4" y="14" width="6" height="6" />
-      <rect x="14" y="14" width="6" height="6" />
-    </svg>
-  );
+  const names: Record<string, string> = { grid: "grid" };
+  return <BootstrapIcon name={names[icon] ?? "circle"} />;
 }
 
 export default function OwnerShell({ children }: { children: ReactNode }) {
@@ -83,7 +56,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
     ? readStoredProfile()
     : null;
   const applicationRole = resolveApplicationRole(profile);
-  const isOwner = applicationRole === "OWNER";
+  const isOwner = applicationRole === "EXECUTIVE";
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -112,11 +85,10 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
   }
 
   const signOut = () => {
-    clearSsoSession();
-    router.replace("/");
+    void endSession().finally(() => router.replace("/"));
   };
   const currentNavigation = navigation.find((item) =>
-    item.href === "/owner"
+    item.href === "/executive"
       ? pathname === item.href
       : pathname.startsWith(item.href),
   );
@@ -126,20 +98,20 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
     <div className={`${workspaceUi.shell("owner")} ${styles.shell}`}>
       <aside className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
-          <Link className={workspaceUi.brandLink} href="/owner" aria-label="Institute X Owner home">
+          <Link className={workspaceUi.brandLink} href="/executive" aria-label="Institute X Executive home">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
               <strong>{shell.ownerWorkspace}</strong>
             </span>
           </Link>
-          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}>×</button>
+          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
         </header>
-        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Owner navigation">
+        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Executive navigation">
           <p className={workspaceUi.navLabel}>Workspace · 03</p>
           {navigation.map((item) => {
             const active =
-              item.href === "/owner"
+              item.href === "/executive"
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
             return (
@@ -179,7 +151,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
             </strong>
           </div>
           <nav aria-label={text.ownerAccount}>
-            <span className={workspaceUi.rolePill}>Owner</span>
+            <span className={workspaceUi.rolePill}>Executive</span>
             <LanguageSelector
               className="max-[700px]:w-[104px]"
               value={language}
@@ -189,7 +161,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
             <ProfileMenu
               profile={profile}
               roleLabel={text.ownerAccount}
-              fallbackName="Owner"
+              fallbackName="Executive"
               onSignOut={signOut}
               logoutLabel={text.logout}
               logoutHint={text.logoutHint}

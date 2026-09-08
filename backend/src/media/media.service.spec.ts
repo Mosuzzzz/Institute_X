@@ -476,7 +476,7 @@ describe('MediaService', () => {
     });
 
     await expect(
-      service.createCoverViewUrl({ id: 'owner-id', role: UserRole.OWNER }, 'cover-id'),
+      service.createCoverViewUrl({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'cover-id'),
     ).resolves.toEqual(
       expect.objectContaining({ url: 'https://storage.example/signed-cover-view' }),
     );

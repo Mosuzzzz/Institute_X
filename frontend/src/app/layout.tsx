@@ -6,6 +6,7 @@ import "@fontsource/kanit/500.css";
 import "@fontsource/kanit/600.css";
 import "@fontsource/kanit/700.css";
 import "@fontsource/kanit/800.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

@@ -6,6 +6,7 @@ describe('AnalyticsService', () => {
   const prisma = {
     course: { findUnique: jest.fn(), count: jest.fn(), findMany: jest.fn() },
     user: { count: jest.fn(), groupBy: jest.fn() },
+    userRoleAssignment: { groupBy: jest.fn() },
     courseVersion: { groupBy: jest.fn() },
     teacherPermissionRequest: { count: jest.fn() },
     courseEnrollment: { count: jest.fn(), groupBy: jest.fn() },
@@ -72,11 +73,11 @@ describe('AnalyticsService', () => {
   describe('getOwnerDashboard', () => {
     it('returns system overview and popularity ranked by enrollments', async () => {
       prisma.user.count.mockResolvedValue(100);
-      prisma.user.groupBy.mockResolvedValue([
+      prisma.userRoleAssignment.groupBy.mockResolvedValue([
         { role: UserRole.STUDENT, _count: { _all: 80 } },
         { role: UserRole.TEACHER, _count: { _all: 15 } },
         { role: UserRole.APPROVER, _count: { _all: 4 } },
-        { role: UserRole.OWNER, _count: { _all: 1 } },
+        { role: UserRole.EXECUTIVE, _count: { _all: 1 } },
       ]);
       prisma.course.count.mockResolvedValue(10);
       prisma.courseVersion.groupBy.mockResolvedValue([
@@ -104,7 +105,7 @@ describe('AnalyticsService', () => {
 
       const result = await service.getOwnerDashboard({
         id: 'owner-id',
-        role: UserRole.OWNER,
+        role: UserRole.EXECUTIVE,
       });
 
       expect(result.overview).toEqual({
@@ -120,7 +121,7 @@ describe('AnalyticsService', () => {
         { role: UserRole.STUDENT, users: 80 },
         { role: UserRole.TEACHER, users: 15 },
         { role: UserRole.APPROVER, users: 4 },
-        { role: UserRole.OWNER, users: 1 },
+        { role: UserRole.EXECUTIVE, users: 1 },
       ]);
       expect(result.courseVersionsByStatus).toEqual([
         { status: 'PUBLISHED', versions: 6 },
@@ -147,7 +148,7 @@ describe('AnalyticsService', () => {
 
     it('counts only Post-Test PASS and NOT_PASS outcomes', async () => {
       prisma.user.count.mockResolvedValue(0);
-      prisma.user.groupBy.mockResolvedValue([]);
+      prisma.userRoleAssignment.groupBy.mockResolvedValue([]);
       prisma.course.count.mockResolvedValue(0);
       prisma.courseVersion.groupBy.mockResolvedValue([]);
       prisma.teacherPermissionRequest.count.mockResolvedValue(0);
@@ -159,7 +160,7 @@ describe('AnalyticsService', () => {
       prisma.course.findMany.mockResolvedValue([]);
       prisma.$queryRaw.mockResolvedValue([]);
 
-      await service.getOwnerDashboard({ id: 'owner-id', role: UserRole.OWNER });
+      await service.getOwnerDashboard({ id: 'owner-id', role: UserRole.EXECUTIVE });
 
       expect(prisma.quizAttempt.groupBy).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -55,7 +55,7 @@ export default function ApproverCoursesPage() {
             All courses
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-[#687486]">
-            Browse every published Course across all Majors in read-only mode. Course moderation belongs to the Owner workspace.
+            Browse every published Course across all Majors in read-only mode. Course moderation belongs to the Executive workspace.
           </p>
         </div>
         <div className="border-l-4 border-[#8ccbd0] pl-4">

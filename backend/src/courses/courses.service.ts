@@ -746,8 +746,8 @@ export class CoursesService {
   }
 
   async archiveCourse(actor: CourseActor, courseId: string): Promise<void> {
-    if (actor.role !== UserRole.OWNER) {
-      throw new ForbiddenException('OWNER role is required');
+    if (actor.role !== UserRole.EXECUTIVE) {
+      throw new ForbiddenException('EXECUTIVE role is required');
     }
     const course = await this.prisma.course.findUnique({
       where: { id: courseId },
@@ -773,8 +773,8 @@ export class CoursesService {
   }
 
   async listPublishedForOwner(actor: CourseActor): Promise<PublishedCourseSummary[]> {
-    if (actor.role !== UserRole.OWNER) {
-      throw new ForbiddenException('OWNER role is required');
+    if (actor.role !== UserRole.EXECUTIVE) {
+      throw new ForbiddenException('EXECUTIVE role is required');
     }
     return this.listPublishedCourses();
   }

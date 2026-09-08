@@ -7,7 +7,11 @@ describe('RolesGuard', () => {
   const reflector = { getAllAndOverride: jest.fn() };
   let guard: RolesGuard;
 
-  function context(user?: { role: UserRole; accountStatus: AccountStatus }): ExecutionContext {
+  function context(user?: {
+    role: UserRole;
+    roles?: UserRole[];
+    accountStatus: AccountStatus;
+  }): ExecutionContext {
     return {
       getHandler: jest.fn(),
       getClass: jest.fn(),
@@ -28,8 +32,21 @@ describe('RolesGuard', () => {
     ).toBe(true);
   });
 
+  it('allows any role assigned in the database without discarding existing roles', () => {
+    reflector.getAllAndOverride.mockReturnValue([UserRole.TEACHER]);
+    expect(
+      guard.canActivate(
+        context({
+          role: UserRole.STUDENT,
+          roles: [UserRole.STUDENT, UserRole.TEACHER],
+          accountStatus: AccountStatus.ACTIVE,
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it('denies a user with the wrong role', () => {
-    reflector.getAllAndOverride.mockReturnValue([UserRole.OWNER]);
+    reflector.getAllAndOverride.mockReturnValue([UserRole.EXECUTIVE]);
 
     expect(() =>
       guard.canActivate(context({ role: UserRole.TEACHER, accountStatus: AccountStatus.ACTIVE })),

@@ -81,34 +81,34 @@ describe('Management REST API', () => {
       .expect({ enrollments: 25, accesses: 100 });
   });
 
-  it('GET /owner/dashboard is Owner-only', async () => {
+  it('GET /executive/dashboard is Owner-only', async () => {
     analytics.getOwnerDashboard.mockResolvedValue({ overview: { users: 100 } });
 
     await request(app.getHttpServer() as Server)
-      .get('/api/owner/dashboard')
-      .set('x-test-role', UserRole.OWNER)
+      .get('/api/executive/dashboard')
+      .set('x-test-role', UserRole.EXECUTIVE)
       .expect(200)
       .expect({ overview: { users: 100 } });
     await request(app.getHttpServer() as Server)
-      .get('/api/owner/dashboard')
+      .get('/api/executive/dashboard')
       .set('x-test-role', UserRole.TEACHER)
       .expect(403);
   });
 
-  it('GET /owner/users returns the Owner user directory', async () => {
+  it('GET /executive/users returns the Owner user directory', async () => {
     analytics.listOwnerUsers.mockResolvedValue([{ id: 'user-id', role: UserRole.STUDENT }]);
     await request(app.getHttpServer() as Server)
-      .get('/api/owner/users')
-      .set('x-test-role', UserRole.OWNER)
+      .get('/api/executive/users')
+      .set('x-test-role', UserRole.EXECUTIVE)
       .expect(200)
       .expect([{ id: 'user-id', role: UserRole.STUDENT }]);
   });
 
-  it('GET /owner/activity returns recent operational events', async () => {
+  it('GET /executive/activity returns recent operational events', async () => {
     analytics.listOwnerActivity.mockResolvedValue([{ id: 'event-id', type: 'COURSE_ACCESS' }]);
     await request(app.getHttpServer() as Server)
-      .get('/api/owner/activity')
-      .set('x-test-role', UserRole.OWNER)
+      .get('/api/executive/activity')
+      .set('x-test-role', UserRole.EXECUTIVE)
       .expect(200)
       .expect([{ id: 'event-id', type: 'COURSE_ACCESS' }]);
   });

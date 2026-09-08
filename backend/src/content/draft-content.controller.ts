@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ContentService } from './content.service';
@@ -21,7 +21,7 @@ import { UpdateTextContentDto } from './dto/update-text-content.dto';
 @ApiTags('course-content')
 @ApiBearerAuth()
 @Controller('content')
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class DraftContentController {
   constructor(private readonly content: ContentService) {}
 

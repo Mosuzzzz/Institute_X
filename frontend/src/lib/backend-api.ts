@@ -232,7 +232,7 @@ export type OwnerUserDto = {
   username: string;
   universityEmail: string;
   fullName: string;
-  role: "STUDENT" | "TEACHER" | "APPROVER" | "OWNER";
+  roles: Array<"STUDENT" | "TEACHER" | "APPROVER" | "EXECUTIVE">;
   accountStatus: "ACTIVE" | "INACTIVE";
   createdAt: string;
   updatedAt: string;
@@ -335,7 +335,7 @@ export type OwnerDashboardDto = {
     pendingTeacherPermissions: number;
   };
   usersByRole: Array<{
-    role: "STUDENT" | "TEACHER" | "APPROVER" | "OWNER";
+    role: "STUDENT" | "TEACHER" | "APPROVER" | "EXECUTIVE";
     users: number;
   }>;
   courseVersionsByStatus: Array<{

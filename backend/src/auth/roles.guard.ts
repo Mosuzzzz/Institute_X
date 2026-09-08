@@ -11,7 +11,7 @@ import { Request } from 'express';
 import { ROLES_KEY } from './roles.decorator';
 
 interface AuthenticatedRequest extends Request {
-  user?: { role: UserRole; accountStatus: AccountStatus };
+  user?: { role: UserRole; roles: UserRole[]; accountStatus: AccountStatus };
 }
 
 @Injectable()
@@ -32,9 +32,12 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (requiredRoles?.length && !requiredRoles.includes(user.role)) {
+    const databaseRoles = user.roles ?? [user.role];
+    const matchedRole = requiredRoles?.find((role) => databaseRoles.includes(role));
+    if (requiredRoles?.length && !matchedRole) {
       throw new ForbiddenException('Role is not permitted');
     }
+    if (matchedRole) user.role = matchedRole;
     return true;
   }
 }

@@ -12,33 +12,13 @@ import {
 import { courseLanguageLabel } from '../../../../lib/course-language';
 import { useAppLanguage } from '../../../../lib/language';
 import ApiState from '../../../api-state';
+import BootstrapIcon from '../../../bootstrap-icon';
 
 type ContentItem = PublishedCourseContentDto['contentItems'][number];
 
 function ContentTypeIcon({ type }: { type: string }) {
-  if (type === 'VIDEO') {
-    return (
-      <svg className="size-4" viewBox="0 0 20 20" aria-hidden="true">
-        <rect x="2.5" y="3.5" width="15" height="13" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="m8 7 5 3-5 3V7Z" fill="currentColor" />
-      </svg>
-    );
-  }
-  if (type === 'AUDIO') {
-    return (
-      <svg className="size-4" viewBox="0 0 20 20" aria-hidden="true">
-        <path d="M7.5 14.5V5l7-1.5v9" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="5.5" cy="14.5" r="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="12.5" cy="12.5" r="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      </svg>
-    );
-  }
-  return (
-    <svg className="size-4" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M5 2.75h6l4 4v10.5H5V2.75Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M11 2.75v4h4M7.5 10h5M7.5 13h5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
+  const name = type === 'VIDEO' ? 'play-btn' : type === 'AUDIO' ? 'music-note-beamed' : 'file-earmark-text';
+  return <BootstrapIcon name={name} className="text-base" />;
 }
 
 export default function CourseClient({ courseId }: { courseId: string }) {
@@ -177,7 +157,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             href="/student/courses"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#073d78] hover:underline"
           >
-            ← Back to Course catalog
+            <BootstrapIcon name="arrow-left" /> Back to Course catalog
           </Link>
           <span className="text-xs text-[#687486]">
             {course.title} · {courseLanguageLabel(course.languageCode, language)}
@@ -212,7 +192,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                       `/student/courses/${courseId}`
                     )}`}
                   >
-                    Start Pre-Test now →
+                    Start Pre-Test now <BootstrapIcon name="arrow-right" />
                   </Link>
                 ) : (
                   <p className="text-xs text-[#8b343b]">Pre-Test is being prepared by the teacher.</p>
@@ -273,7 +253,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                         rel="noreferrer"
                         target="_blank"
                       >
-                        Open document in a new tab →
+                        Open document in a new tab <BootstrapIcon name="box-arrow-up-right" />
                       </a>
                     </div>
                   ) : (
@@ -302,7 +282,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 onClick={() => previousItem && void openContent(previousItem)}
                 aria-label="Previous lesson"
               >
-                ←
+                <BootstrapIcon name="arrow-left" />
               </button>
               <button
                 className="grid size-9 cursor-pointer place-items-center rounded border border-transparent bg-transparent text-lg hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-25"
@@ -311,7 +291,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 onClick={() => nextItem && void openContent(nextItem)}
                 aria-label="Next lesson"
               >
-                →
+                <BootstrapIcon name="arrow-right" />
               </button>
             </div>
           </section>
@@ -347,7 +327,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                   `/student/courses/${courseId}`,
                 )}`}
               >
-                View Pre-Test result →
+                View Pre-Test result <BootstrapIcon name="arrow-right" />
               </Link>
             ) : null}
 
@@ -362,7 +342,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                   className="mt-4 inline-flex rounded bg-[#6f2bd2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5b1fb6]"
                   href={`/student/assessments/post-test/${entry.postTestId}`}
                 >
-                  Take Post-Test →
+                  Take Post-Test <BootstrapIcon name="arrow-right" />
                 </Link>
               </div>
             )}
@@ -399,13 +379,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                           {hasSelectedItem ? ' · Learning now' : ''}
                         </small>
                       </span>
-                      <svg
-                        className={`size-4 transition-transform ${collapsed ? 'rotate-180' : ''}`}
-                        viewBox="0 0 20 20"
-                        aria-hidden="true"
-                      >
-                        <path d="m5 12.5 5-5 5 5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                      </svg>
+                      <BootstrapIcon name="chevron-up" className={`text-base transition-transform ${collapsed ? 'rotate-180' : ''}`} />
                     </button>
                     {!collapsed && (
                       <ol className="m-0 list-none p-0">
@@ -460,7 +434,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                     `/student/courses/${courseId}`
                   )}`}
                 >
-                  Start Pre-Test →
+                  Start Pre-Test <BootstrapIcon name="arrow-right" />
                 </Link>
               ) : null}
             </section>

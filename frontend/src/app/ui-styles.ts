@@ -45,7 +45,7 @@ export const workspaceUi = {
   brandLink:
     'flex min-w-0 items-center gap-3 text-slate-900 no-underline [&>img]:size-10 [&>img]:shrink-0 [&>img]:rounded-lg [&>img]:bg-white [&>img]:p-1.5 [&>img]:shadow-md [&>span]:grid [&>span]:min-w-0 [&>span]:gap-0.5 [&_small]:text-[.62rem] [&_small]:font-semibold [&_small]:tracking-[.14em] [&_small]:text-slate-500 [&_small]:uppercase [&_strong]:overflow-hidden [&_strong]:text-[.92rem] [&_strong]:font-semibold [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_strong]:text-slate-900',
   navigation:
-    'mt-10 grid content-start gap-1.5 [&_svg]:size-5 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7]',
+    'mt-10 grid content-start gap-1.5 [&_svg]:size-5 [&_svg]:fill-none [&_svg]:stroke-current [&_svg]:stroke-[1.7] [&_i]:inline-grid [&_i]:w-5 [&_i]:place-items-center [&_i]:text-lg',
   navLabel:
     'mx-3 mt-4 mb-2 text-[.64rem] font-bold tracking-[.14em] text-slate-400/80 uppercase',
   navLink:

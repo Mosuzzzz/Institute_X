@@ -498,7 +498,7 @@ describe('CourseVersionsService', () => {
       });
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.unpublish({ id: 'owner-id', role: UserRole.OWNER }, 'version-id');
+      await service.unpublish({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'version-id');
 
       expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
         where: { id: 'version-id', status: CourseVersionStatus.PUBLISHED },
@@ -577,7 +577,7 @@ describe('CourseVersionsService', () => {
       db.courseVersion.findFirst.mockResolvedValue(null);
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.republish({ id: 'owner-id', role: UserRole.OWNER }, 'version-id');
+      await service.republish({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'version-id');
 
       expect(db.courseVersion.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({

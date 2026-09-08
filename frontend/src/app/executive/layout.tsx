@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import OwnerShell from './owner-shell';
+import OwnerShell from './executive-shell';
 
 export const metadata: Metadata = {
-  title: 'Owner Workspace | Institute X',
+  title: 'Executive Workspace | Institute X',
   description: 'Monitor Institute X users, courses, traffic and learning outcomes.',
 };
 

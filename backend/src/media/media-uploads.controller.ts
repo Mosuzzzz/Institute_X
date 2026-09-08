@@ -2,7 +2,7 @@ import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs
 import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { InitializeUploadDto } from './dto/initialize-upload.dto';
@@ -12,7 +12,7 @@ import { MediaService } from './media.service';
 @ApiTags('media')
 @ApiBearerAuth()
 @Controller('course-versions')
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class MediaUploadsController {
   constructor(private readonly media: MediaService) {}
 

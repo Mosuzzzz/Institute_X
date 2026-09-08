@@ -227,23 +227,23 @@ describe('Authoring REST API', () => {
       .expect([{ id: 'version-id', status: 'SUBMITTED' }]);
   });
 
-  it('GET /courses/owner/catalog returns the Owner moderation catalog', async () => {
+  it('GET /courses/executive/catalog returns the Owner moderation catalog', async () => {
     courses.listPublishedForOwner.mockResolvedValue([{ courseId: 'course-id' }]);
 
     await request(app.getHttpServer() as Server)
-      .get('/api/courses/owner/catalog')
-      .set('x-test-role', UserRole.OWNER)
+      .get('/api/courses/executive/catalog')
+      .set('x-test-role', UserRole.EXECUTIVE)
       .expect(200)
       .expect([{ courseId: 'course-id' }]);
 
     expect(courses.listPublishedForOwner).toHaveBeenCalledWith(
-      expect.objectContaining({ role: UserRole.OWNER }),
+      expect.objectContaining({ role: UserRole.EXECUTIVE }),
     );
   });
 
   it('does not expose Owner Course moderation to an Approver', async () => {
     await request(app.getHttpServer() as Server)
-      .get('/api/courses/owner/catalog')
+      .get('/api/courses/executive/catalog')
       .set('x-test-role', UserRole.APPROVER)
       .expect(403);
 
@@ -260,12 +260,12 @@ describe('Authoring REST API', () => {
       .expect(403);
     await request(app.getHttpServer() as Server)
       .delete(path)
-      .set('x-test-role', UserRole.OWNER)
+      .set('x-test-role', UserRole.EXECUTIVE)
       .expect(204);
 
     expect(courses.archiveCourse).toHaveBeenCalledTimes(1);
     expect(courses.archiveCourse).toHaveBeenCalledWith(
-      expect.objectContaining({ role: UserRole.OWNER }),
+      expect.objectContaining({ role: UserRole.EXECUTIVE }),
       '11111111-1111-4111-8111-111111111111',
     );
   });

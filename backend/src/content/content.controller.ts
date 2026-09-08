@@ -2,7 +2,7 @@ import { Body, Controller, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs
 import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ContentService } from './content.service';
@@ -12,7 +12,7 @@ import { CreateCourseSectionDto } from './dto/create-course-section.dto';
 @ApiTags('course-content')
 @ApiBearerAuth()
 @Controller('course-versions')
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class ContentController {
   constructor(private readonly content: ContentService) {}
 

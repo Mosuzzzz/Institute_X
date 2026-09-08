@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import type { SsoProfile } from '../lib/sso-session';
+import { getRoleHomePath, setActiveRole } from '../lib/sso-session';
+import BootstrapIcon from './bootstrap-icon';
 
 type ProfileMenuProps = {
   profile: SsoProfile | null;
@@ -82,7 +84,7 @@ export default function ProfileMenu({
         }}
       >
         <span className="grid h-11 w-11 place-items-center rounded-full bg-[#171821] text-[0.82rem] font-bold text-white group-hover:bg-[#073d78] max-[540px]:h-10 max-[540px]:w-10">{initials}</span>
-        <svg className={`h-[15px] w-[15px] fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.7] transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 6 3.5 3.5L11.5 6" /></svg>
+        <BootstrapIcon name="chevron-down" className={`text-sm transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen ? (
@@ -94,15 +96,23 @@ export default function ProfileMenu({
           </header>
           <div className="mr-[18px] mb-[17px] ml-[81px] flex items-center gap-[7px] text-[0.7rem] tracking-[0.05em] text-[#536073] uppercase"><span className="h-[7px] w-[7px] rounded-full bg-[#2a8864] shadow-[0_0_0_3px_#e5f4ed]" />{roleLabel}</div>
           <div className="h-px bg-[#e2e4ea]" aria-hidden="true" />
+          {(profile?.roles?.length ?? 0) > 1 ? (
+            <div className="grid gap-1 border-b border-[#e2e4ea] p-3" role="group" aria-label="Switch dashboard">
+              {profile!.roles!.map((role) => (
+                <button key={role} className="rounded px-3 py-2 text-left text-sm hover:bg-[#eef4fb]" type="button" onClick={() => {
+                  const target = setActiveRole(role) ?? getRoleHomePath(role);
+                  if (target) window.location.assign(target);
+                }}>Dashboard: {role}</button>
+              ))}
+            </div>
+          ) : null}
           <button
             className="grid min-h-[68px] w-full cursor-pointer grid-cols-[24px_minmax(0,1fr)] items-center gap-[13px] border-0 bg-white px-[18px] py-[13px] text-left text-[#8d3039] hover:bg-[#fff3f4] focus-visible:bg-[#fff3f4] focus-visible:outline-3 focus-visible:-outline-offset-4 focus-visible:outline-[#c45761]"
             type="button"
             role="menuitem"
             onClick={onSignOut}
           >
-            <svg className="h-[23px] w-[23px] fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.7]" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M10 5H5v14h5M14 8l4 4-4 4M18 12H9" />
-            </svg>
+            <BootstrapIcon name="box-arrow-right" className="text-[23px]" />
             <span className="grid gap-[3px]"><strong className="text-[0.84rem]">{logoutLabel}</strong><small className="text-[0.68rem] text-[#8b7377]">{logoutHint}</small></span>
           </button>
         </div>

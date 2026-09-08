@@ -337,7 +337,7 @@ describe('CoursesService', () => {
 
     it('denies non-Teachers', async () => {
       await expect(
-        service.createCourse({ id: 'owner-id', role: UserRole.OWNER }, input),
+        service.createCourse({ id: 'owner-id', role: UserRole.EXECUTIVE }, input),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
@@ -777,7 +777,7 @@ describe('CoursesService', () => {
 
     it('denies the Teacher Course list to non-Teachers', async () => {
       await expect(
-        service.listOwned({ id: 'owner-id', role: UserRole.OWNER }),
+        service.listOwned({ id: 'owner-id', role: UserRole.EXECUTIVE }),
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(db.course.findMany).not.toHaveBeenCalled();
     });
@@ -816,7 +816,7 @@ describe('CoursesService', () => {
       });
       db.course.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.archiveCourse({ id: 'owner-id', role: UserRole.OWNER }, 'course-id');
+      await service.archiveCourse({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'course-id');
 
       expect(db.course.updateMany).toHaveBeenCalledWith({
         where: { id: 'course-id', archivedAt: null },
@@ -887,7 +887,7 @@ describe('CoursesService', () => {
       db.course.findMany.mockResolvedValue([]);
 
       await expect(
-        service.listPublishedForOwner({ id: 'owner-id', role: UserRole.OWNER }),
+        service.listPublishedForOwner({ id: 'owner-id', role: UserRole.EXECUTIVE }),
       ).resolves.toEqual([]);
       expect(db.course.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

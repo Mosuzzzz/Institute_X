@@ -13,7 +13,7 @@ import {
 import { ApiBearerAuth, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CourseVersionsService } from './course-versions.service';
@@ -22,7 +22,7 @@ import { ReviewVersionDto } from './dto/review-version.dto';
 @ApiTags('course-versions')
 @ApiBearerAuth()
 @Controller('course-versions')
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class CourseVersionsController {
   constructor(private readonly versions: CourseVersionsService) {}
 
@@ -70,7 +70,7 @@ export class CourseVersionsController {
 
   @Post(':versionId/unpublish')
   @HttpCode(204)
-  @Roles(UserRole.TEACHER, UserRole.OWNER)
+  @Roles(UserRole.TEACHER)
   @ApiNoContentResponse({ description: 'Published Version removed from active catalogs' })
   unpublish(
     @CurrentUser() user: CurrentUserValue,
@@ -81,7 +81,7 @@ export class CourseVersionsController {
 
   @Post(':versionId/publish')
   @HttpCode(204)
-  @Roles(UserRole.TEACHER, UserRole.OWNER)
+  @Roles(UserRole.TEACHER)
   @ApiNoContentResponse({ description: 'Unpublished Version returned to active catalogs' })
   publish(
     @CurrentUser() user: CurrentUserValue,

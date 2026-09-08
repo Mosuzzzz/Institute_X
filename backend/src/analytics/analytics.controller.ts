@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser, CurrentUserValue } from '../auth/current-user.decorator';
-import { OidcAuthGuard } from '../auth/oidc-auth.guard';
+import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AnalyticsService } from './analytics.service';
@@ -10,7 +10,7 @@ import { AnalyticsService } from './analytics.service';
 @ApiTags('analytics')
 @ApiBearerAuth()
 @Controller()
-@UseGuards(OidcAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}
 
@@ -24,8 +24,8 @@ export class AnalyticsController {
     return this.analytics.getTeacherCourseAnalytics(user, courseId);
   }
 
-  @Get('owner/dashboard')
-  @Roles(UserRole.OWNER)
+  @Get('executive/dashboard')
+  @Roles(UserRole.EXECUTIVE)
   @ApiOkResponse({ description: 'System-wide Owner dashboard' })
   ownerDashboard(
     @CurrentUser() user: CurrentUserValue,
@@ -33,17 +33,4 @@ export class AnalyticsController {
     return this.analytics.getOwnerDashboard(user);
   }
 
-  @Get('owner/users')
-  @Roles(UserRole.OWNER)
-  @ApiOkResponse({ description: 'System user directory for the Owner' })
-  ownerUsers(@CurrentUser() user: CurrentUserValue): ReturnType<AnalyticsService['listOwnerUsers']> {
-    return this.analytics.listOwnerUsers(user);
-  }
-
-  @Get('owner/activity')
-  @Roles(UserRole.OWNER)
-  @ApiOkResponse({ description: 'Recent system activity for the Owner' })
-  ownerActivity(@CurrentUser() user: CurrentUserValue): ReturnType<AnalyticsService['listOwnerActivity']> {
-    return this.analytics.listOwnerActivity(user);
-  }
 }

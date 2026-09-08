@@ -42,32 +42,36 @@ describeDatabase('PostgreSQL integration', () => {
       data: [
         {
           id: teacherId,
-          ssoSubject: `teacher-${marker}`,
           username: `teacher-${marker}`,
           universityEmail: `teacher-${marker}@institute.example`,
           fullName: 'Integration Teacher',
-          role: UserRole.TEACHER,
+          passwordHash: 'disabled$integration-account',
           accountStatus: AccountStatus.ACTIVE,
         },
         {
           id: studentId,
-          ssoSubject: `student-${marker}`,
           username: `student-${marker}`,
           universityEmail: `student-${marker}@institute.example`,
           fullName: 'Integration Student',
-          role: UserRole.STUDENT,
+          passwordHash: 'disabled$integration-account',
           accountStatus: AccountStatus.ACTIVE,
           majorId,
         },
         {
           id: approverId,
-          ssoSubject: `approver-${marker}`,
           username: `approver-${marker}`,
           universityEmail: `approver-${marker}@institute.example`,
           fullName: 'Integration Approver',
-          role: UserRole.APPROVER,
+          passwordHash: 'disabled$integration-account',
           accountStatus: AccountStatus.ACTIVE,
         },
+      ],
+    });
+    await prisma.userRoleAssignment.createMany({
+      data: [
+        { userId: teacherId, role: UserRole.TEACHER },
+        { userId: studentId, role: UserRole.STUDENT },
+        { userId: approverId, role: UserRole.APPROVER },
       ],
     });
     await prisma.course.create({

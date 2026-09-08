@@ -554,7 +554,7 @@ export class MediaService {
       throw new NotFoundException('Course cover was not found');
     }
 
-    if (actor.role === UserRole.OWNER) {
+    if (actor.role === UserRole.EXECUTIVE) {
       // Owners may inspect covers across the management catalog.
     } else if (actor.role === UserRole.TEACHER) {
       if (asset.version.course.teacherId !== actor.id) {

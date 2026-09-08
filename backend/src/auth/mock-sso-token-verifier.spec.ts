@@ -134,15 +134,13 @@ describe('MockSsoTokenVerifier', () => {
       }),
     );
 
-    await expect(verifier.verify('staff-token')).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(verifier.verify('staff-token')).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it.each([
     ['teacher', UserRole.TEACHER],
     ['approver', UserRole.APPROVER],
-    ['owner', UserRole.OWNER],
+    ['owner', UserRole.EXECUTIVE],
   ] as const)(
     'maps the SSO personnel type %s when an explicit role is absent',
     async (personnelType, expectedRole) => {
@@ -167,7 +165,7 @@ describe('MockSsoTokenVerifier', () => {
     [UserRole.STUDENT, true, false, null, 'CS'],
     [UserRole.TEACHER, false, true, 'lecturer', undefined],
     [UserRole.APPROVER, false, true, 'staff', undefined],
-    [UserRole.OWNER, false, true, 'staff', undefined],
+    [UserRole.EXECUTIVE, false, true, 'staff', undefined],
   ] as const)(
     'uses the explicit SSO role %s as the application role',
     async (role, isCurrentStudent, isEducationalPersonnel, personnelType, majorCode) => {
@@ -203,9 +201,7 @@ describe('MockSsoTokenVerifier', () => {
       }),
     );
 
-    await expect(verifier.verify('admin-token')).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(verifier.verify('admin-token')).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('maps an inactive identity so synchronization denies access', async () => {
@@ -233,9 +229,7 @@ describe('MockSsoTokenVerifier', () => {
       }),
     );
 
-    await expect(verifier.verify('invalid-token')).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(verifier.verify('invalid-token')).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });
 
