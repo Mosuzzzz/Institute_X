@@ -536,6 +536,20 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Curriculum builder interactive states
+  const [activeTab, setActiveTab] = useState<
+    "curriculum" | "landing" | "assessments" | "checklist"
+  >("curriculum");
+  const [openContentId, setOpenContentId] = useState<string | null>(null);
+  const [selectedContentType, setSelectedContentType] = useState<
+    "VIDEO" | "AUDIO" | "DOCUMENT" | "IMAGE" | "ARTICLE" | null
+  >(null);
+  const [openDescriptionId, setOpenDescriptionId] = useState<string | null>(null);
+  const [addingSection, setAddingSection] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [addingLectureSectionId, setAddingLectureSectionId] = useState<string | null>(null);
+  const [editingLectureId, setEditingLectureId] = useState<string | null>(null);
+
   async function run(task: () => Promise<void>, message: string) {
     setBusy(true);
     setActionError(null);
@@ -584,9 +598,179 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   const canCreateRevision =
     version.status === "PUBLISHED" ||
     version.status === "UNPUBLISHED";
-  const videoLessonCount = version.contentItems.filter(
-    (item) => item.contentType === "VIDEO",
-  ).length;
+  async function createNewSection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const title = String(new FormData(form).get("title") ?? "").trim();
+    if (!title) return;
+    await run(async () => {
+      await backendApi(`course-versions/${version.id}/sections`, {
+        method: "POST",
+        body: JSON.stringify({
+          title,
+          position: nextSectionPosition,
+        }),
+      });
+      form.reset();
+      setAddingSection(false);
+      await refresh();
+    }, "Section added.");
+  }
+
+  async function saveSectionTitle(event: FormEvent<HTMLFormElement>, sectionId: string) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const title = String(new FormData(form).get("title") ?? "").trim();
+    if (!title) return;
+    await run(async () => {
+      await backendApi(`sections/${sectionId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title }),
+      });
+      setEditingSectionId(null);
+      await refresh();
+    }, "Section title updated.");
+  }
+
+  async function removeSection(sectionId: string, sectionTitle: string) {
+    if (!window.confirm(`Delete "${sectionTitle}"? Its lessons will be unassigned.`)) return;
+    await run(async () => {
+      await backendApi(`sections/${sectionId}`, { method: "DELETE" });
+      await refresh();
+    }, "Section deleted.");
+  }
+
+  async function addLectureToSection(event: FormEvent<HTMLFormElement>, sectionId: string | null) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const title = String(new FormData(form).get("title") ?? "").trim();
+    if (!title) return;
+    await run(async () => {
+      await backendApi(`course-versions/${version.id}/content/text`, {
+        method: "POST",
+        body: JSON.stringify({
+          title,
+          textBody: "Lecture content will be added.",
+          sectionId: sectionId || undefined,
+          position: nextContentPosition,
+        }),
+      });
+      form.reset();
+      setAddingLectureSectionId(null);
+      await refresh();
+    }, "Lecture added.");
+  }
+
+  async function saveLectureTitle(
+    event: FormEvent<HTMLFormElement>,
+    contentId: string,
+    _currentBody?: string | null,
+  ) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const title = String(new FormData(form).get("title") ?? "").trim();
+    if (!title) return;
+    await run(async () => {
+      await backendApi(`content/${contentId}/text`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title,
+        }),
+      });
+      setEditingLectureId(null);
+      await refresh();
+    }, "Lecture title updated.");
+  }
+
+  async function saveLectureDescription(
+    event: FormEvent<HTMLFormElement>,
+    contentId: string,
+    currentTitle?: string | null,
+  ) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const description = String(new FormData(form).get("description") ?? "").trim();
+    await run(async () => {
+      await backendApi(`content/${contentId}/text`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: currentTitle || undefined,
+          textBody: description || "Lecture description",
+        }),
+      });
+      setOpenDescriptionId(null);
+      setSelectedContentType(null);
+      await refresh();
+    }, "Lecture description saved.");
+  }
+
+  async function uploadLectureMediaFile(
+    event: FormEvent<HTMLFormElement>,
+    contentType: "VIDEO" | "AUDIO" | "DOCUMENT" | "IMAGE",
+    contentId: string,
+    sectionId: string | null,
+  ) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const file = (form.elements.namedItem("mediaFile") as HTMLInputElement)?.files?.[0];
+    const title = String(values.get("title") ?? "").trim();
+    if (!file) return;
+    await run(async () => {
+      try {
+        const fallbackMime =
+          contentType === "VIDEO"
+            ? "video/mp4"
+            : contentType === "AUDIO"
+            ? "audio/mpeg"
+            : contentType === "IMAGE"
+            ? "image/png"
+            : "application/pdf";
+        const upload = await backendApi<InitializedUploadDto>(
+          `course-versions/${version.id}/media/uploads`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              contentType,
+              title: title || file.name,
+              fileName: file.name,
+              mimeType: file.type || fallbackMime,
+              sizeBytes: file.size,
+              position: nextContentPosition,
+              sectionId: sectionId || undefined,
+            }),
+          },
+        );
+        await putSignedFile(upload.uploadUrl, file);
+        await backendApi(`media/${upload.assetId}/complete`, { method: "POST" });
+        try {
+          await backendApi(`content/${contentId}/text`, { method: "DELETE" });
+        } catch {
+          // ignore placeholder text cleanup
+        }
+        form.reset();
+        setOpenContentId(null);
+        setSelectedContentType(null);
+        await refresh();
+      } catch (error: unknown) {
+        await refresh();
+        throw error;
+      }
+    }, `${contentType === "DOCUMENT" ? "Document" : contentType.charAt(0) + contentType.slice(1).toLowerCase()} uploaded.`);
+  }
+
+
+  async function removeLectureItem(item: VersionDto["contentItems"][number]) {
+    if (!window.confirm(`Delete "${item.title || item.contentType}"?`)) return;
+    await run(async () => {
+      if (item.mediaAsset) {
+        await backendApi(`media/${item.mediaAsset.id}`, { method: "DELETE" });
+      } else {
+        await backendApi(`content/${item.id}/text`, { method: "DELETE" });
+      }
+      await refresh();
+    }, "Lecture removed.");
+  }
 
   async function uploadCover(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -836,32 +1020,39 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
     }, "Course published again.");
   }
 
+  const allSections =
+    version.sections.length > 0
+      ? version.sections.slice().sort((a, b) => a.position - b.position)
+      : version.contentItems.length > 0
+        ? [{ id: "general", title: "Introduction", position: 1 }]
+        : [];
+
   return (
     <main className="min-h-full bg-[#f7f7f9] pb-16">
-      <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#17171f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
+      <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#1c1d1f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
         <Link
-          className="text-sm text-white/80 no-underline transition hover:text-white"
+          className="text-sm font-medium text-white/80 no-underline transition hover:text-white"
           href="/teacher/courses"
         >
-          ← Back to courses
+          Back to courses
         </Link>
         <strong className="max-w-[36rem] truncate text-sm font-semibold">
           {version.title || "Untitled Course"}
         </strong>
-        <StatusBadge status={status} />
-        <span className="text-sm text-white/70">
-          {videoLessonCount} video {videoLessonCount === 1 ? "lesson" : "lessons"} uploaded
+        <span className="rounded bg-[#3e4143] px-2.5 py-0.5 text-xs font-bold tracking-wider text-white uppercase">
+          {status}
         </span>
-        <Link
-          className="ml-auto border border-white/40 px-3 py-1.5 text-xs font-semibold text-white no-underline hover:bg-white/10"
-          href={`/teacher/courses/${courseId}/analytics`}
-        >
-          Analytics
-        </Link>
-        <span className="text-sm font-medium text-white/80">
-          {data.readiness}% ready
-        </span>
+        <div className="ml-auto flex items-center gap-3">
+          <Link
+            className="border border-white/40 px-3 py-1.5 text-xs font-semibold text-white no-underline hover:bg-white/10 rounded"
+            href={`/teacher/courses/${courseId}/analytics`}
+          >
+            Analytics
+          </Link>
+
+        </div>
       </header>
+
       {actionError || notice ? (
         <div
           className={`mx-auto mt-6 w-[min(calc(100%-48px),1420px)] border-l-4 p-4 text-sm ${actionError ? "border-[#b42318] bg-[#fff3f2] text-[#8f1d14]" : "border-[#0b6a73] bg-[#effafa] text-[#07545b]"}`}
@@ -869,49 +1060,99 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
           {actionError ?? notice}
         </div>
       ) : null}
-      <div className="mx-auto grid w-[min(calc(100%-48px),1420px)] grid-cols-[280px_minmax(0,1fr)] py-10 max-[900px]:w-full max-[900px]:grid-cols-1 max-[900px]:py-0">
+
+      <div className="mx-auto grid w-[min(calc(100%-48px),1420px)] grid-cols-[280px_minmax(0,1fr)] gap-8 py-10 max-[900px]:w-full max-[900px]:grid-cols-1 max-[900px]:py-0">
+        {/* Left column navigation matching reference image */}
         <nav
-          className="sticky top-[104px] grid h-fit content-start gap-8 px-7 py-8 max-[900px]:static max-[900px]:grid-cols-3 max-[900px]:gap-5 max-[900px]:overflow-x-auto max-[900px]:bg-white max-[640px]:grid-cols-1"
-          aria-label="Course authoring sections"
+          className="sticky top-[104px] grid h-fit content-start gap-7 px-4 py-6 max-[900px]:static max-[900px]:grid-cols-3 max-[900px]:gap-4 max-[900px]:overflow-x-auto max-[900px]:bg-white max-[640px]:grid-cols-1"
+          aria-label="Course authoring steps"
         >
+
           <div>
-            <h2 className="text-sm font-semibold text-[#292b3a]">Plan your course</h2>
-            <div className="mt-3 grid">
-              {[
-                ["details", "Course details", data.checks.details && data.checks.categories && data.checks.eligibility],
-                ["cover", "Course cover", Boolean(version.coverAsset)],
-              ].map(([target, label, ready]) => (
-                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(target)}>
-                  <span className={`size-5 rounded-full border ${ready ? "border-[#063777] bg-[#063777] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
-                  {String(label)}
-                </a>
-              ))}
+            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">
+              Create your content
+            </h2>
+            <div className="grid gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab("curriculum")}
+                className={`group flex items-center gap-3 px-3 py-2 text-sm text-left transition rounded cursor-pointer relative ${
+                  activeTab === "curriculum"
+                    ? "font-bold text-[#1c1d1f] bg-white border-l-[3px] border-[#1c1d1f] shadow-xs"
+                    : "text-[#4c4d5e] hover:text-[#1c1d1f] hover:bg-white"
+                }`}
+              >
+                <span
+                  className={`size-4.5 rounded-full border flex items-center justify-center shrink-0 ${
+                    activeTab === "curriculum"
+                      ? "border-[#1c1d1f] bg-[#1c1d1f]"
+                      : "border-[#6a6f73]"
+                  }`}
+                >
+                  {activeTab === "curriculum" ? (
+                    <span className="size-1.5 rounded-full bg-white" />
+                  ) : null}
+                </span>
+                <span>Curriculum</span>
+              </button>
             </div>
           </div>
+
           <div>
-            <h2 className="text-sm font-semibold text-[#292b3a]">Create your content</h2>
-            <div className="mt-3 grid">
-              {[
-                ["content", "Curriculum", data.checks.content && data.checks.media],
-                ["preTest", "Pre-test", data.checks.preTest],
-                ["preTest", "Post-test", data.checks.postTest],
-              ].map(([target, label, ready]) => (
-                <a className="group flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white hover:text-[#292b3a]" href={`#${target}`} key={String(label)}>
-                  <span className={`size-5 rounded-full border ${ready ? "border-[#063777] bg-[#063777] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
-                  {String(label)}
-                </a>
-              ))}
+            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">
+              Publish your course
+            </h2>
+            <div className="grid gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab("landing")}
+                className={`group flex items-center gap-3 px-3 py-2 text-sm text-left transition rounded cursor-pointer ${
+                  activeTab === "landing"
+                    ? "font-bold text-[#1c1d1f] bg-white border-l-[3px] border-[#1c1d1f] shadow-xs"
+                    : "text-[#4c4d5e] hover:text-[#1c1d1f] hover:bg-white"
+                }`}
+              >
+                <span
+                  className={`size-4.5 rounded-full border flex items-center justify-center shrink-0 ${
+                    activeTab === "landing"
+                      ? "border-[#1c1d1f] bg-[#1c1d1f]"
+                      : "border-[#6a6f73]"
+                  }`}
+                >
+                  {activeTab === "landing" ? (
+                    <span className="size-1.5 rounded-full bg-white" />
+                  ) : null}
+                </span>
+                <span>Course landing page</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("assessments")}
+                className={`group flex items-center gap-3 px-3 py-2 text-sm text-left transition rounded cursor-pointer ${
+                  activeTab === "assessments"
+                    ? "font-bold text-[#1c1d1f] bg-white border-l-[3px] border-[#1c1d1f] shadow-xs"
+                    : "text-[#4c4d5e] hover:text-[#1c1d1f] hover:bg-white"
+                }`}
+              >
+                <span
+                  className={`size-4.5 rounded-full border flex items-center justify-center shrink-0 ${
+                    activeTab === "assessments"
+                      ? "border-[#1c1d1f] bg-[#1c1d1f]"
+                      : "border-[#6a6f73]"
+                  }`}
+                >
+                  {activeTab === "assessments" ? (
+                    <span className="size-1.5 rounded-full bg-white" />
+                  ) : null}
+                </span>
+                <span>Assessments &amp; Quizzes</span>
+              </button>
             </div>
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-[#292b3a]">Publish your course</h2>
-            <a className="group mt-3 flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white hover:text-[#292b3a]" href="#submission-checklist">
-              <span className={`size-5 rounded-full border ${data.readiness === 100 ? "border-[#063777] bg-[#063777] shadow-[inset_0_0_0_4px_white]" : "border-[#77798a]"}`} />
-              Submission checklist
-            </a>
+
             {isDraft ? (
               <button
-                className="mt-6 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-5 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]"
+                className="mt-6 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#063777] hover:bg-[#044f99] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm"
                 disabled={busy || data.readiness < 100}
                 onClick={() => void submitDraft()}
                 type="button"
@@ -919,6 +1160,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 {busy ? "Submitting…" : "Submit for Review"}
               </button>
             ) : null}
+
             <div className="mt-4 grid gap-2">
               {version.status === "REJECTED" ? (
                 <button className={secondaryButton} disabled={busy} onClick={() => void reopenRejectedDraft()} type="button">
@@ -926,12 +1168,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 </button>
               ) : null}
               {canCreateRevision ? (
-                <button className={secondaryButton} disabled={busy} onClick={() => void startRevision()} type="button">
+                <button className="mt-2 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#063777] hover:bg-[#044f99] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" disabled={busy} onClick={() => void startRevision()} type="button">
                   {busy ? "Creating Draft…" : "Edit Course"}
                 </button>
               ) : null}
               {!isDraft && publishedVersion ? (
-                <button className={secondaryButton} disabled={busy} onClick={() => void unpublishCourse(publishedVersion.id)} type="button">
+                <button className="mt-2 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#063777] hover:bg-[#044f99] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" disabled={busy} onClick={() => void unpublishCourse(publishedVersion.id)} type="button">
                   {busy ? "Working…" : "Unpublish Course"}
                 </button>
               ) : null}
@@ -957,544 +1199,848 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             ) : null}
           </div>
         </nav>
-        <div className="min-w-0 overflow-hidden bg-white shadow-[0_8px_30px_rgba(24,24,35,0.09)]">
-          <section className={panelClass} id="details">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-              Course readiness
-            </p>
-            <h2 className="mt-2 text-3xl tracking-[-0.04em] text-[#202a38]">
-              Structure overview
-            </h2>
-            {isDraft ? (
-              <form
-                className="mt-6 grid max-w-3xl gap-4"
-                id="course-details-form"
-                onSubmit={(event) => void updateCourseDetails(event)}
-              >
-                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                  Course title
-                  <input
-                    className={fieldClass}
-                    defaultValue={version.title}
-                    name="title"
-                    required
-                  />
-                </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                  Course description
-                  <textarea
-                    className={`${fieldClass} min-h-32 resize-y`}
-                    defaultValue={version.description ?? ""}
-                    name="description"
-                    required
-                  />
-                </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                  Course language
-                  <select
-                    className={fieldClass}
-                    defaultValue={version.languageCode}
-                    name="languageCode"
-                  >
-                    {COURSE_LANGUAGES.map((option) => (
-                      <option key={option.code} value={option.code}>
-                        {courseLanguageLabel(option.code, language)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="flex flex-wrap items-center gap-4 pt-2">
-                  <button className={primaryButton} disabled={busy} type="submit">
-                    {busy ? "Saving…" : "Save Draft"}
-                  </button>
-                  <span className="text-xs text-[#747d8c]">
-                    Typed changes are saved only when you press Save Draft.
-                  </span>
-                </div>
-              </form>
-            ) : (
-              <p className="mt-3 max-w-2xl leading-7 text-[#687486]">
-                {version.description ?? "No Course description."}
+
+        {/* Right column: Main content card */}
+        <div className="min-w-0">
+          {activeTab === "curriculum" ? (
+            <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
+              <h1 className="text-3xl font-bold text-[#1c1d1f] tracking-tight">
+                Course
+              </h1>
+              <hr className="my-6 border-[#d1d7dc]" />
+              <p className="text-sm text-[#2d2f31] leading-relaxed mb-8">
+                Create your course in sections, each focused on a single learning objective. Then add content, practice activities, and assessments.
               </p>
-            )}
-            <dl className="mt-7 grid grid-cols-3 border-t border-l border-[#d8dde5] max-[800px]:grid-cols-1">
-              <div className="border-r border-b border-[#d8dde5] p-5">
-                <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
-                  Course language
-                </dt>
-                <dd className="mt-2 text-sm font-semibold text-[#202a38]">
-                  {courseLanguageLabel(version.languageCode, language)}
-                </dd>
-              </div>
-              <div className="border-r border-b border-[#d8dde5] p-5">
-                <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
-                  Eligible majors
-                </dt>
-                <dd className="mt-2 text-sm font-semibold text-[#202a38]">
-                  {data.allowedMajors
-                    .map(({ major }) => translateMajor(major, language))
-                    .join(", ") || "Open to all majors"}
-                </dd>
-              </div>
-              <div className="border-r border-b border-[#d8dde5] p-5">
-                <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
-                  Categories
-                </dt>
-                <dd className="mt-2 text-sm font-semibold text-[#202a38]">
-                  {data.categories
-                    .map(({ category }) =>
-                      translateCategory(category, language),
-                    )
-                    .join(", ") || "None"}
-                </dd>
-              </div>
-            </dl>
-            {isDraft && categoryOptions.data ? (
-              <form className="mt-6 border border-[#d8dde5] bg-[#fafbfc] p-5" onSubmit={(event) => void updateCategories(event)}>
-                <h3 className="text-sm font-semibold text-[#202a38]">Edit categories</h3>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {categoryOptions.data.map((category) => (
-                    <label className="flex items-center gap-2 text-sm text-[#4d5868]" key={category.id}>
-                      <input defaultChecked={data.categories.some(({ category: assigned }) => assigned.id === category.id)} name="category" type="checkbox" value={category.id} />
-                      {translateCategory(category, language)}
-                    </label>
-                  ))}
+
+              {allSections.length === 0 ? (
+                <div className="border border-dashed border-[#cfd5df] rounded p-8 text-center bg-[#fafafa] mb-6">
+                  <p className="text-sm text-[#6a6f73] mb-4">
+                    No sections yet. Start organizing your course by adding your first section.
+                  </p>
                 </div>
-                <button className={`${secondaryButton} mt-4`} disabled={busy} type="submit">Save categories</button>
-              </form>
-            ) : null}
-          </section>
-          <section className={panelClass} id="cover">
-            <div className="flex items-start justify-between gap-5 max-[640px]:flex-col">
-              <div>
-                <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-                  Visual identity
-                </p>
-                <h2 className="mt-2 text-2xl text-[#202a38]">Course cover</h2>
-                <p className="mt-2 text-sm text-[#687486]">
-                  JPEG, PNG, or WebP · maximum 10 MB · landscape works best.
-                </p>
-              </div>
-              {version.coverAsset && isDraft ? (
-                <button
-                  className={secondaryButton}
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      await backendApi(
-                        `course-covers/${version.coverAsset!.id}`,
-                        { method: "DELETE" },
-                      );
-                      await refresh();
-                    }, "Course cover removed.")
-                  }
-                  type="button"
-                >
-                  Remove cover
-                </button>
+              ) : (
+                allSections.map((section, sectionIndex) => {
+                  const unassigned = version.contentItems.filter(
+                    (item) => !item.sectionId || !version.sections.some((s) => s.id === item.sectionId),
+                  );
+                  const sectionLectures = (
+                    section.id === "general" || sectionIndex === 0
+                      ? [
+                          ...version.contentItems.filter((item) => item.sectionId === section.id),
+                          ...unassigned.filter((item) => item.sectionId !== section.id),
+                        ]
+                      : version.contentItems.filter((item) => item.sectionId === section.id)
+                  ).sort((a, b) => a.position - b.position);
+
+                  return (
+                    <div key={section.id} className="border border-[#d1d7dc] bg-white rounded-xs mb-6 overflow-hidden">
+                      {/* Section Header */}
+                      <div className="bg-[#f7f9fa] border-b border-[#d1d7dc] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <strong className="text-sm font-bold text-[#1c1d1f] whitespace-nowrap">
+                            Section {sectionIndex + 1}:
+                          </strong>
+                          {editingSectionId === section.id ? (
+                            <form onSubmit={(e) => void saveSectionTitle(e, section.id)} className="flex items-center gap-2">
+                              <input
+                                name="title"
+                                defaultValue={section.title}
+                                className="border border-[#1c1d1f] px-2.5 py-1 text-sm bg-white outline-none"
+                                autoFocus
+                              />
+                              <button type="submit" className="text-xs font-semibold text-[#063777] hover:underline cursor-pointer">Save</button>
+                              <button type="button" onClick={() => setEditingSectionId(null)} className="text-xs text-[#6a6f73] hover:underline cursor-pointer">Cancel</button>
+                            </form>
+                          ) : (
+                            <span className="text-sm text-[#1c1d1f] font-normal truncate">
+                              {section.title}
+                            </span>
+                          )}
+                        </div>
+                        {isDraft && section.id !== "general" && editingSectionId !== section.id ? (
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setEditingSectionId(section.id)}
+                              className="text-xs text-[#6a6f73] hover:text-[#1c1d1f] cursor-pointer"
+                            >
+                              ✏️ Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void removeSection(section.id, section.title)}
+                              className="text-xs text-[#b42318] hover:text-[#8f1d14] cursor-pointer"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Lectures inside Section */}
+                      <div className="p-2 sm:p-4">
+                        {sectionLectures.map((lecture, lIdx) => {
+                          const isContentOpen = openContentId === lecture.id;
+                          const isDescOpen = openDescriptionId === lecture.id;
+
+                          return (
+                            <div
+                              key={lecture.id}
+                              className="border border-[#d1d7dc] bg-white mx-3 my-3 p-4 rounded-xs hover:border-[#a1a7b3] transition"
+                            >
+                              {/* Lecture Title Bar */}
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-sm font-bold text-[#1c1d1f] whitespace-nowrap">
+                                    Lecture {lIdx + 1}:
+                                  </span>
+                                  {editingLectureId === lecture.id ? (
+                                    <form onSubmit={(e) => void saveLectureTitle(e, lecture.id, lecture.textBody)} className="flex items-center gap-2">
+                                      <input
+                                        name="title"
+                                        defaultValue={lecture.title ?? ""}
+                                        className="border border-[#1c1d1f] px-2.5 py-1 text-sm bg-white outline-none"
+                                        autoFocus
+                                      />
+                                      <button type="submit" className="text-xs font-semibold text-[#063777] hover:underline cursor-pointer">Save</button>
+                                      <button type="button" onClick={() => setEditingLectureId(null)} className="text-xs text-[#6a6f73] hover:underline cursor-pointer">Cancel</button>
+                                    </form>
+                                  ) : (
+                                    <span className="text-sm text-[#2d2f31] font-normal truncate">
+                                      {lecture.title || lecture.contentType}
+                                    </span>
+                                  )}
+                                  {isDraft && editingLectureId !== lecture.id ? (
+                                    <div className="flex items-center gap-1.5 ml-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingLectureId(lecture.id)}
+                                        className="text-xs text-[#6a6f73] hover:text-[#1c1d1f] cursor-pointer"
+                                        title="Edit title"
+                                      >
+                                        ✏️
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => void removeLectureItem(lecture)}
+                                        className="text-xs text-[#b42318] hover:text-[#8f1d14] cursor-pointer"
+                                        title="Delete lecture"
+                                      >
+                                        🗑️
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
+
+                                {/* Right side Content button */}
+                                <div className="flex items-center gap-2 ml-auto">
+                                  {lecture.mediaAsset ? (
+                                    <span className="text-xs font-semibold text-[#0b6a73] bg-[#edfafa] px-2.5 py-1 rounded flex items-center gap-1.5 border border-[#c3f0f0]">
+                                      {lecture.contentType === "VIDEO"
+                                        ? "🎬 Video"
+                                        : lecture.contentType === "AUDIO"
+                                        ? "🎙️ Audio"
+                                        : lecture.contentType === "DOCUMENT"
+                                        ? "📑 Document"
+                                        : lecture.contentType === "IMAGE"
+                                        ? "🖼️ Image"
+                                        : "📁 Media"}{" "}
+                                      · <span className="font-normal text-[#1c1d1f] max-w-[140px] truncate">{lecture.mediaAsset.fileName}</span>
+                                      <span className="text-[0.65rem] uppercase font-bold text-[#0b6a73] bg-white px-1 rounded border border-[#b2e5e7]">
+                                        {lecture.mediaAsset.status}
+                                      </span>
+                                    </span>
+                                  ) : lecture.contentType === "TEXT" && lecture.textBody && lecture.textBody.trim() ? (
+                                    <span className="text-xs font-semibold text-[#435166] bg-[#f1f3f5] px-2.5 py-1 rounded border border-[#d1d7dc] flex items-center gap-1">
+                                      📝 Article
+                                    </span>
+                                  ) : null}
+
+                                  {isDraft ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenContentId(isContentOpen ? null : lecture.id);
+                                        setSelectedContentType(null);
+                                      }}
+                                      className={`font-semibold text-xs px-4 py-1.5 rounded transition cursor-pointer ${
+                                        isContentOpen
+                                          ? "bg-[#063777] text-white"
+                                          : "border border-[#063777] text-[#063777] hover:bg-[#063777]/5"
+                                      }`}
+                                    >
+                                      {isContentOpen ? "Close Content" : "Content"}
+                                    </button>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              {/* Sub-action button (Description) */}
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenDescriptionId(isDescOpen ? null : lecture.id)}
+                                  className={`font-medium text-xs px-3 py-1 rounded transition cursor-pointer ${
+                                    isDescOpen
+                                      ? "bg-[#063777] text-white"
+                                      : "border border-[#063777] text-[#063777] hover:bg-[#063777]/5"
+                                  }`}
+                                >
+                                  {lecture.textBody && lecture.textBody.trim() ? "Edit Description" : "+ Description"}
+                                </button>
+                              </div>
+
+                              {/* Expandable Content Type Panel */}
+                              {isContentOpen && isDraft ? (
+                                <div className="mt-4 border-t border-[#d1d7dc] pt-4">
+                                  <div className="flex items-center justify-between border-b border-[#d1d7dc] pb-2 mb-3">
+                                    <span className="text-xs font-bold text-[#1c1d1f] tracking-wide">
+                                      Select content type
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-[#6a6f73] mb-4">
+                                    Select the main type of content for this lecture (Video, Audio, PDF &amp; Document, Image, or Article).
+                                  </p>
+                                  <div className="grid grid-cols-5 gap-3 max-[900px]:grid-cols-3 max-[600px]:grid-cols-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedContentType("VIDEO")}
+                                      className={`border p-3.5 text-center cursor-pointer transition rounded-xs flex flex-col items-center justify-center gap-2 ${
+                                        selectedContentType === "VIDEO"
+                                          ? "border-[#063777] bg-[#f0f4fc] shadow-xs"
+                                          : "border-[#d1d7dc] bg-[#f7f9fa] hover:border-[#063777]"
+                                      }`}
+                                    >
+                                      <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
+                                        🎬
+                                      </div>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">Video</span>
+                                      <span className="text-[0.7rem] text-[#6a6f73]">MP4, MOV, WebM</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedContentType("AUDIO")}
+                                      className={`border p-3.5 text-center cursor-pointer transition rounded-xs flex flex-col items-center justify-center gap-2 ${
+                                        selectedContentType === "AUDIO"
+                                          ? "border-[#063777] bg-[#f0f4fc] shadow-xs"
+                                          : "border-[#d1d7dc] bg-[#f7f9fa] hover:border-[#063777]"
+                                      }`}
+                                    >
+                                      <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
+                                        🎙️
+                                      </div>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">Audio</span>
+                                      <span className="text-[0.7rem] text-[#6a6f73]">MP3, WAV, M4A</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedContentType("DOCUMENT")}
+                                      className={`border p-3.5 text-center cursor-pointer transition rounded-xs flex flex-col items-center justify-center gap-2 ${
+                                        selectedContentType === "DOCUMENT"
+                                          ? "border-[#063777] bg-[#f0f4fc] shadow-xs"
+                                          : "border-[#d1d7dc] bg-[#f7f9fa] hover:border-[#063777]"
+                                      }`}
+                                    >
+                                      <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
+                                        📑
+                                      </div>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">PDF &amp; File</span>
+                                      <span className="text-[0.7rem] text-[#6a6f73]">PDF, Slides, DOC</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedContentType("IMAGE")}
+                                      className={`border p-3.5 text-center cursor-pointer transition rounded-xs flex flex-col items-center justify-center gap-2 ${
+                                        selectedContentType === "IMAGE"
+                                          ? "border-[#063777] bg-[#f0f4fc] shadow-xs"
+                                          : "border-[#d1d7dc] bg-[#f7f9fa] hover:border-[#063777]"
+                                      }`}
+                                    >
+                                      <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
+                                        🖼️
+                                      </div>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">Image</span>
+                                      <span className="text-[0.7rem] text-[#6a6f73]">PNG, JPG, Diagrams</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedContentType("ARTICLE")}
+                                      className={`border p-3.5 text-center cursor-pointer transition rounded-xs flex flex-col items-center justify-center gap-2 ${
+                                        selectedContentType === "ARTICLE"
+                                          ? "border-[#063777] bg-[#f0f4fc] shadow-xs"
+                                          : "border-[#d1d7dc] bg-[#f7f9fa] hover:border-[#063777]"
+                                      }`}
+                                    >
+                                      <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
+                                        📝
+                                      </div>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">Article</span>
+                                      <span className="text-[0.7rem] text-[#6a6f73]">Text &amp; Notes</span>
+                                    </button>
+                                  </div>
+
+                                  {/* Form for Media Upload (VIDEO, AUDIO, DOCUMENT, IMAGE) */}
+                                  {selectedContentType && selectedContentType !== "ARTICLE" ? (
+                                    <form
+                                      onSubmit={(e) => void uploadLectureMediaFile(e, selectedContentType, lecture.id, lecture.sectionId)}
+                                      className="mt-4 border border-[#d1d7dc] bg-[#fafbfc] p-4 rounded-xs grid gap-3"
+                                    >
+                                      <h4 className="text-xs font-bold text-[#1c1d1f] uppercase tracking-wider flex items-center gap-1.5">
+                                        {selectedContentType === "VIDEO"
+                                          ? "🎬 Upload Video Lecture"
+                                          : selectedContentType === "AUDIO"
+                                          ? "🎙️ Upload Audio Lesson"
+                                          : selectedContentType === "DOCUMENT"
+                                          ? "📑 Upload PDF or Document"
+                                          : "🖼️ Upload Image or Diagram"}
+                                      </h4>
+                                      <p className="text-xs text-[#6a6f73]">
+                                        {selectedContentType === "VIDEO"
+                                          ? "Select an MP4, MOV, or WebM video file (up to 1GB)."
+                                          : selectedContentType === "AUDIO"
+                                          ? "Select an MP3, WAV, M4A, or AAC audio file (up to 1GB)."
+                                          : selectedContentType === "DOCUMENT"
+                                          ? "Select a PDF, Word document, PowerPoint presentation, or worksheet."
+                                          : "Select a high-resolution PNG, JPG, or SVG infographic or diagram."}
+                                      </p>
+                                      <input
+                                        className={fieldClass}
+                                        name="title"
+                                        defaultValue={lecture.title ?? ""}
+                                        placeholder="Content title (optional, defaults to file name)"
+                                      />
+                                      <input
+                                        className={fieldClass}
+                                        name="mediaFile"
+                                        type="file"
+                                        accept={
+                                          selectedContentType === "VIDEO"
+                                            ? "video/*"
+                                            : selectedContentType === "AUDIO"
+                                            ? "audio/*"
+                                            : selectedContentType === "IMAGE"
+                                            ? "image/*"
+                                            : ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,application/pdf"
+                                        }
+                                        required
+                                      />
+                                      <div className="flex items-center gap-3 pt-1">
+                                        <button
+                                          type="submit"
+                                          disabled={busy}
+                                          className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-2 rounded cursor-pointer disabled:opacity-50"
+                                        >
+                                          {busy ? "Uploading…" : `Upload ${selectedContentType === "DOCUMENT" ? "Document" : selectedContentType.charAt(0) + selectedContentType.slice(1).toLowerCase()}`}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedContentType(null)}
+                                          className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </form>
+                                  ) : null}
+
+                                  {/* Form for Article */}
+                                  {selectedContentType === "ARTICLE" ? (
+                                    <form
+                                      onSubmit={(e) => void saveLectureDescription(e, lecture.id, lecture.title)}
+                                      className="mt-4 border border-[#d1d7dc] bg-[#fafbfc] p-4 rounded-xs grid gap-3"
+                                    >
+                                      <h4 className="text-xs font-bold text-[#1c1d1f] uppercase tracking-wider flex items-center gap-1.5">
+                                        📝 Write Article / Reading Lesson
+                                      </h4>
+                                      <textarea
+                                        className={`${fieldClass} min-h-36 resize-y`}
+                                        name="description"
+                                        defaultValue={lecture.textBody ?? ""}
+                                        placeholder="Write lecture article content here…"
+                                        required
+                                      />
+                                      <div className="flex items-center gap-3 pt-1">
+                                        <button
+                                          type="submit"
+                                          disabled={busy}
+                                          className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-2 rounded cursor-pointer disabled:opacity-50"
+                                        >
+                                          {busy ? "Saving…" : "Save Article"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedContentType(null)}
+                                          className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </form>
+                                  ) : null}
+                                </div>
+                              ) : null}
+
+                              {/* Expandable Description Form */}
+                              {isDescOpen ? (
+                                <form
+                                  onSubmit={(e) => void saveLectureDescription(e, lecture.id, lecture.title)}
+                                  className="mt-3 border-t border-[#d1d7dc] pt-3"
+                                >
+                                  <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">
+                                    Lecture Description
+                                  </label>
+                                  <textarea
+                                    name="description"
+                                    defaultValue={lecture.textBody ?? ""}
+                                    rows={3}
+                                    placeholder="What will students learn in this lecture?"
+                                    className="w-full border border-[#cfd5df] p-2.5 text-sm bg-white outline-none focus:border-[#063777] rounded-xs"
+                                  />
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                      type="submit"
+                                      disabled={busy}
+                                      className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-1.5 rounded cursor-pointer disabled:opacity-50"
+                                    >
+                                      Save Description
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenDescriptionId(null)}
+                                      className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </form>
+                              ) : null}
+
+
+                            </div>
+                          );
+                        })}
+
+                        {/* Form to add Lecture in this section */}
+                        {isDraft && addingLectureSectionId === section.id ? (
+                          <form
+                            onSubmit={(e) => void addLectureToSection(e, section.id === "general" ? null : section.id)}
+                            className="border border-[#063777] bg-[#f0f4fc] mx-3 my-3 p-4 rounded-xs"
+                          >
+                            <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">
+                              New Lecture Title
+                            </label>
+                            <input
+                              name="title"
+                              placeholder="e.g. Introduction to the Topic"
+                              required
+                              className="w-full border border-[#cfd5df] p-2.5 text-sm bg-white outline-none focus:border-[#063777] rounded-xs mb-3"
+                              autoFocus
+                            />
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="submit"
+                                disabled={busy}
+                                className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-1.5 rounded cursor-pointer disabled:opacity-50"
+                              >
+                                Add Lecture
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setAddingLectureSectionId(null)}
+                                className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        ) : null}
+
+                        {/* [+ Curriculum item] button matching image */}
+                        {isDraft && addingLectureSectionId !== section.id ? (
+                          <button
+                            type="button"
+                            onClick={() => setAddingLectureSectionId(section.id)}
+                            className="border border-[#063777] text-[#063777] hover:bg-[#063777]/5 font-semibold text-xs px-4 py-2 rounded transition m-3 inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            + Curriculum item
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+
+              {/* Add Section form or button */}
+              {isDraft ? (
+                addingSection ? (
+                  <form
+                    onSubmit={(e) => void createNewSection(e)}
+                    className="border border-[#063777] bg-[#f0f4fc] p-5 rounded-xs mt-4"
+                  >
+                    <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">
+                      New Section Title
+                    </label>
+                    <input
+                      name="title"
+                      placeholder={`e.g. Section ${nextSectionPosition}`}
+                      required
+                      className="w-full border border-[#cfd5df] p-2.5 text-sm bg-white outline-none focus:border-[#063777] rounded-xs mb-3"
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="submit"
+                        disabled={busy}
+                        className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-5 py-2 rounded cursor-pointer disabled:opacity-50"
+                      >
+                        Add Section
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAddingSection(false)}
+                        className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAddingSection(true)}
+                    className="border border-[#063777] text-[#063777] hover:bg-[#063777]/5 font-semibold text-sm px-5 py-2.5 rounded transition inline-flex items-center gap-1.5 cursor-pointer mt-2"
+                  >
+                    + Section
+                  </button>
+                )
               ) : null}
             </div>
-            <div className="mt-6 grid grid-cols-[minmax(240px,420px)_minmax(0,1fr)] gap-6 max-[700px]:grid-cols-1">
-              <div className="relative aspect-video overflow-hidden bg-[#27303b]">
-                <CourseCoverImage
-                  assetId={
-                    version.coverAsset?.status === "READY"
-                      ? version.coverAsset.id
-                      : null
-                  }
-                  alt={`${version.title} cover`}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              {isDraft && !version.coverAsset ? (
-                <form
-                  className="grid content-start gap-4"
-                  onSubmit={(event) => void uploadCover(event)}
-                >
-                  <label className="grid gap-2 text-sm font-semibold text-[#435166]">
-                    Choose cover image
-                    <input
-                      accept="image/jpeg,image/png,image/webp"
-                      className={fieldClass}
-                      name="cover"
-                      required
-                      type="file"
-                    />
-                  </label>
-                  <button
-                    className={primaryButton}
-                    disabled={busy}
-                    type="submit"
-                  >
-                    {busy ? "Uploading…" : "Upload cover"}
-                  </button>
-                </form>
-              ) : (
-                <div className="grid content-center">
-                  <p className="text-sm font-semibold text-[#202a38]">
-                    {version.coverAsset?.fileName ??
-                      "Cover can only be changed while this Version is a Draft."}
-                  </p>
-                  <p className="mt-1 text-xs text-[#747d8c]">
-                    {version.coverAsset?.status ?? version.status}
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
-          <section className={panelClass} id="content">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-                  Learning sequence
-                </p>
-                <h2 className="mt-2 text-2xl text-[#202a38]">Course content</h2>
-              </div>
-              <span className="text-sm text-[#747d8c]">
-                {version.contentItems.length} item(s)
-              </span>
-            </div>
-            {version.contentItems.length ? (
-              <ol className="mt-6 grid gap-3">
-                {version.contentItems.map((item, index) => (
-                  <li
-                    className="grid grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 bg-[#f6f8fa] p-4"
-                    key={item.id}
-                  >
-                    <span className="text-xs font-bold text-[#073d78]">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span className="text-[0.7rem] font-semibold tracking-[0.06em] text-[#0b6a73] uppercase">
-                      {version.sections.find((section) => section.id === item.sectionId)?.title ?? "General"}
-                    </span>
-                    {isDraft && item.contentType === "TEXT" ? (
-                      <form
-                        className="grid gap-3"
-                        onSubmit={(event) =>
-                          void updateTextContent(event, item.id)
-                        }
-                      >
-                        <input
-                          className={fieldClass}
-                          defaultValue={item.title ?? ""}
-                          name="title"
-                          placeholder="Lesson title"
-                          required
-                        />
-                        <textarea
-                          className={`${fieldClass} min-h-28 resize-y`}
-                          defaultValue={item.textBody ?? ""}
-                          name="textBody"
-                          required
-                        />
-                        <div className="flex flex-wrap gap-3">
-                          <button className={secondaryButton} disabled={busy} type="submit">
-                            Save lesson
-                          </button>
-                          <button
-                            className="cursor-pointer text-xs font-semibold text-[#8f1d14] hover:underline"
-                            disabled={busy}
-                            onClick={() =>
-                              void run(async () => {
-                                await backendApi(`content/${item.id}/text`, {
-                                  method: "DELETE",
-                                });
-                                await refresh();
-                              }, "Text lesson removed.")
-                            }
-                            type="button"
-                          >
-                            Remove lesson
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <span>
-                        <strong className="block text-sm text-[#202a38]">
-                          {item.title ?? item.contentType}
-                        </strong>
-                        <small className="text-[#747d8c]">
-                          {item.contentType}
-                          {item.mediaAsset
-                            ? ` · ${item.mediaAsset.fileName}`
-                            : ""}
-                        </small>
-                      </span>
-                    )}
-                    <div className="grid justify-items-end gap-2">
-                      {isDraft && version.sections.length > 0 ? (
-                        <form
-                          className="grid min-w-44 gap-2"
-                          onSubmit={(event) =>
-                            void moveContentToSection(event, item.id)
-                          }
-                        >
-                          <select
-                            className={fieldClass}
-                            defaultValue={item.sectionId ?? ""}
-                            name="sectionId"
-                          >
-                            <option value="">General</option>
-                            {version.sections.map((section) => (
-                              <option key={section.id} value={section.id}>
-                                {section.position}. {section.title}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            className={secondaryButton}
-                            disabled={busy}
-                            type="submit"
-                          >
-                            Save section
-                          </button>
-                        </form>
-                      ) : null}
-                      <small
-                        className={
-                          item.mediaAsset?.status === "READY"
-                            ? "font-semibold text-[#0b6a73]"
-                            : "font-semibold text-[#b54708]"
-                        }
-                      >
-                        {item.mediaAsset?.status ?? `#${item.position}`}
-                      </small>
-                      {isDraft && item.mediaAsset ? (
-                        <button
-                          className="cursor-pointer text-xs font-semibold text-[#8f1d14] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-[#949aa4]"
-                          disabled={busy}
-                          onClick={() =>
-                            void run(async () => {
-                              await backendApi(`media/${item.mediaAsset!.id}`, {
-                                method: "DELETE",
-                              });
-                              await refresh();
-                            }, "Media lesson removed.")
-                          }
-                          type="button"
-                        >
-                          Remove
-                        </button>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="mt-6 bg-[#f6f8fa] p-6 text-sm text-[#687486]">
-                No learning content yet. Add a text lesson or upload media
-                below.
-              </p>
-            )}
-            {isDraft ? (
-              <div className="mt-7 grid gap-5">
-                <form
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t-4 border-[#0b6a73] bg-[#f1f8f8] p-5 max-[560px]:grid-cols-1"
-                  onSubmit={(event) => void createSection(event)}
-                >
-                  <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                    Section title
-                    <input className={fieldClass} name="title" placeholder={`Section ${nextSectionPosition}`} required />
-                  </label>
-                  <button className={primaryButton} disabled={busy} type="submit">+ Section</button>
-                </form>
-                <div className="grid gap-5 xl:grid-cols-2">
-                <form
-                  className="grid content-start gap-4 border-t-4 border-[#073d78] bg-[#f8fafc] p-5"
-                  onSubmit={(event) => void addText(event)}
-                >
-                  <h3 className="text-lg text-[#202a38]">Add lecture</h3>
-                  <select className={fieldClass} name="sectionId" required={version.sections.length > 0}>
-                    <option value="">{version.sections.length ? "Choose section" : "General (no section)"}</option>
-                    {version.sections.map((section) => <option key={section.id} value={section.id}>{section.position}. {section.title}</option>)}
-                  </select>
-                  <input
-                    className={fieldClass}
-                    name="title"
-                    placeholder="Lecture title"
-                    required
-                  />
-                  <textarea
-                    className={`${fieldClass} min-h-32 resize-y`}
-                    name="textBody"
-                    placeholder="Lecture content"
-                    required
-                  />
-                  <button
-                    className={primaryButton}
-                    disabled={busy}
-                    type="submit"
-                  >
-                    + Lecture
-                  </button>
-                </form>
-                <form
-                  className="grid content-start gap-4 border-t-4 border-[#8ccbd0] bg-[#f8fafc] p-5"
-                  onSubmit={(event) => void addMedia(event)}
-                >
-                  <h3 className="text-lg text-[#202a38]">
-                    Add content
-                  </h3>
-                  <select className={fieldClass} name="sectionId" required={version.sections.length > 0}>
-                    <option value="">{version.sections.length ? "Choose section" : "General (no section)"}</option>
-                    {version.sections.map((section) => <option key={section.id} value={section.id}>{section.position}. {section.title}</option>)}
-                  </select>
-                  <select
-                    className={fieldClass}
-                    defaultValue="VIDEO"
-                    name="contentType"
-                  >
-                    <option value="VIDEO">Video</option>
-                    <option value="AUDIO">Audio</option>
-                    <option value="IMAGE">Image</option>
-                    <option value="DOCUMENT">Document</option>
-                  </select>
-                  <input
-                    className={fieldClass}
-                    name="title"
-                    placeholder="Content title"
-                    required
-                  />
-                  <input
-                    className={fieldClass}
-                    name="media"
-                    required
-                    type="file"
-                  />
-                  <button
-                    className={primaryButton}
-                    disabled={busy}
-                    type="submit"
-                  >
-                    + Content
-                  </button>
-                </form>
-                </div>
-              </div>
-            ) : null}
-          </section>
-          <section className={panelClass} id="preTest">
-            <div>
-              <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-                Assessment design
-              </p>
-              <h2 className="mt-2 text-2xl text-[#202a38]">
-                Pre-test & Post-test
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[#687486]">
-                Create one of each assessment, then add multiple-choice
-                questions and mark the correct answer.
-              </p>
-            </div>
-            {isDraft && version.quizzes.length < 2 ? (
-              <form
-                className="mt-6 grid grid-cols-[160px_minmax(0,1fr)_120px_auto] items-end gap-3 bg-[#f6f8fa] p-5 max-[760px]:grid-cols-1"
-                onSubmit={(event) => void createQuiz(event)}
-              >
-                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                  Type
-                  <select className={fieldClass} name="quizType">
-                    {!version.quizzes.some(
-                      (quiz) => quiz.quizType === "PRE_TEST",
-                    ) ? (
-                      <option value="PRE_TEST">Pre-test</option>
-                    ) : null}
-                    {!version.quizzes.some(
-                      (quiz) => quiz.quizType === "POST_TEST",
-                    ) ? (
-                      <option value="POST_TEST">Post-test</option>
-                    ) : null}
-                  </select>
-                </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                  Title
-                  <input
-                    className={fieldClass}
-                    name="title"
-                    placeholder="Assessment title"
-                    required
-                  />
-                </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                  Minutes
-                  <input
-                    className={fieldClass}
-                    min="1"
-                    name="minutes"
-                    placeholder="Untimed"
-                    type="number"
-                  />
-                </label>
-                <button className={primaryButton} disabled={busy} type="submit">
-                  Create
-                </button>
-              </form>
-            ) : null}
-            <div className="mt-7 grid gap-8">
-              {version.quizzes.length ? (
-                version.quizzes.map((quiz) => (
-                  <QuizEditor
-                    disabled={!isDraft || busy}
-                    key={quiz.id}
-                    onChanged={refresh}
-                    quiz={quiz}
-                    run={run}
-                  />
-                ))
-              ) : (
-                <p className="bg-[#f6f8fa] p-6 text-sm text-[#687486]">
-                  No assessments yet. Create both the mandatory Pre-test and Post-test.
-                </p>
-              )}
-            </div>
-          </section>
-          <section className={panelClass} id="submission-checklist">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">
-              Final review
-            </p>
-            <h2 className="mt-2 text-2xl text-[#202a38]">
-              Submission checklist
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#687486]">
-              Every required item must be ready before this version can be sent to an Approver.
-            </p>
-            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-              {checks.map(([key, ready]) => (
-                <li
-                  className={`flex items-center gap-3 border p-4 text-sm ${ready ? "border-[#d8d0ef] bg-[#faf8ff] text-[#292b3a]" : "border-[#ead8d5] bg-[#fff8f7] text-[#7a342d]"}`}
-                  key={key}
-                >
+          ) : null}
 
-                  <a
-                    className="font-medium text-inherit no-underline hover:underline"
-                    href={`#${checklistTargets[key as keyof TeacherCourseDetailDto["checks"]]}`}
+          {/* Landing page & Course details panel */}
+          {activeTab === "landing" ? (
+            <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
+              <section id="details">
+                <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
+                  Course readiness
+                </p>
+                <h2 className="mt-2 text-3xl tracking-[-0.04em] text-[#202a38]">
+                  Structure overview
+                </h2>
+                {isDraft ? (
+                  <form
+                    className="mt-6 grid max-w-3xl gap-4"
+                    id="course-details-form"
+                    onSubmit={(event) => void updateCourseDetails(event)}
                   >
-                    {checklistLabels[key as keyof TeacherCourseDetailDto["checks"]]}
-                  </a>
-                  <small className="ml-auto text-xs opacity-70">
-                    {ready ? "Ready" : "Needs work"}
-                  </small>
-                </li>
-              ))}
-            </ul>
-            {isDraft ? (
-              <div className="mt-7 flex flex-wrap items-center gap-4">
-                <button
-                  className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-7 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]"
-                  disabled={busy || data.readiness < 100}
-                  onClick={() => void submitDraft()}
-                  type="button"
-                >
-                  {busy ? "Submitting…" : "Submit for Review"}
-                </button>
-                <span className="text-sm text-[#687486]">
-                  {data.readiness === 100
-                    ? "Ready to submit. Approval publishes the course automatically."
-                    : `${checks.filter(([, ready]) => !ready).length} required item(s) remaining.`}
-                </span>
-              </div>
-            ) : null}
-          </section>
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                      Course title
+                      <input
+                        className={fieldClass}
+                        defaultValue={version.title}
+                        name="title"
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                      Course description
+                      <textarea
+                        className={`${fieldClass} min-h-32 resize-y`}
+                        defaultValue={version.description ?? ""}
+                        name="description"
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                      Course language
+                      <select
+                        className={fieldClass}
+                        defaultValue={version.languageCode}
+                        name="languageCode"
+                      >
+                        {COURSE_LANGUAGES.map((option) => (
+                          <option key={option.code} value={option.code}>
+                            {courseLanguageLabel(option.code, language)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="flex flex-wrap items-center gap-4 pt-2">
+                      <button className={primaryButton} disabled={busy} type="submit">
+                        {busy ? "Saving…" : "Save Draft"}
+                      </button>
+                      <span className="text-xs text-[#747d8c]">
+                        Typed changes are saved only when you press Save Draft.
+                      </span>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="mt-3 max-w-2xl leading-7 text-[#687486]">
+                    {version.description ?? "No Course description."}
+                  </p>
+                )}
+                <dl className="mt-7 grid grid-cols-3 border-t border-l border-[#d8dde5] max-[800px]:grid-cols-1">
+                  <div className="border-r border-b border-[#d8dde5] p-5">
+                    <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
+                      Course language
+                    </dt>
+                    <dd className="mt-2 text-sm font-semibold text-[#202a38]">
+                      {courseLanguageLabel(version.languageCode, language)}
+                    </dd>
+                  </div>
+                  <div className="border-r border-b border-[#d8dde5] p-5">
+                    <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
+                      Eligible majors
+                    </dt>
+                    <dd className="mt-2 text-sm font-semibold text-[#202a38]">
+                      {data.allowedMajors
+                        .map(({ major }) => translateMajor(major, language))
+                        .join(", ") || "Open to all majors"}
+                    </dd>
+                  </div>
+                  <div className="border-r border-b border-[#d8dde5] p-5">
+                    <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
+                      Categories
+                    </dt>
+                    <dd className="mt-2 text-sm font-semibold text-[#202a38]">
+                      {data.categories
+                        .map(({ category }) =>
+                          translateCategory(category, language),
+                        )
+                        .join(", ") || "None"}
+                    </dd>
+                  </div>
+                </dl>
+                {isDraft && categoryOptions.data ? (
+                  <form className="mt-6 border border-[#d8dde5] bg-[#fafbfc] p-5" onSubmit={(event) => void updateCategories(event)}>
+                    <h3 className="text-sm font-semibold text-[#202a38]">Edit categories</h3>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {categoryOptions.data.map((category) => (
+                        <label className="flex items-center gap-2 text-sm text-[#4d5868]" key={category.id}>
+                          <input defaultChecked={data.categories.some(({ category: assigned }) => assigned.id === category.id)} name="category" type="checkbox" value={category.id} />
+                          {translateCategory(category, language)}
+                        </label>
+                      ))}
+                    </div>
+                    <button className={`${secondaryButton} mt-4`} disabled={busy} type="submit">Save categories</button>
+                  </form>
+                ) : null}
+              </section>
+
+              <section className="mt-10 border-t border-[#d1d7dc] pt-10" id="cover">
+                <div className="flex items-start justify-between gap-5 max-[640px]:flex-col">
+                  <div>
+                    <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
+                      Visual identity
+                    </p>
+                    <h2 className="mt-2 text-2xl text-[#202a38]">Course cover</h2>
+                    <p className="mt-2 text-sm text-[#687486]">
+                      JPEG, PNG, or WebP · maximum 10 MB · landscape works best.
+                    </p>
+                  </div>
+                  {version.coverAsset && isDraft ? (
+                    <button
+                      className={secondaryButton}
+                      disabled={busy}
+                      onClick={() =>
+                        void run(async () => {
+                          await backendApi(
+                            `course-covers/${version.coverAsset!.id}`,
+                            { method: "DELETE" },
+                          );
+                          await refresh();
+                        }, "Course cover removed.")
+                      }
+                      type="button"
+                    >
+                      Remove cover
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-6 grid grid-cols-[minmax(240px,420px)_minmax(0,1fr)] gap-6 max-[700px]:grid-cols-1">
+                  <div className="relative aspect-video overflow-hidden bg-[#27303b]">
+                    <CourseCoverImage
+                      assetId={
+                        version.coverAsset?.status === "READY"
+                          ? version.coverAsset.id
+                          : null
+                      }
+                      alt={`${version.title} cover`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  {isDraft && !version.coverAsset ? (
+                    <form
+                      className="grid content-start gap-4"
+                      onSubmit={(event) => void uploadCover(event)}
+                    >
+                      <label className="grid gap-2 text-sm font-semibold text-[#435166]">
+                        Choose cover image
+                        <input
+                          accept="image/jpeg,image/png,image/webp"
+                          className={fieldClass}
+                          name="cover"
+                          required
+                          type="file"
+                        />
+                      </label>
+                      <button
+                        className={primaryButton}
+                        disabled={busy}
+                        type="submit"
+                      >
+                        {busy ? "Uploading…" : "Upload cover"}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="grid content-center">
+                      <p className="text-sm font-semibold text-[#202a38]">
+                        {version.coverAsset?.fileName ??
+                          "Cover can only be changed while this Version is a Draft."}
+                      </p>
+                      <p className="mt-1 text-xs text-[#747d8c]">
+                        {version.coverAsset?.status ?? version.status}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          ) : null}
+
+          {/* Assessments & Quizzes panel */}
+          {activeTab === "assessments" ? (
+            <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
+              <section id="preTest">
+                <div>
+                  <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
+                    Assessment design
+                  </p>
+                  <h2 className="mt-2 text-2xl text-[#202a38]">
+                    Pre-test &amp; Post-test
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-[#687486]">
+                    Create one of each assessment, then add multiple-choice questions and mark the correct answer.
+                  </p>
+                </div>
+                {isDraft && version.quizzes.length < 2 ? (
+                  <form
+                    className="mt-6 grid grid-cols-[160px_minmax(0,1fr)_120px_auto] items-end gap-3 bg-[#f6f8fa] p-5 max-[760px]:grid-cols-1"
+                    onSubmit={(event) => void createQuiz(event)}
+                  >
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                      Type
+                      <select className={fieldClass} name="quizType">
+                        {!version.quizzes.some(
+                          (quiz) => quiz.quizType === "PRE_TEST",
+                        ) ? (
+                          <option value="PRE_TEST">Pre-test</option>
+                        ) : null}
+                        {!version.quizzes.some(
+                          (quiz) => quiz.quizType === "POST_TEST",
+                        ) ? (
+                          <option value="POST_TEST">Post-test</option>
+                        ) : null}
+                      </select>
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                      Title
+                      <input
+                        className={fieldClass}
+                        name="title"
+                        placeholder="Assessment title"
+                        required
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+                      Minutes
+                      <input
+                        className={fieldClass}
+                        min="1"
+                        name="minutes"
+                        placeholder="Untimed"
+                        type="number"
+                      />
+                    </label>
+                    <button className={primaryButton} disabled={busy} type="submit">
+                      Create assessment
+                    </button>
+                  </form>
+                ) : null}
+                <div className="mt-7 grid gap-8">
+                  {version.quizzes.length ? (
+                    version.quizzes.map((quiz) => (
+                      <QuizEditor
+                        disabled={!isDraft || busy}
+                        key={quiz.id}
+                        onChanged={refresh}
+                        quiz={quiz}
+                        run={run}
+                      />
+                    ))
+                  ) : (
+                    <p className="bg-[#f6f8fa] p-6 text-sm text-[#687486]">
+                      No assessments yet. Create both the mandatory Pre-test and Post-test.
+                    </p>
+                  )}
+                </div>
+              </section>
+            </div>
+          ) : null}
+
+          {/* Submission checklist panel */}
+          {activeTab === "checklist" ? (
+            <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
+              <section id="submission-checklist">
+                <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">
+                  Final review
+                </p>
+                <h2 className="mt-2 text-2xl text-[#202a38]">
+                  Submission checklist
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#687486]">
+                  Every required item must be ready before this version can be sent to an Approver.
+                </p>
+                <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {checks.map(([key, ready]) => (
+                    <li
+                      className={`flex items-center gap-3 border p-4 text-sm ${ready ? "border-[#d8d0ef] bg-[#faf8ff] text-[#292b3a]" : "border-[#ead8d5] bg-[#fff8f7] text-[#7a342d]"}`}
+                      key={key}
+                    >
+                      <span className="font-medium text-inherit">
+                        {checklistLabels[key as keyof TeacherCourseDetailDto["checks"]]}
+                      </span>
+                      <small className="ml-auto text-xs opacity-70">
+                        {ready ? "Ready" : "Needs work"}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+                {isDraft ? (
+                  <div className="mt-7 flex flex-wrap items-center gap-4">
+                    <button
+                      className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded bg-[#063777] hover:bg-[#044f99] px-7 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce]"
+                      disabled={busy || data.readiness < 100}
+                      onClick={() => void submitDraft()}
+                      type="button"
+                    >
+                      {busy ? "Submitting…" : "Submit for Review"}
+                    </button>
+                    <span className="text-sm text-[#687486]">
+                      {data.readiness === 100
+                        ? "Ready to submit. Approval publishes the course automatically."
+                        : `${checks.filter(([, ready]) => !ready).length} required item(s) remaining.`}
+                    </span>
+                  </div>
+                ) : null}
+              </section>
+            </div>
+          ) : null}
         </div>
       </div>
     </main>

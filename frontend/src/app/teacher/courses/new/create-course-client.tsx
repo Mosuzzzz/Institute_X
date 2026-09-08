@@ -58,51 +58,53 @@ export default function CreateCourseClient() {
 
   return (
     <main className="min-h-full bg-[#f7f7f9] pb-16">
-      <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#17171f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
-        <Link className="text-sm text-white/80 no-underline transition hover:text-white" href="/teacher/courses">
-          ← Back to courses
+      <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#1c1d1f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
+        <Link className="text-sm font-medium text-white/80 no-underline transition hover:text-white" href="/teacher/courses">
+          Back to courses
         </Link>
         <strong className="text-sm font-semibold">Untitled Course</strong>
-        <span className="rounded bg-[#77798a] px-3 py-1 text-xs font-semibold tracking-wide text-white uppercase">
+        <span className="rounded bg-[#3e4143] px-2.5 py-0.5 text-xs font-bold tracking-wider text-white uppercase">
           Draft
         </span>
-        <span className="text-sm text-white/70">Version 1 · New course</span>
+        <span className="text-xs text-white/70">Version 1 · New course</span>
       </header>
 
       <form
-        className="mx-auto grid w-[min(calc(100%-48px),1420px)] grid-cols-[280px_minmax(0,1fr)] py-10 max-[900px]:w-full max-[900px]:grid-cols-1 max-[900px]:py-0"
+        className="mx-auto grid w-[min(calc(100%-48px),1420px)] grid-cols-[280px_minmax(0,1fr)] gap-8 py-10 max-[900px]:w-full max-[900px]:grid-cols-1 max-[900px]:py-0"
         onSubmit={(event) => void submit(event)}
       >
         <nav className="sticky top-[104px] grid h-fit content-start gap-8 px-7 py-8 max-[900px]:static max-[900px]:grid-cols-3 max-[900px]:gap-5 max-[900px]:overflow-x-auto max-[900px]:bg-white max-[640px]:grid-cols-1" aria-label="New course sections">
           <div>
-            <h2 className="text-sm font-semibold text-[#292b3a]">Plan your course</h2>
-            <div className="mt-3 grid">
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-[#063777] bg-white px-4 py-2.5 text-sm text-[#292b3a] no-underline" href="#course-information">
-                <span className="size-5 rounded-full border border-[#77798a]" />
+            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">Plan your course</h2>
+            <div className="mt-3 grid gap-1">
+              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-[#1c1d1f] bg-white px-4 py-2.5 text-sm font-bold text-[#1c1d1f] no-underline shadow-xs" href="#course-information">
+                <span className="size-4.5 rounded-full border border-[#1c1d1f] bg-[#1c1d1f] flex items-center justify-center">
+                  <span className="size-1.5 rounded-full bg-white" />
+                </span>
                 Course information
               </a>
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white" href="#discovery">
-                <span className="size-5 rounded-full border border-[#77798a]" />
+              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#1c1d1f] hover:bg-white hover:text-[#1c1d1f]" href="#discovery">
+                <span className="size-4.5 rounded-full border border-[#6a6f73]" />
                 Discovery
               </a>
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#063777] hover:bg-white" href="#eligibility">
-                <span className="size-5 rounded-full border border-[#77798a]" />
+              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#1c1d1f] hover:bg-white hover:text-[#1c1d1f]" href="#eligibility">
+                <span className="size-4.5 rounded-full border border-[#6a6f73]" />
                 Student eligibility
               </a>
             </div>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[#292b3a]">Create your content</h2>
-            <p className="mt-3 px-4 text-xs leading-5 text-[#747d8c]">
+            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">Create your content</h2>
+            <p className="px-3 text-xs leading-5 text-[#747d8c]">
               Curriculum, media, Pre-Test and Post-Test become available after the Draft is created.
             </p>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[#292b3a]">Continue editing</h2>
-            <button className="mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-5 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]" type="submit" disabled={saving}>
+            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">Continue editing</h2>
+            <button className="mt-3 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#052e5b] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
               {saving ? 'Creating…' : 'Create Draft & Continue'}
             </button>
-            <Link className="mt-3 flex min-h-10 items-center justify-center text-sm font-medium text-[#052b5b] no-underline hover:underline" href="/teacher/courses">
+            <Link className="mt-3 flex min-h-10 items-center justify-center text-sm font-medium text-[#073d78] no-underline hover:underline" href="/teacher/courses">
               Cancel
             </Link>
           </div>
@@ -179,7 +181,7 @@ export default function CreateCourseClient() {
             )}
             {error ? <p className="mt-6 border-l-4 border-[#b42318] bg-[#fff3f2] p-4 text-sm text-[#8f1d14]" role="alert">{error}</p> : null}
             <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-[#e2e4eb] pt-6">
-              <button className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-sm bg-[#063777] px-7 text-sm font-semibold text-white transition hover:bg-[#052b5b] disabled:cursor-not-allowed disabled:bg-[#aebdce]" type="submit" disabled={saving}>
+              <button className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#052e5b] px-7 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
                 {saving ? 'Creating…' : 'Create Draft & Continue'}
               </button>
               <span className="text-sm text-[#687486]">You will add the cover, curriculum and assessments on the next page.</span>

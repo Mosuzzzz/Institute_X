@@ -32,6 +32,11 @@ interface CreateSectionInput {
   position: number;
 }
 
+interface UpdateSectionInput {
+  title?: string;
+  position?: number;
+}
+
 interface UpdateTextInput {
   title?: string | null;
   textBody?: string;
@@ -188,6 +193,72 @@ export class ContentService {
       }
       throw error;
     }
+  }
+
+  async updateSection(
+    actor: ContentActor,
+    sectionId: string,
+    input: UpdateSectionInput,
+  ): Promise<CourseSection> {
+    this.requireTeacher(actor);
+    const section = await this.prisma.courseSection.findUnique({
+      where: { id: sectionId },
+      include: {
+        version: { include: { course: { select: { teacherId: true } } } },
+      },
+    });
+    if (!section) throw new NotFoundException('Course Section was not found');
+    if (section.version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may edit this Course');
+    }
+    if (section.version.status !== CourseVersionStatus.DRAFT) {
+      throw new ConflictException('Only a Draft Version may be changed');
+    }
+    const data: Prisma.CourseSectionUpdateInput = {};
+    if (input.title !== undefined) {
+      const title = input.title.trim();
+      if (!title) throw new UnprocessableEntityException('Section title is required');
+      data.title = title;
+    }
+    if (input.position !== undefined) {
+      if (!Number.isInteger(input.position) || input.position < 1) {
+        throw new UnprocessableEntityException('Section position must be a positive integer');
+      }
+      data.position = input.position;
+    }
+    try {
+      return await this.prisma.courseSection.update({
+        where: { id: sectionId },
+        data,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Section position is already in use');
+      }
+      throw error;
+    }
+  }
+
+  async deleteSection(actor: ContentActor, sectionId: string): Promise<void> {
+    this.requireTeacher(actor);
+    const section = await this.prisma.courseSection.findUnique({
+      where: { id: sectionId },
+      include: {
+        version: { include: { course: { select: { teacherId: true } } } },
+      },
+    });
+    if (!section) throw new NotFoundException('Course Section was not found');
+    if (section.version.course.teacherId !== actor.id) {
+      throw new ForbiddenException('Only the owning Teacher may edit this Course');
+    }
+    if (section.version.status !== CourseVersionStatus.DRAFT) {
+      throw new ConflictException('Only a Draft Version may be changed');
+    }
+    await this.prisma.contentItem.updateMany({
+      where: { sectionId },
+      data: { sectionId: null },
+    });
+    await this.prisma.courseSection.delete({ where: { id: sectionId } });
   }
 
   private async requireOwnedDraftText(actor: ContentActor, contentId: string): Promise<void> {

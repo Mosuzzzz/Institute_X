@@ -115,7 +115,12 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
       ? pathname === item.href
       : pathname.startsWith(item.href),
   );
-  const isCourseEditor = /^\/teacher\/courses\/[^/]+$/.test(pathname);
+  const isCourseEditor =
+    pathname.startsWith("/teacher/courses/") && pathname !== "/teacher/courses";
+
+  if (isCourseEditor) {
+    return <div className="min-h-svh w-full bg-[#f7f7f9]">{children}</div>;
+  }
 
   return (
     <div className={`${workspaceUi.shell("teacher")} ${styles.shell}`}>

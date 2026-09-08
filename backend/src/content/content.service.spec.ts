@@ -5,11 +5,18 @@ import { ContentService } from './content.service';
 describe('ContentService', () => {
   const prisma = {
     courseVersion: { findUnique: jest.fn() },
-    courseSection: { create: jest.fn(), findFirst: jest.fn() },
+    courseSection: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
     contentItem: {
       create: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
     },
   };
@@ -58,6 +65,46 @@ describe('ContentService', () => {
 
     expect(prisma.courseSection.create).toHaveBeenCalledWith({
       data: { versionId: 'version-id', title: 'Section 1', position: 1 },
+    });
+  });
+
+  it('updates an existing Section in an owned Draft', async () => {
+    prisma.courseSection.findUnique.mockResolvedValue({
+      id: 'section-id',
+      version: {
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+      },
+    });
+    prisma.courseSection.update.mockResolvedValue({ id: 'section-id', title: 'Updated Section' });
+
+    await service.updateSection({ id: 'teacher-id', role: UserRole.TEACHER }, 'section-id', {
+      title: 'Updated Section',
+    });
+
+    expect(prisma.courseSection.update).toHaveBeenCalledWith({
+      where: { id: 'section-id' },
+      data: { title: 'Updated Section' },
+    });
+  });
+
+  it('deletes a Section in an owned Draft and unassigns content items', async () => {
+    prisma.courseSection.findUnique.mockResolvedValue({
+      id: 'section-id',
+      version: {
+        status: CourseVersionStatus.DRAFT,
+        course: { teacherId: 'teacher-id' },
+      },
+    });
+
+    await service.deleteSection({ id: 'teacher-id', role: UserRole.TEACHER }, 'section-id');
+
+    expect(prisma.contentItem.updateMany).toHaveBeenCalledWith({
+      where: { sectionId: 'section-id' },
+      data: { sectionId: null },
+    });
+    expect(prisma.courseSection.delete).toHaveBeenCalledWith({
+      where: { id: 'section-id' },
     });
   });
 
