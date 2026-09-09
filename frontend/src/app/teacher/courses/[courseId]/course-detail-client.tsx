@@ -989,7 +989,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
     await run(async () => {
       await backendApi(`course-versions/${version.id}`, { method: "DELETE" });
       if (version.versionNumber === 1) {
-        router.replace("/teacher/courses");
+        router.replace("/teaching/courses");
       } else {
         await refresh();
       }
@@ -1032,7 +1032,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#1c1d1f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
         <Link
           className="text-sm font-medium text-white/80 no-underline transition hover:text-white"
-          href="/teacher/courses"
+          href="/teaching/courses"
         >
           Back to courses
         </Link>
@@ -1045,7 +1045,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         <div className="ml-auto flex items-center gap-3">
           <Link
             className="border border-white/40 px-3 py-1.5 text-xs font-semibold text-white no-underline hover:bg-white/10 rounded"
-            href={`/teacher/courses/${courseId}/analytics`}
+            href={`/teaching/courses/${courseId}/analytics`}
           >
             Analytics
           </Link>

@@ -21,7 +21,7 @@ export default function CreateCourseClient() {
   const [error, setError] = useState<string | null>(null);
   if (categories.loading || majors.loading || permission.loading) return <main className={formUi.page}><ApiState loading error={null} /></main>;
   if (categories.error || majors.error || permission.error) return <main className={formUi.page}><ApiState loading={false} error={categories.error ?? majors.error ?? permission.error} /></main>;
-  if (permission.data?.status !== 'APPROVED') return <main className={formUi.page}><section className="border border-[#dce1e7] bg-white p-8"><p className={staffUi.eyebrow}>Permission required</p><h1 className="mt-2 text-3xl text-[#202a38]">Course creation is locked</h1><p className="mt-3 text-[#667182]">An Approver must approve your Teacher permission before you can create a Course.</p><Link className={`${staffUi.primaryAction} mt-6 inline-flex`} href="/teacher/permission">Open permission request</Link></section></main>;
+  if (permission.data?.status !== 'APPROVED') return <main className={formUi.page}><section className="border border-[#dce1e7] bg-white p-8"><p className={staffUi.eyebrow}>Permission required</p><h1 className="mt-2 text-3xl text-[#202a38]">Course creation is locked</h1><p className="mt-3 text-[#667182]">An Approver must approve your Teacher permission before you can create a Course.</p><Link className={`${staffUi.primaryAction} mt-6 inline-flex`} href="/teaching/permission">Open permission request</Link></section></main>;
   if (!categories.data || !majors.data) return <main className={formUi.page}><ApiState loading={false} error="Course reference data is unavailable." /></main>;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -52,14 +52,14 @@ export default function CreateCourseClient() {
           majorIds,
         }),
       });
-      router.replace(`/teacher/courses/${course.id}`);
+      router.replace(`/teaching/courses/${course.id}`);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to create Course.'); setSaving(false); }
   };
 
   return (
     <main className="min-h-full bg-[#f7f7f9] pb-16">
       <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#1c1d1f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
-        <Link className="text-sm font-medium text-white/80 no-underline transition hover:text-white" href="/teacher/courses">
+        <Link className="text-sm font-medium text-white/80 no-underline transition hover:text-white" href="/teaching/courses">
           Back to courses
         </Link>
         <strong className="text-sm font-semibold">Untitled Course</strong>
@@ -104,7 +104,7 @@ export default function CreateCourseClient() {
             <button className="mt-3 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#052e5b] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
               {saving ? 'Creating…' : 'Create Draft & Continue'}
             </button>
-            <Link className="mt-3 flex min-h-10 items-center justify-center text-sm font-medium text-[#073d78] no-underline hover:underline" href="/teacher/courses">
+            <Link className="mt-3 flex min-h-10 items-center justify-center text-sm font-medium text-[#073d78] no-underline hover:underline" href="/teaching/courses">
               Cancel
             </Link>
           </div>

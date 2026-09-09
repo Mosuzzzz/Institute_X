@@ -30,10 +30,12 @@ async function main(): Promise<void> {
       accountStatus: AccountStatus.ACTIVE,
     },
   });
-  await prisma.userRoleAssignment.upsert({
-    where: { userId_role: { userId: user.id, role: UserRole.EXECUTIVE } },
-    create: { userId: user.id, role: UserRole.EXECUTIVE },
-    update: {},
+  await prisma.userRoleAssignment.createMany({
+    data: [
+      { userId: user.id, role: UserRole.STUDENT },
+      { userId: user.id, role: UserRole.EXECUTIVE },
+    ],
+    skipDuplicates: true,
   });
 }
 

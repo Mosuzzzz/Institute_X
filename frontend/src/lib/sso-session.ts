@@ -17,10 +17,10 @@ export type SsoProfile = {
 
 export function getRoleHomePath(role: ApplicationRole): string | null {
   switch (role) {
-    case 'STUDENT': return '/student';
-    case 'TEACHER': return '/teacher/courses';
-    case 'APPROVER': return '/approver';
-    case 'EXECUTIVE': return '/executive';
+    case 'STUDENT': return '/learning/courses';
+    case 'TEACHER': return '/teaching/courses';
+    case 'APPROVER': return '/reviewing';
+    case 'EXECUTIVE': return '/dashboard';
     default: return null;
   }
 }
@@ -28,7 +28,11 @@ export function getRoleHomePath(role: ApplicationRole): string | null {
 export function resolveApplicationRole(profile: SsoProfile | null): ApplicationRole {
   if (!profile?.roles?.length) return null;
   const selected = sessionStorage.getItem(ACTIVE_ROLE_KEY) as ApplicationRole;
-  return selected && profile.roles.includes(selected) ? selected : profile.roles[0];
+  return selected && profile.roles.includes(selected)
+    ? selected
+    : profile.roles.includes('STUDENT')
+      ? 'STUDENT'
+      : profile.roles[0];
 }
 
 export function setActiveRole(role: Exclude<ApplicationRole, null>): string | null {
@@ -70,7 +74,12 @@ export function storeSession(token: string, expiresAt: string, profile: SsoProfi
   sessionStorage.setItem(SSO_TOKEN_KEY, token);
   sessionStorage.setItem(SSO_TOKEN_EXPIRY_KEY, String(new Date(expiresAt).getTime()));
   sessionStorage.setItem(SSO_PROFILE_KEY, JSON.stringify(profile));
-  if (profile.roles?.length) sessionStorage.setItem(ACTIVE_ROLE_KEY, profile.roles[0]);
+  if (profile.roles?.length) {
+    sessionStorage.setItem(
+      ACTIVE_ROLE_KEY,
+      profile.roles.includes('STUDENT') ? 'STUDENT' : profile.roles[0],
+    );
+  }
 }
 
 export function hasActiveSsoSession() {

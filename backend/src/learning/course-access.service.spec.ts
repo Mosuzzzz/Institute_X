@@ -1,7 +1,6 @@
 import {
   ForbiddenException,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import {
   AccountStatus,
@@ -387,11 +386,18 @@ describe('CourseAccessService', () => {
       );
     });
 
-    it('requires an active Student with a Major before querying the catalog', async () => {
-      await expect(
-        service.listEligibleCourses({ ...student, majorId: null }),
-      ).rejects.toBeInstanceOf(UnprocessableEntityException);
-      expect(prisma.course.findMany).not.toHaveBeenCalled();
+    it('shows only OPEN Courses when the Student has no Major', async () => {
+      prisma.course.findMany.mockResolvedValue([]);
+
+      await service.listEligibleCourses({ ...student, majorId: null });
+
+      expect(prisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [{ eligibilityMode: 'OPEN' }],
+          }),
+        }),
+      );
     });
   });
 });

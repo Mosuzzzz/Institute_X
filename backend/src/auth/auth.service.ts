@@ -46,6 +46,9 @@ export class AuthService {
     ) {
       throw new UnauthorizedException('Email or password is incorrect');
     }
+    if (!user.roles.some((entry) => entry.role === UserRole.STUDENT)) {
+      throw new UnauthorizedException('Every account must have the STUDENT role');
+    }
     const token = randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + this.sessionLifetimeMs);
     await this.prisma.authSession.create({
@@ -61,9 +64,12 @@ export class AuthService {
     });
     if (!session || session.expiresAt <= new Date())
       throw new UnauthorizedException('Invalid or expired session');
-    const roles = session.user.roles.map((entry) => entry.role);
-    if (session.user.accountStatus !== AccountStatus.ACTIVE || roles.length === 0) {
-      throw new UnauthorizedException('Account is inactive or has no role');
+    const roles = this.studentFirst(session.user.roles.map((entry) => entry.role));
+    if (
+      session.user.accountStatus !== AccountStatus.ACTIVE ||
+      !roles.includes(UserRole.STUDENT)
+    ) {
+      throw new UnauthorizedException('Account is inactive or is missing the STUDENT role');
     }
     return {
       id: session.user.id,
@@ -99,6 +105,10 @@ export class AuthService {
     majorId: string | null;
     roles: Array<{ role: UserRole }>;
   }): PublicUser {
+    const roles = this.studentFirst(user.roles.map((entry) => entry.role));
+    if (!roles.includes(UserRole.STUDENT)) {
+      throw new UnauthorizedException('Every account must have the STUDENT role');
+    }
     return {
       id: user.id,
       username: user.username,
@@ -106,7 +116,13 @@ export class AuthService {
       name: user.fullName,
       accountStatus: user.accountStatus,
       majorId: user.majorId,
-      roles: user.roles.map((entry) => entry.role),
+      roles,
     };
+  }
+
+  private studentFirst(roles: UserRole[]): UserRole[] {
+    return roles.includes(UserRole.STUDENT)
+      ? [UserRole.STUDENT, ...roles.filter((role) => role !== UserRole.STUDENT)]
+      : roles;
   }
 }

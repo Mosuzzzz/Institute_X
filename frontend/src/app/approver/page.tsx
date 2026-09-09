@@ -52,7 +52,7 @@ export default function ApproverOverviewPage() {
       <section aria-label="Review queue totals" className="mb-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
         {/* Teacher Permissions Queue Card */}
         <Link
-          href="/approver/teacher-requests"
+          href="/reviewing/teaching-requests"
           className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:shadow-md"
         >
           <div>
@@ -83,7 +83,7 @@ export default function ApproverOverviewPage() {
 
         {/* Course Versions Queue Card */}
         <Link
-          href="/approver/course-reviews"
+          href="/reviewing/course-reviews"
           className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:shadow-md"
         >
           <div>
@@ -129,7 +129,7 @@ export default function ApproverOverviewPage() {
             {/* Top pending teacher permission */}
             {nextPermission ? (
               <Link
-                href="/approver/teacher-requests"
+                href="/reviewing/teaching-requests"
                 className="group flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md sm:flex-row sm:items-center"
               >
                 <div className="flex items-center gap-4">
@@ -158,7 +158,7 @@ export default function ApproverOverviewPage() {
             {/* Top pending course version */}
             {nextVersion ? (
               <Link
-                href={`/approver/course-reviews/${nextVersion.id}`}
+                href={`/reviewing/course-reviews/${nextVersion.id}`}
                 className="group flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md sm:flex-row sm:items-center"
               >
                 <div className="flex items-center gap-4">

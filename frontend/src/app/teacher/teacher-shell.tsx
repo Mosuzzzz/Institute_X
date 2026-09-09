@@ -28,9 +28,9 @@ import styles from "../workspace-sidebar.module.css";
 const subscribeToSession = () => () => undefined;
 
 const navigation = [
-  { href: "/teacher", label: "overview", icon: "grid" },
-  { href: "/teacher/courses", label: "courses", icon: "book" },
-  { href: "/teacher/permission", label: "permission", icon: "shield" },
+  { href: "/teaching", label: "overview", icon: "grid" },
+  { href: "/teaching/courses", label: "courses", icon: "book" },
+  { href: "/teaching/permission", label: "permission", icon: "shield" },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
@@ -68,9 +68,9 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!sessionReady) return;
     if (!isAuthenticated) router.replace("/");
-    else if (applicationRole === "STUDENT") router.replace("/student");
-    else if (applicationRole === "APPROVER") router.replace("/approver");
-    else if (applicationRole === "EXECUTIVE") router.replace("/executive");
+    else if (applicationRole === "STUDENT") router.replace("/learning/courses");
+    else if (applicationRole === "APPROVER") router.replace("/reviewing");
+    else if (applicationRole === "EXECUTIVE") router.replace("/dashboard");
     else if (applicationRole === null) {
       clearSsoSession();
       router.replace("/");
@@ -92,12 +92,12 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
     void endSession().finally(() => router.replace("/"));
   };
   const currentNavigation = navigation.find((item) =>
-    item.href === "/teacher"
+    item.href === "/teaching"
       ? pathname === item.href
       : pathname.startsWith(item.href),
   );
   const isCourseEditor =
-    pathname.startsWith("/teacher/courses/") && pathname !== "/teacher/courses";
+    pathname.startsWith("/teaching/courses/") && pathname !== "/teaching/courses";
 
   if (isCourseEditor) {
     return <div className="min-h-svh w-full bg-[#f7f7f9]">{children}</div>;
@@ -107,7 +107,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
     <div className={`${workspaceUi.shell("teacher")} ${styles.shell}`}>
       <aside className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
-          <Link className={workspaceUi.brandLink} href="/teacher/courses" aria-label="Institute X teacher courses dashboard">
+          <Link className={workspaceUi.brandLink} href="/teaching/courses" aria-label="Institute X teacher courses dashboard">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
@@ -120,7 +120,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
           <p className={workspaceUi.navLabel}>Workspace · 01</p>
           {navigation.map((item) => {
             const active =
-              item.href === "/teacher"
+              item.href === "/teaching"
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
             return (

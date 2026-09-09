@@ -27,7 +27,7 @@ import styles from "../workspace-sidebar.module.css";
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
-  { href: "/executive", label: "systemOverview", icon: "grid" },
+  { href: "/dashboard", label: "systemOverview", icon: "grid" },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
@@ -64,9 +64,9 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!sessionReady) return;
     if (!isAuthenticated) router.replace("/");
-    else if (applicationRole === "STUDENT") router.replace("/student");
-    else if (applicationRole === "TEACHER") router.replace("/teacher");
-    else if (applicationRole === "APPROVER") router.replace("/approver");
+    else if (applicationRole === "STUDENT") router.replace("/learning/courses");
+    else if (applicationRole === "TEACHER") router.replace("/teaching");
+    else if (applicationRole === "APPROVER") router.replace("/reviewing");
     else if (applicationRole === null) {
       clearSsoSession();
       router.replace("/");
@@ -88,7 +88,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
     void endSession().finally(() => router.replace("/"));
   };
   const currentNavigation = navigation.find((item) =>
-    item.href === "/executive"
+    item.href === "/dashboard"
       ? pathname === item.href
       : pathname.startsWith(item.href),
   );
@@ -98,7 +98,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
     <div className={`${workspaceUi.shell("owner")} ${styles.shell}`}>
       <aside className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
-          <Link className={workspaceUi.brandLink} href="/executive" aria-label="Institute X Executive home">
+          <Link className={workspaceUi.brandLink} href="/dashboard" aria-label="Institute X Executive home">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
@@ -111,7 +111,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
           <p className={workspaceUi.navLabel}>Workspace · 03</p>
           {navigation.map((item) => {
             const active =
-              item.href === "/executive"
+              item.href === "/dashboard"
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
             return (

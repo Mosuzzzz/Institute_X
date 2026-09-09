@@ -246,6 +246,16 @@ export default function StudentCatalogClient({
 
   return (
     <main className={studentMain}>
+      <header className="mb-8 border-b border-slate-200 pb-6">
+        <p className={eyebrow}>Learning dashboard</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Your learning</h1>
+        <p className="mt-2 text-sm text-slate-500">Continue courses, monitor progress, and discover eligible learning.</p>
+      </header>
+      <section className="mb-10 grid gap-4 sm:grid-cols-3" aria-label="Learning summary">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">In progress</span><strong className="mt-2 block text-3xl text-slate-900">{enrolled.filter((course) => (course.progress ?? 0) < 100).length}</strong></article>
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">Completed</span><strong className="mt-2 block text-3xl text-emerald-700">{enrolled.filter((course) => course.progress === 100).length}</strong></article>
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">Available courses</span><strong className="mt-2 block text-3xl text-blue-700">{allCourses.length}</strong></article>
+      </section>
       {enrolled.length ? (
         <section aria-labelledby="continue-heading">
           <div className="mb-[34px] flex items-end justify-between gap-6 max-[540px]:items-start">
@@ -260,7 +270,7 @@ export default function StudentCatalogClient({
             </div>
             <Link
               className="font-bold text-[#073d78] no-underline hover:underline hover:underline-offset-5 max-[540px]:text-[0.78rem]"
-              href="/student/learning"
+              href="/learning/my-courses"
             >
               {text.viewLearning}
             </Link>

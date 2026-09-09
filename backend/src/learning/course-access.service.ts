@@ -2,7 +2,6 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import {
   AccountStatus,
@@ -78,13 +77,15 @@ export class CourseAccessService {
     const courses = await this.prisma.course.findMany({
       where: {
         archivedAt: null,
-        OR: [
-          { eligibilityMode: CourseEligibilityMode.OPEN },
-          {
-            eligibilityMode: CourseEligibilityMode.LIMITED,
-            allowedMajors: { some: { majorId: student.majorId! } },
-          },
-        ],
+        OR: student.majorId
+          ? [
+              { eligibilityMode: CourseEligibilityMode.OPEN },
+              {
+                eligibilityMode: CourseEligibilityMode.LIMITED,
+                allowedMajors: { some: { majorId: student.majorId } },
+              },
+            ]
+          : [{ eligibilityMode: CourseEligibilityMode.OPEN }],
         versions: { some: { status: CourseVersionStatus.PUBLISHED } },
         ...(categoryId ? { categories: { some: { categoryId } } } : {}),
       },
@@ -343,9 +344,6 @@ export class CourseAccessService {
     }
     if (student.accountStatus !== AccountStatus.ACTIVE) {
       throw new ForbiddenException('Institutional account is inactive');
-    }
-    if (!student.majorId) {
-      throw new UnprocessableEntityException('Student Major is required');
     }
   }
 

@@ -59,7 +59,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
         <section className={`${commonUi.empty} border-[#d99da2] bg-[#fae9eb] text-[#8b343b]`}>
           <strong>Version is no longer pending</strong>
           <p>It may already have been reviewed.</p>
-          <Link className="font-bold underline" href="/approver/course-reviews">
+          <Link className="font-bold underline" href="/reviewing/course-reviews">
             Return to queue
           </Link>
         </section>
@@ -107,7 +107,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
         method: 'PATCH',
         body: JSON.stringify({ decision, comment: comment.trim() || undefined }),
       });
-      router.replace('/approver/course-reviews');
+      router.replace('/reviewing/course-reviews');
       router.refresh();
     } catch (requestError) {
       setActionError(requestError instanceof Error ? requestError.message : 'Unable to record review.');
@@ -137,7 +137,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
     <main className={staffUi.page}>
       <header className={staffUi.reviewHeader}>
         <div>
-          <Link className={staffUi.backLink} href="/approver/course-reviews">
+          <Link className={staffUi.backLink} href="/reviewing/course-reviews">
             <BootstrapIcon name="arrow-left" /> Course reviews
           </Link>
           <p className={staffUi.eyebrow}>Submitted Version {review.versionNumber}</p>
