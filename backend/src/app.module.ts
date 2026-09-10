@@ -15,6 +15,7 @@ import { MediaModule } from './media/media.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { CategoriesModule } from './categories/categories.module';
 import { SessionAuthModule } from './auth/session-auth.module';
+import { AccountsModule } from './accounts/accounts.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SessionAuthModule } from './auth/session-auth.module';
     DatabaseModule,
     AuthModule,
     SessionAuthModule,
+    AccountsModule,
     TeacherPermissionsModule,
     CoursesModule,
     ContentModule,

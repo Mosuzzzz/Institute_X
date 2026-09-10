@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { getRoleHomePath, getSessionHomePath, resolveApplicationRole, storeSession, type SsoProfile } from '../lib/sso-session';
+import { getRoleHomePath, getSessionHomePath, resolveApplicationRole, storeSession, type AuthProfile } from '../lib/auth-session';
 import { useAppLanguage } from '../lib/language';
 import LanguageSelector from './language-selector';
 import { authUi, commonUi } from './ui-styles';
@@ -30,7 +30,7 @@ export default function AuthenticationPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ email: form.get('email'), password: form.get('password') }),
       });
-      const payload = await response.json() as { token?: string; expiresAt?: string; user?: SsoProfile; message?: string };
+      const payload = await response.json() as { token?: string; expiresAt?: string; user?: AuthProfile; message?: string };
       if (!response.ok || !payload.token || !payload.expiresAt || !payload.user) throw new Error(payload.message ?? 'เข้าสู่ระบบไม่สำเร็จ');
       storeSession(payload.token, payload.expiresAt, payload.user);
       router.replace(getRoleHomePath(resolveApplicationRole(payload.user)) ?? '/');
@@ -52,7 +52,7 @@ export default function AuthenticationPage() {
           <label className="grid gap-1 text-sm">Email<input className="rounded-md border border-[#ccd1df] px-4 py-3" name="email" type="email" autoComplete="username" required /></label>
           <label className="grid gap-1 text-sm">Password<input className="rounded-md border border-[#ccd1df] px-4 py-3" name="password" type="password" autoComplete="current-password" required /></label>
           {error ? <p className="text-sm text-red-700" role="alert">{error}</p> : null}
-          <button className={authUi.ssoButton} type="submit" disabled={submitting}>{submitting ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}</button>
+          <button className={authUi.loginButton} type="submit" disabled={submitting}>{submitting ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}</button>
           <p className="text-center text-sm text-muted">บัญชีผู้ใช้สร้างโดยผู้ดูแลระบบเท่านั้น</p>
         </form>
       </section>

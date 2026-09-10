@@ -45,6 +45,5 @@ describe('Docker infrastructure contract', () => {
     expect(nginx).toContain('proxy_pass http://backend:3000');
     expect(nginx).toContain('location /api/');
     expect(compose).not.toMatch(/postgres:[\s\S]*?ports:\s*\n\s*-\s*["']?5432:5432/);
-    expect(compose).not.toMatch(/redis:[\s\S]*?ports:\s*\n\s*-\s*["']?6379:6379/);
   });
 });

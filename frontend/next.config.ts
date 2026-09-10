@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
+        source: '/registrar/:path*',
+        destination: '/registration/:path*',
+        permanent: false,
+      },
+      {
         source: '/learning/learning',
         destination: '/learning/my-courses',
         permanent: false,
@@ -61,6 +66,7 @@ const nextConfig: NextConfig = {
       },
       { source: '/reviewing/:path*', destination: '/approver/:path*' },
       { source: '/dashboard/:path*', destination: '/executive/:path*' },
+      { source: '/registration/:path*', destination: '/registrar/:path*' },
     ];
   },
 };

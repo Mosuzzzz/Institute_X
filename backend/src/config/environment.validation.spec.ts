@@ -3,31 +3,47 @@ import { validateEnvironment } from './environment.validation';
 describe('validateEnvironment', () => {
   const baseEnvironment = {
     NODE_ENV: 'test',
-    SSO_PROVIDER: 'oidc',
   };
 
-  it('accepts a Redis URL and applies a five-minute session cache TTL by default', () => {
-    const environment = validateEnvironment({
-      ...baseEnvironment,
-      REDIS_URL: 'redis://localhost:6379',
-    });
-
-    expect(environment).toMatchObject({
-      REDIS_URL: 'redis://localhost:6379',
-      AUTH_SESSION_CACHE_TTL_SECONDS: 300,
-    });
+  it('accepts Redis session-cache configuration with a bounded TTL', () => {
+    expect(
+      validateEnvironment({
+        ...baseEnvironment,
+        REDIS_URL: 'redis://localhost:6379',
+        AUTH_SESSION_CACHE_TTL_SECONDS: 60,
+        AUTH_CACHE_SIGNING_KEY: 'test-cache-signing-key-with-32-characters',
+      }),
+    ).toMatchObject({ AUTH_SESSION_CACHE_TTL_SECONDS: 60 });
+    expect(() =>
+      validateEnvironment({
+        ...baseEnvironment,
+        AUTH_SESSION_CACHE_TTL_SECONDS: 301,
+      }),
+    ).toThrow('Environment validation failed');
   });
 
-  it('rejects unsupported Redis URL schemes and unsafe TTL values', () => {
+  it('requires encrypted Redis transport in production', () => {
+    const production = {
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/institute_x',
+      AUTH_CACHE_SIGNING_KEY: 'test-cache-signing-key-with-32-characters',
+    };
+    expect(() => validateEnvironment({ ...production, REDIS_URL: 'redis://redis:6379' })).toThrow(
+      'Environment validation failed',
+    );
+    expect(
+      validateEnvironment({ ...production, REDIS_URL: 'rediss://redis.example.edu:6380' }),
+    ).toMatchObject({ REDIS_URL: 'rediss://redis.example.edu:6380' });
+  });
+
+  it('rejects ambiguous direct and file-mounted secrets', () => {
     expect(() =>
-      validateEnvironment({ ...baseEnvironment, REDIS_URL: 'http://localhost:6379' }),
-    ).toThrow('Environment validation failed');
-    expect(() =>
-      validateEnvironment({ ...baseEnvironment, AUTH_SESSION_CACHE_TTL_SECONDS: 30 }),
-    ).toThrow('Environment validation failed');
-    expect(() =>
-      validateEnvironment({ ...baseEnvironment, AUTH_SESSION_CACHE_TTL_SECONDS: 901 }),
-    ).toThrow('Environment validation failed');
+      validateEnvironment({
+        ...baseEnvironment,
+        REDIS_URL: 'redis://localhost:6379',
+        REDIS_URL_FILE: '/run/secrets/redis_url',
+      }),
+    ).toThrow('set either REDIS_URL or REDIS_URL_FILE, not both');
   });
 
   it('accepts a browser-facing object-storage endpoint and rejects invalid URLs', () => {

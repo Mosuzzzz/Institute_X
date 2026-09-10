@@ -10,13 +10,13 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
-  clearSsoSession,
+  clearAuthSession,
   endSession,
-  hasActiveSsoSession,
+  hasActiveSession,
   readStoredProfile,
   resolveApplicationRole,
-  type SsoProfile,
-} from "../../lib/sso-session";
+  type AuthProfile,
+} from "../../lib/auth-session";
 import { commonCopy, shellCopy } from "../../lib/app-copy";
 import { useAppLanguage } from "../../lib/language";
 import LanguageSelector from "../language-selector";
@@ -49,10 +49,10 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
   );
   const isAuthenticated = useSyncExternalStore(
     subscribeToSession,
-    hasActiveSsoSession,
+    hasActiveSession,
     () => false,
   );
-  const profile: SsoProfile | null = isAuthenticated
+  const profile: AuthProfile | null = isAuthenticated
     ? readStoredProfile()
     : null;
   const applicationRole = resolveApplicationRole(profile);
@@ -67,8 +67,9 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
     else if (applicationRole === "STUDENT") router.replace("/learning/courses");
     else if (applicationRole === "TEACHER") router.replace("/teaching");
     else if (applicationRole === "APPROVER") router.replace("/reviewing");
+    else if (applicationRole === "REGISTRAR") router.replace("/registration");
     else if (applicationRole === null) {
-      clearSsoSession();
+      clearAuthSession();
       router.replace("/");
     }
   }, [applicationRole, isAuthenticated, router, sessionReady]);

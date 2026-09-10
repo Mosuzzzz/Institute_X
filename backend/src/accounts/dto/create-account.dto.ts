@@ -1,4 +1,12 @@
-import { IsEmail, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateAccountDto {
   @IsEmail()
@@ -20,6 +28,7 @@ export class CreateAccountDto {
   @MaxLength(256)
   password!: string;
 
+  @IsOptional()
   @IsUUID('4')
-  majorId!: string;
+  majorId?: string;
 }

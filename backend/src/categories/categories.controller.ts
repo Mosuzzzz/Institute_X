@@ -1,13 +1,5 @@
-import {
-  Controller,
-  Get,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -27,5 +19,4 @@ export class CategoriesController {
   list(): ReturnType<CategoriesService['list']> {
     return this.categories.list();
   }
-
 }

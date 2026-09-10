@@ -1,4 +1,4 @@
-import { SSO_TOKEN_KEY } from "./sso-session";
+import { AUTH_TOKEN_KEY } from "./auth-session";
 
 export class BackendApiError extends Error {
   constructor(
@@ -14,8 +14,8 @@ export async function backendApi<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const token = sessionStorage.getItem(SSO_TOKEN_KEY);
-  if (!token) throw new BackendApiError("Your SSO session has expired.", 401);
+  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  if (!token) throw new BackendApiError("Your session has expired.", 401);
 
   const response = await fetch(`/api/backend/${path.replace(/^\/+/, "")}`, {
     ...init,
@@ -232,7 +232,7 @@ export type OwnerUserDto = {
   username: string;
   universityEmail: string;
   fullName: string;
-  roles: Array<"STUDENT" | "TEACHER" | "APPROVER" | "EXECUTIVE">;
+  roles: Array<"STUDENT" | "TEACHER" | "APPROVER" | "REGISTRAR" | "EXECUTIVE">;
   accountStatus: "ACTIVE" | "INACTIVE";
   createdAt: string;
   updatedAt: string;
@@ -335,7 +335,7 @@ export type OwnerDashboardDto = {
     pendingTeacherPermissions: number;
   };
   usersByRole: Array<{
-    role: "STUDENT" | "TEACHER" | "APPROVER" | "EXECUTIVE";
+    role: "STUDENT" | "TEACHER" | "APPROVER" | "REGISTRAR" | "EXECUTIVE";
     users: number;
   }>;
   courseVersionsByStatus: Array<{

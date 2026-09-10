@@ -9,7 +9,7 @@ export const authUi = {
   rule: 'h-px bg-line',
   access:
     'grid gap-3.5 [&_h2]:text-[clamp(1.2rem,2vw,1.5rem)] [&_h2]:leading-[1.35]',
-  ssoButton:
+  loginButton:
     'grid min-h-[62px] w-full min-w-0 cursor-pointer grid-cols-[1fr_auto] items-center gap-4 rounded-control border border-line-strong bg-surface px-5 py-3.5 text-center text-[1.075rem] leading-[1.35] font-bold text-ink transition duration-150 hover:-translate-y-px hover:border-action hover:bg-[#f8fbff] hover:text-action focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus active:translate-y-0 active:border-action-active active:bg-[#eef5fb] max-[560px]:min-h-[58px] max-[560px]:px-4 max-[560px]:text-base',
 } as const;
 

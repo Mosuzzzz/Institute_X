@@ -6,7 +6,7 @@
 
 ## **Project Description**
 
-The project aims to develop a web-based E-Learning Management System for students and teachers of Institute X. The system provides on-demand learning services that allow current students to access approved online courses at any time through the institution’s Single Sign-On (SSO).
+The project aims to develop a web-based E-Learning Management System for students and teachers of Institute X. The system provides on-demand learning services that allow current students to access approved online courses at any time through local institutional accounts.
 
 Teachers who have received authorization can create courses, upload learning materials, create pre-tests and post-tests, and submit course content for approval before publication. Courses can be configured as either **Open**, which allows access to all active students, or **Limited**, which restricts access according to the student's **major, education level, and year level**.
 

@@ -65,12 +65,12 @@ Latest verification: backend unit suite **282 passed / 8 integration tests skipp
 
 - **PostgreSQL row-lock test:** a real Lesson deletion holds the parent Version lock while its storage deletion is paused. A concurrent real `CourseVersionsService.submit()` remains blocked, then validates and submits only after the deletion transaction commits. The final database state contains no deleted asset reference and the Version is SUBMITTED with its retained content.
 - **MinIO finalization test:** two real `MediaService.completeUpload()` calls are forced to reach two actual MinIO copy operations before either can claim READY. Both calls return the same winning key. A real `HeadObject` confirms the winning object exists, while the original upload key and losing copied key no longer exist.
-- **Redis authentication-cache test:** two guarded requests use the same Bearer token. The first request verifies the token and synchronizes the User; the second obtains the session from real Redis without another SSO verification or database synchronization. The test also confirms a positive TTL and that the Redis key contains a SHA-256 token digest rather than the raw token.
+- **Redis authentication-cache test:** two guarded requests use the same Bearer token. The first request verifies the token and synchronizes the User; the second obtains the session from real Redis without another local authentication verification or database synchronization. The test also confirms a positive TTL and that the Redis key contains a SHA-256 token digest rather than the raw token.
 - **Serializable retry:** the PostgreSQL race exposed Prisma `P2034` write conflicts. Course submission now retries a serializable transaction at most three times and returns a controlled conflict after exhaustion instead of leaking an ORM error. A regression test covers successful recovery after the first conflict.
 
 The integration command now includes all three suites. Result: **8/8 integration tests passed** against local PostgreSQL, MinIO and Redis. The full ordinary unit command reports **282 passed / 8 integration tests skipped**. Backend typecheck, lint and production build also pass after this addition.
 
-Redis remains a fail-open performance dependency: when `REDIS_URL` is configured, `OidcAuthGuard` caches authenticated sessions for `AUTH_SESSION_CACHE_TTL_SECONDS` (default 300 seconds); when Redis is absent or temporarily unavailable, authentication falls back to SSO verification plus User synchronization. This preserves availability but restores the SSO/database load that the cache is intended to prevent, so production monitoring should alert on Redis connectivity and cache effectiveness.
+Redis remains a fail-open performance dependency: when `REDIS_URL` is configured, `AuthGuard` caches authenticated sessions for `AUTH_SESSION_CACHE_TTL_SECONDS` (default 300 seconds); when Redis is absent or temporarily unavailable, authentication falls back to local authentication verification plus User synchronization. This preserves availability but restores the local authentication/database load that the cache is intended to prevent, so production monitoring should alert on Redis connectivity and cache effectiveness.
 
 Real browser verification was attempted against the local production frontend/backend, but the available in-app browser runtime could not initialize in this environment. Therefore no browser-interaction pass is claimed. Frontend typecheck, lint and production build pass, but the Start → failure → retry interaction should still receive a manual or automated browser run when a working browser runtime is available.
 
@@ -258,7 +258,7 @@ The review traced the backend's 65 decorated HTTP routes by controller/service a
 | Targeted behavior probes | Earlier review reproduced F01, F02, F04 and F05; follow-up probes reproduced F09, F10, F11 and F12. These use simulated dependencies or extracted frontend functions. |
 | Whitespace validation | `git diff --check` passed. |
 | Real-browser journeys | Not completed: browser runtime bootstrap failed with `Importing module "node:process" is not allowed in node_repl`. UI conclusions are source/probe based, not visual sign-off. |
-| Live SSO/storage/deployment and concurrency load | Not certified by this audit. No deployment, real-object overwrite test or production load test was performed. |
+| Live local authentication/storage/deployment and concurrency load | Not certified by this audit. No deployment, real-object overwrite test or production load test was performed. |
 
 Previously applied fixes were retained: normal expired Pre-Test finalization to COMPLETED/0 and content unlock; the bodyless expiry endpoint; archived lesson-media denial; backend outbound Docker network; separate public S3 endpoint/MinIO port; approver lesson previews and renewal; removal of the Teacher's Owner-only Delete Course action; and all 24 Owner chart buckets with actual zero values. Related remaining edge cases are explicitly F02, F04 and F14, rather than treating those fixes as wholly absent.
 
@@ -267,6 +267,6 @@ Previously applied fixes were retained: normal expired Pre-Test finalization to 
 1. Close F01–F03 together around publication immutability and archived access; add adversarial state/asset tests before release.
 2. Repair draft/asset consistency: F06–F08, F10–F11. Include PostgreSQL constraint tests and injected storage failures.
 3. Repair user journeys: F04–F05, F09, F12–F14, then run real-browser checks across all four roles when browser tooling is available.
-4. Resolve G01–G06 against the agreed requirements and complete the live SSO, MinIO/browser URL and deployment checks.
+4. Resolve G01–G06 against the agreed requirements and complete the live local authentication, MinIO/browser URL and deployment checks.
 
 For each fix, use the acceptance case under its finding as a regression criterion. Re-review the shared policy and neighboring endpoints after changes, rather than testing only the originally failing button.

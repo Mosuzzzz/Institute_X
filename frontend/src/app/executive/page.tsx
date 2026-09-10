@@ -5,6 +5,7 @@ import { useBackendQuery } from '../../lib/use-backend-query';
 import ApiState from '../api-state';
 import { staffUi } from '../ui-styles';
 import BootstrapIcon from '../bootstrap-icon';
+import dashboardStyles from '../teacher/overview.module.css';
 
 export default function OwnerOverviewPage() {
   const { data, error, loading } = useBackendQuery<OwnerDashboardDto>('executive/dashboard');
@@ -71,7 +72,7 @@ export default function OwnerOverviewPage() {
   const passRate = decided === 0 ? 0 : (data.postTestResults.pass / decided) * 100;
 
   return (
-    <main className={staffUi.page}>
+    <main className={dashboardStyles.page}>
       {/* Header Banner */}
       <header className="mb-8 flex flex-col gap-6 border-b border-slate-200/80 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>

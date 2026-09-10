@@ -7,7 +7,7 @@
 
 ## 1. Design rules
 
-- Institute SSO only; no local passwords.
+- Institute local authentication only; no local passwords.
 - Exactly one role per user: `STUDENT`, `TEACHER`, `APPROVER`, or `OWNER`.
 - Course eligibility is `OPEN` for every active Student or `LIMITED` to selected Majors.
 - Teachers require approved permission before creating Courses.
@@ -363,7 +363,7 @@ erDiagram
 
 | Requirement area | Tables |
 |---|---|
-| SSO and roles | `users`, `majors` |
+| local authentication and roles | `users`, `majors` |
 | Teacher authorization | `teacher_permission_requests` |
 | Eligibility | `courses`, `course_allowed_majors` |
 | Approval/publication | `course_versions`, `course_version_reviews` |

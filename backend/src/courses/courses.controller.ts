@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -88,5 +79,4 @@ export class CoursesController {
   ): ReturnType<CoursesService['replaceCategories']> {
     return this.courses.replaceCategories(user, courseId, input.categoryIds);
   }
-
 }

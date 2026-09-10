@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import type { SsoProfile } from '../lib/sso-session';
-import { getRoleHomePath, setActiveRole } from '../lib/sso-session';
+import type { AuthProfile } from '../lib/auth-session';
+import { getRoleHomePath, setActiveRole } from '../lib/auth-session';
 import BootstrapIcon from './bootstrap-icon';
 
 type ProfileMenuProps = {
-  profile: SsoProfile | null;
+  profile: AuthProfile | null;
   roleLabel: string;
   fallbackName: string;
   onSignOut: () => void;

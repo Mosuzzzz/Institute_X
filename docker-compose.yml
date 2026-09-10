@@ -1,4 +1,62 @@
 services:
+  redis-tls-init:
+    image: alpine/openssl@sha256:80b347d7b4d58e28aae515cf808ba3ce1c4a2a69a323b2cb2cb2d6d278729684
+    restart: "no"
+    entrypoint: []
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ ! -s /private/ca.key ] || [ ! -s /public/ca.crt ]; then
+          openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+            -keyout /private/ca.key -out /public/ca.crt -subj "/CN=Institute X Redis CA"
+        fi
+        openssl req -newkey rsa:2048 -nodes \
+          -keyout /private/redis.key -out /private/redis.csr \
+          -subj "/CN=redis" -addext "subjectAltName=DNS:redis,DNS:localhost,IP:127.0.0.1"
+        openssl x509 -req -days 825 -sha256 \
+          -in /private/redis.csr -CA /public/ca.crt -CAkey /private/ca.key \
+          -CAcreateserial -out /public/redis.crt -copy_extensions copy
+        chmod 600 /private/ca.key /private/redis.key
+        chmod 644 /public/ca.crt /public/redis.crt
+    volumes:
+      - redis_tls_private:/private
+      - redis_tls_public:/public
+    networks:
+      - internal
+      - local
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    depends_on:
+      redis-tls-init:
+        condition: service_completed_successfully
+    command:
+      - sh
+      - -ec
+      - >-
+        exec redis-server --appendonly yes --port 0 --tls-port 6379
+        --tls-cert-file /public/redis.crt --tls-key-file /private/redis.key
+        --tls-ca-cert-file /public/ca.crt --tls-auth-clients no
+        --requirepass "$${REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+      - redis_tls_private:/private:ro
+      - redis_tls_public:/public:ro
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --tls --cacert /public/ca.crt --sni redis -a \"$${REDIS_PASSWORD}\" --no-auth-warning ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal
+      - local
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -8,6 +66,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -15,20 +75,7 @@ services:
       retries: 10
     networks:
       - internal
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - internal
+      - local
 
   minio:
     image: minio/minio:latest
@@ -40,7 +87,7 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
@@ -77,6 +124,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-institute_x}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-institute_x}
     networks:
@@ -92,8 +141,6 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
       minio-init:
         condition: service_completed_successfully
     environment:
@@ -101,17 +148,10 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-institute_x}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-institute_x}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
-      REDIS_URL: redis://redis:6379
-      AUTH_SESSION_CACHE_TTL_SECONDS: ${AUTH_SESSION_CACHE_TTL_SECONDS:-300}
-      SSO_PROVIDER: ${SSO_PROVIDER:-oidc}
-      MOCK_SSO_ME_URL: ${MOCK_SSO_ME_URL:-}
-      MOCK_SSO_VERIFY_URL: ${MOCK_SSO_VERIFY_URL:-}
-      MOCK_SSO_ALLOWED_EMAIL_DOMAIN: ${MOCK_SSO_ALLOWED_EMAIL_DOMAIN:-university.ac.th}
-      OIDC_USERINFO_URL: ${OIDC_USERINFO_URL:-}
-      OIDC_ALLOWED_EMAIL_DOMAIN: ${OIDC_ALLOWED_EMAIL_DOMAIN:-}
-      OIDC_ROLE_CLAIM: ${OIDC_ROLE_CLAIM:-role}
-      OIDC_ACCOUNT_STATUS_CLAIM: ${OIDC_ACCOUNT_STATUS_CLAIM:-account_status}
-      OIDC_MAJOR_CODE_CLAIM: ${OIDC_MAJOR_CODE_CLAIM:-major_code}
+      REDIS_URL: rediss://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379
+      NODE_EXTRA_CA_CERTS: /etc/redis/tls/ca.crt
+      AUTH_SESSION_CACHE_TTL_SECONDS: ${AUTH_SESSION_CACHE_TTL_SECONDS:-60}
+      AUTH_CACHE_SIGNING_KEY: ${AUTH_CACHE_SIGNING_KEY:?Set AUTH_CACHE_SIGNING_KEY}
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_REGION: ${S3_REGION:-us-east-1}
@@ -120,6 +160,8 @@ services:
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
       S3_FORCE_PATH_STYLE: "true"
       S3_SIGNED_URL_TTL_SECONDS: ${S3_SIGNED_URL_TTL_SECONDS:-300}
+    volumes:
+      - redis_tls_public:/etc/redis/tls:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 10s
@@ -151,10 +193,13 @@ services:
 
 networks:
   edge:
+  local:
   internal:
     internal: true
 
 volumes:
-  postgres_data:
   redis_data:
+  redis_tls_private:
+  redis_tls_public:
+  postgres_data:
   minio_data:

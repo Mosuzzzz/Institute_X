@@ -1,4 +1,37 @@
 import Joi from 'joi';
+import { readFileSync } from 'node:fs';
+
+const FILE_SECRETS = [
+  'DATABASE_URL',
+  'REDIS_URL',
+  'AUTH_CACHE_SIGNING_KEY',
+  'S3_ACCESS_KEY_ID',
+  'S3_SECRET_ACCESS_KEY',
+] as const;
+
+function resolveFileSecrets(environment: Record<string, unknown>): Record<string, unknown> {
+  const resolved = { ...environment };
+  for (const name of FILE_SECRETS) {
+    const fileName = `${name}_FILE`;
+    const path = resolved[fileName];
+    if (path === undefined) continue;
+    if (resolved[name] !== undefined) {
+      throw new Error(`Environment validation failed: set either ${name} or ${fileName}, not both`);
+    }
+    if (typeof path !== 'string' || path.trim() === '') {
+      throw new Error(`Environment validation failed: ${fileName} must be a file path`);
+    }
+    try {
+      const value = readFileSync(path, { encoding: 'utf8' }).trim();
+      if (!value) throw new Error('secret file is empty');
+      resolved[name] = value;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown error';
+      throw new Error(`Environment validation failed: cannot read ${fileName}: ${message}`);
+    }
+  }
+  return resolved;
+}
 
 const environmentSchema = Joi.object<Record<string, unknown>>({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
@@ -15,25 +48,21 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
   CORS_ORIGIN: Joi.string().default('http://localhost:3001'),
   REDIS_URL: Joi.string()
     .uri({ scheme: ['redis', 'rediss'] })
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().uri({ scheme: ['rediss'] }),
+    })
     .optional(),
-  AUTH_SESSION_CACHE_TTL_SECONDS: Joi.number().integer().min(60).max(900).default(300),
-  SSO_PROVIDER: Joi.string().valid('oidc', 'mock').default('oidc'),
-  MOCK_SSO_ME_URL: Joi.string().uri().when('SSO_PROVIDER', {
-    is: 'mock',
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
-  MOCK_SSO_VERIFY_URL: Joi.string().uri().when('SSO_PROVIDER', {
-    is: 'mock',
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
-  MOCK_SSO_ALLOWED_EMAIL_DOMAIN: Joi.string().hostname().default('university.ac.th'),
-  OIDC_USERINFO_URL: Joi.string().uri().optional(),
-  OIDC_ALLOWED_EMAIL_DOMAIN: Joi.string().hostname().optional(),
-  OIDC_ROLE_CLAIM: Joi.string().default('role'),
-  OIDC_ACCOUNT_STATUS_CLAIM: Joi.string().default('account_status'),
-  OIDC_MAJOR_CODE_CLAIM: Joi.string().default('major_code'),
+  REDIS_PASSWORD: Joi.string().min(12).optional(),
+  AUTH_SESSION_CACHE_TTL_SECONDS: Joi.number().integer().min(15).max(300).default(60),
+  AUTH_CACHE_SIGNING_KEY: Joi.string()
+    .min(32)
+    .invalid('replace-with-at-least-32-random-characters')
+    .when('REDIS_URL', {
+      is: Joi.exist(),
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
   S3_ENDPOINT: Joi.string().uri().optional(),
   S3_PUBLIC_ENDPOINT: Joi.string()
     .uri({ scheme: ['http', 'https'] })
@@ -47,7 +76,7 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
 }).unknown(true);
 
 export function validateEnvironment(environment: Record<string, unknown>): Record<string, unknown> {
-  const validation = environmentSchema.validate(environment, {
+  const validation = environmentSchema.validate(resolveFileSecrets(environment), {
     abortEarly: false,
   });
 

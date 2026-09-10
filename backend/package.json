@@ -9,14 +9,17 @@
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "start:local": "sh scripts/start-local.sh",
     "start:prod": "node dist/main.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config test/jest-e2e.json",
-    "test:integration": "RUN_DATABASE_INTEGRATION=true RUN_REDIS_INTEGRATION=true jest --runInBand --runTestsByPath test/database.integration.spec.ts test/concurrency.integration.spec.ts test/redis.integration.spec.ts",
+    "test:integration": "RUN_DATABASE_INTEGRATION=true jest --runInBand --runTestsByPath test/database.integration.spec.ts test/concurrency.integration.spec.ts",
+    "test:redis:integration": "RUN_REDIS_INTEGRATION=true jest --runInBand --runTestsByPath test/redis-auth-session-cache.integration.spec.ts",
     "typecheck": "tsc --noEmit",
-    "bootstrap:executive": "ts-node scripts/create-executive.ts"
+    "bootstrap:executive": "ts-node scripts/create-executive.ts",
+    "bootstrap:registrar": "ts-node scripts/create-registrar.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1117.0",
@@ -35,6 +38,8 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@eslint/js": "^9.34.0",
     "@nestjs/cli": "^11.0.10",
     "@nestjs/testing": "^11.1.6",
@@ -57,5 +62,9 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "multer": "2.3.0"
   }
 }

@@ -14,7 +14,7 @@ export class MajorsController {
   constructor(private readonly referenceData: CategoriesService) {}
 
   @Get()
-  @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.APPROVER)
+  @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.APPROVER, UserRole.REGISTRAR)
   @ApiOkResponse({ description: 'Majors ordered by code' })
   list(): ReturnType<CategoriesService['listMajors']> {
     return this.referenceData.listMajors();

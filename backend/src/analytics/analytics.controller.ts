@@ -32,5 +32,4 @@ export class AnalyticsController {
   ): ReturnType<AnalyticsService['getOwnerDashboard']> {
     return this.analytics.getOwnerDashboard(user);
   }
-
 }

@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AccountStatus, UserRole } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
 import { PasswordHasher } from './password-hasher';
+import { AUTH_SESSION_CACHE, AuthSessionCache } from './auth-session-cache';
 
 export type DatabaseSession = {
   id: string;
@@ -29,6 +30,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwords: PasswordHasher,
+    @Inject(AUTH_SESSION_CACHE) private readonly cache: AuthSessionCache,
   ) {}
 
   async login(
@@ -58,26 +60,28 @@ export class AuthService {
   }
 
   async authenticate(token: string): Promise<DatabaseSession> {
+    const tokenHash = this.tokenHash(token);
+    const cached = await this.cache.get(tokenHash);
+    if (cached) return cached;
     const session = await this.prisma.authSession.findUnique({
-      where: { tokenHash: this.tokenHash(token) },
+      where: { tokenHash },
       include: { user: { include: { roles: { orderBy: { assignedAt: 'asc' } } } } },
     });
     if (!session || session.expiresAt <= new Date())
       throw new UnauthorizedException('Invalid or expired session');
     const roles = this.studentFirst(session.user.roles.map((entry) => entry.role));
-    if (
-      session.user.accountStatus !== AccountStatus.ACTIVE ||
-      !roles.includes(UserRole.STUDENT)
-    ) {
+    if (session.user.accountStatus !== AccountStatus.ACTIVE || !roles.includes(UserRole.STUDENT)) {
       throw new UnauthorizedException('Account is inactive or is missing the STUDENT role');
     }
-    return {
+    const authenticated = {
       id: session.user.id,
       role: roles[0],
       roles,
       accountStatus: session.user.accountStatus,
       majorId: session.user.majorId,
     };
+    await this.cache.set(tokenHash, authenticated, session.expiresAt);
+    return authenticated;
   }
 
   async me(userId: string): Promise<PublicUser> {
@@ -89,7 +93,9 @@ export class AuthService {
   }
 
   async logout(token: string): Promise<void> {
-    await this.prisma.authSession.deleteMany({ where: { tokenHash: this.tokenHash(token) } });
+    const tokenHash = this.tokenHash(token);
+    await this.prisma.authSession.deleteMany({ where: { tokenHash } });
+    await this.cache.delete(tokenHash);
   }
 
   private tokenHash(token: string): string {

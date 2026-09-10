@@ -52,13 +52,14 @@ describe('database schema contract', () => {
     expect(migration).toContain('ON DELETE CASCADE');
   });
 
-  it('defines four roles and stores them as multi-role assignments', () => {
+  it('defines five roles and stores them as multi-role assignments', () => {
     const userRole = Prisma.dmmf.datamodel.enums.find((item) => item.name === 'UserRole');
 
     expect(userRole?.values.map((item) => item.name)).toEqual([
       'STUDENT',
       'TEACHER',
       'APPROVER',
+      'REGISTRAR',
       'EXECUTIVE',
     ]);
     const user = Prisma.dmmf.datamodel.models.find((model) => model.name === 'User');
@@ -199,7 +200,7 @@ describe('database schema contract', () => {
     expect(migration).toContain('original_review_id');
   });
 
-  it('seeds the Mock SSO Computer Science Major idempotently', () => {
+  it('seeds the Computer Science Major idempotently', () => {
     const migration = readFileSync(
       resolve(__dirname, '../prisma/migrations/202608250003_seed_cs_major/migration.sql'),
       'utf8',
@@ -209,7 +210,7 @@ describe('database schema contract', () => {
     expect(migration).toContain('ON CONFLICT ("major_code")');
   });
 
-  it('backfills usernames safely for existing SSO users', () => {
+  it('backfills usernames safely for existing users', () => {
     const migration = readFileSync(
       resolve(__dirname, '../prisma/migrations/202608250004_add_user_username/migration.sql'),
       'utf8',

@@ -9,7 +9,7 @@
 
 ## 1. Project Overview
 
-Institute X E-Learning Management System is a free, web-based learning platform for current students. Users authenticate through Institute X Single Sign-On (SSO) using their university email account.
+Institute X E-Learning Management System is a free, web-based learning platform for current students. Users authenticate through Institute X local email-and-password authentication using their university email account.
 
 The system supports four mutually exclusive roles: `STUDENT`, `TEACHER`, `APPROVER`, and `OWNER`. A Teacher must be authorized before creating courses. Course access is validated by the Student's Major. Teachers submit Course Versions for approval; rejected Versions must be fixed and resubmitted, while approved Versions are automatically published.
 
@@ -21,7 +21,7 @@ Every Course must include both a Pre-Test and a Post-Test before it can be submi
 
 The system includes:
 
-- University SSO authentication
+- local authentication authentication
 - Role-based access control
 - Teacher authorization
 - Course creation and editing
@@ -64,19 +64,19 @@ The system excludes payment, paid Courses, Guest access, course passwords, atten
 
 | ID | Requirement |
 |---|---|
-| FR-AUTH-01 | The system shall authenticate users through Institute X SSO. |
+| FR-AUTH-01 | The system shall authenticate users through local authentication. |
 | FR-AUTH-02 | Users shall authenticate using their university email account. |
 | FR-AUTH-03 | The system shall deny access when the institutional account is invalid or inactive. |
 | FR-AUTH-04 | The system shall not provide Guest access. |
 | FR-AUTH-05 | The system shall not provide social login. |
 | FR-AUTH-06 | The system shall not maintain a separate local password. |
-| FR-AUTH-07 | The system shall cache a successfully verified SSO session for a short configurable period to avoid repeated SSO calls and local User writes on every API request. |
-| FR-AUTH-08 | The authentication flow shall fall back to direct SSO verification and local User synchronization when the session cache is unavailable. |
+| FR-AUTH-07 | The system shall cache a successfully verified local authentication session for a short configurable period to avoid repeated local authentication calls and local User writes on every API request. |
+| FR-AUTH-08 | The authentication flow shall fall back to direct local authentication verification and local User synchronization when the session cache is unavailable. |
 
 ```text
 University Email
       ↓
-Institute X SSO
+local authentication
       ↓
 Valid Account?
    /       \
@@ -356,7 +356,7 @@ The Owner dashboard shall include:
 
 | ID | Business Rule |
 |---|---|
-| BR-01 | Users authenticate through University SSO using university email. |
+| BR-01 | Users authenticate through local authentication using university email. |
 | BR-02 | Roles are `STUDENT`, `TEACHER`, `APPROVER`, and `OWNER`. |
 | BR-03 | Each User has exactly one Role. |
 | BR-04 | Teacher approval is required before Course creation. |
@@ -460,7 +460,7 @@ The Owner dashboard shall include:
 ## 18. Main Student Workflow
 
 ```text
-University SSO
+local authentication
       ↓
 Login
       ↓
@@ -503,7 +503,7 @@ The database schema shall be maintained through version-controlled Prisma migrat
 
 The database shall persist, at minimum:
 
-- SSO-linked users, their single Role, account status, and Student Major
+- local authentication-linked users, their single Role, account status, and Student Major
 - Teacher permission requests and review history
 - Courses, eligible Majors, immutable Versions, submissions, and review decisions
 - Categories and Course-Category assignments used for catalog taxonomy and filtering

@@ -9,6 +9,7 @@ import { courseLanguageLabel } from "../../lib/course-language";
 import ApiState from "../api-state";
 import CourseCard from "./course-card";
 import type { StudentCourse } from "./course-data";
+import dashboardStyles from "../teacher/overview.module.css";
 
 const studentCopy = {
   th: {
@@ -245,37 +246,33 @@ export default function StudentCatalogClient({
   }
 
   return (
-    <main className={studentMain}>
-      <header className="mb-8 border-b border-slate-200 pb-6">
-        <p className={eyebrow}>Learning dashboard</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Your learning</h1>
-        <p className="mt-2 text-sm text-slate-500">Continue courses, monitor progress, and discover eligible learning.</p>
-      </header>
-      <section className="mb-10 grid gap-4 sm:grid-cols-3" aria-label="Learning summary">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">In progress</span><strong className="mt-2 block text-3xl text-slate-900">{enrolled.filter((course) => (course.progress ?? 0) < 100).length}</strong></article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">Completed</span><strong className="mt-2 block text-3xl text-emerald-700">{enrolled.filter((course) => course.progress === 100).length}</strong></article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"><span className="text-xs font-bold uppercase tracking-wider text-slate-500">Available courses</span><strong className="mt-2 block text-3xl text-blue-700">{allCourses.length}</strong></article>
+    <main className={dashboardStyles.page}>
+      <h1>Learning Dashboard</h1>
+      <nav className={dashboardStyles.tabs} aria-label="Learning dashboard tabs"><span aria-current="page">Overview</span></nav>
+      <div className={dashboardStyles.toolbar}><p>Continue courses, monitor progress, and discover eligible learning.</p><Link className={dashboardStyles.newCourse} href="/learning/courses">Browse courses</Link></div>
+      <section className={dashboardStyles.metrics} aria-label="Learning summary">
+        <article><span>In progress</span><strong>{enrolled.filter((course) => (course.progress ?? 0) < 100).length}</strong><p>Courses currently being learned</p></article>
+        <article><span>Completed</span><strong>{enrolled.filter((course) => course.progress === 100).length}</strong><p>Courses completed successfully</p></article>
+        <article><span>Available courses</span><strong>{allCourses.length}</strong><p>Courses eligible for your profile</p></article>
       </section>
       {enrolled.length ? (
-        <section aria-labelledby="continue-heading">
-          <div className="mb-[34px] flex items-end justify-between gap-6 max-[540px]:items-start">
+        <section className={dashboardStyles.recent} aria-labelledby="continue-heading">
+          <div className={dashboardStyles.sectionHeading}>
             <div>
-              <p className={eyebrow}>{text.classroom}</p>
+              <p>{text.classroom}</p>
               <h1
-                className="text-[clamp(2rem,3vw,3.15rem)] tracking-[-0.035em] text-[#20243a] uppercase max-[540px]:text-[2rem]"
                 id="continue-heading"
               >
                 {text.continueLearning}
               </h1>
             </div>
             <Link
-              className="font-bold text-[#073d78] no-underline hover:underline hover:underline-offset-5 max-[540px]:text-[0.78rem]"
               href="/learning/my-courses"
             >
               {text.viewLearning}
             </Link>
           </div>
-          <div className="grid grid-cols-[repeat(2,minmax(0,540px))] gap-[26px] max-[820px]:grid-cols-1">
+          <div className="grid grid-cols-2 gap-5 max-[820px]:grid-cols-1">
             {enrolled.slice(0, 2).map((course) => (
               <CourseCard key={course.id} course={course} variant="continue" />
             ))}
@@ -283,17 +280,16 @@ export default function StudentCatalogClient({
         </section>
       ) : null}
       <section
-        className={enrolled.length ? "mt-[clamp(70px,8vw,120px)]" : ""}
+        className={`${dashboardStyles.recent} ${enrolled.length ? "mt-10" : ""}`}
         aria-labelledby="next-heading"
       >
-        <div className="mb-7">
+        <div className={dashboardStyles.sectionHeading}>
           <h1
-            className="text-[clamp(1.8rem,2.5vw,2.7rem)] tracking-[-0.035em] text-[#20243a] font-medium"
             id="next-heading"
           >
             {text.learnNext}
           </h1>
-          <p className="mt-[26px] text-[1.4rem] font-medium">{text.courses}</p>
+          <p>{allCourses.length} {text.eligible}</p>
         </div>
         {allCourses.length ? (
           <div className={courseGrid}>

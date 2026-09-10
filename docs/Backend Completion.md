@@ -7,7 +7,7 @@ Source: Institute X eLearning SRS v1.5
 
 | SRS area | Implementation | Verification |
 |---|---|---|
-| FR-AUTH-01–06 | OIDC bearer guard plus Mock SSO adapter, verified university domain, inactive-account denial, SSO user synchronization, no password model | OIDC/Mock SSO guard and verifier unit tests; protected-route E2E tests. Live Institute endpoint remains an Institute UAT item. |
+| FR-AUTH-01–06 | local authentication bearer guard plus local authentication fixture adapter, verified university domain, inactive-account denial, local authentication user synchronization, no password model | local authentication/local authentication fixture guard and verifier unit tests; protected-route E2E tests. Live Institute endpoint remains an Institute UAT item. |
 | FR-TA-01–04 | Teacher requests, personal status, Approver pending queue, approve/reject, effective latest permission enforcement | Teacher permission unit and authoring E2E tests |
 | FR-CM-01–12 | Course creation, owned workspace, Draft metadata/text editing, category assignment, new revisions, immutable published Versions, submit/reopen/re-submit | Course, category, content, and Version unit/E2E tests; PostgreSQL approval integration test |
 | FR-COST-01–02 | No payment, subscription, password, or paid-lock models or endpoints | Prisma schema contract |
@@ -33,16 +33,16 @@ Source: Institute X eLearning SRS v1.5
 - Analytics: owned Teacher Course analytics and Owner dashboard
 - Operations: `/api/health`, `/api/ready`, `/api/docs`
 
-## Local Mock SSO
+## Local local authentication fixture
 
-The development environment uses the deployed Mock SSO at `https://mock-university-sso.vercel.app`:
+The development environment uses the deployed local authentication fixture at `the retired identity provider`:
 
-1. The client obtains a bearer token from `POST /api/sso/login`.
-2. The backend authenticates it through `GET /api/sso/me`.
-3. The backend loads `username`, identity status, and `major_code` directly from the authenticated `/api/sso/me` response. `/api/sso/verify` is retained only as a legacy fallback when `/me` omits a Student Major.
+1. The client obtains a bearer token from `POST /api/auth/login`.
+2. The backend authenticates it through `GET /api/auth/me`.
+3. The backend loads `username`, identity status, and `major_code` directly from the authenticated `/api/auth/me` response. `/api/auth/verify` is retained only as a legacy fallback when `/me` omits a Student Major.
 4. `major_code: CS` maps to the idempotently seeded Computer Science Major. The supplied `year_level` is not persisted because SRS v1.5 defines Course eligibility by Major only.
 
-The synchronized User stores both `username` and the display `full_name`. If the provider omits `username`, the stable `user_id`/SSO subject is used. Passwords are never stored. Inactive identities are denied. Mock lecturers map to `TEACHER`; Mock staff maps to the configured `APPROVER` or `OWNER` role.
+The synchronized User stores both `username` and the display `full_name`. If the provider omits `username`, the stable `user_id`/local authentication subject is used. Passwords are never stored. Inactive identities are denied. Mock lecturers map to `TEACHER`; Mock staff maps to the configured `APPROVER` or `OWNER` role.
 
 The deployed login form sends `{ username, password }` and returns an access token. Live acceptance passed for `/login` → `/me` → the protected backend Course catalog with Student `6600000001`; PostgreSQL synchronization stored the username, display name, active Student role, university email, and Major `CS`.
 
@@ -65,7 +65,7 @@ Migration `202608260001_add_course_categories` is applied locally. It creates th
 
 ## External acceptance items
 
-- Configure the real `OIDC_USERINFO_URL`, allowed university email domain, and Institute claim names, then perform Institute SSO UAT.
+- Configure the real `local authentication_USERINFO_URL`, allowed university email domain, and Institute claim names, then perform Institute local authentication UAT.
 - Run the SRS concurrency/load target in a production-like environment; this is infrastructure capacity validation, not a local unit-test claim.
 - Complete frontend multilingual and accessibility verification separately.
 
