@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { S3Client } from '@aws-sdk/client-s3';
 import { AuthModule } from '../auth/auth.module';
+import { DatabaseModule } from '../database/database.module';
 import { MediaService } from './media.service';
 import { ObjectStorage } from './object-storage';
 import { UnconfiguredObjectStorage } from './unconfigured-object-storage';
@@ -12,7 +13,7 @@ import { CourseCoversController } from './course-covers.controller';
 import { QuestionImagesController } from './question-images.controller';
 
 @Module({
-  imports: [ConfigModule, AuthModule],
+  imports: [ConfigModule, DatabaseModule, AuthModule],
   controllers: [
     MediaController,
     MediaUploadsController,

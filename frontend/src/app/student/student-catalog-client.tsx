@@ -249,7 +249,7 @@ export default function StudentCatalogClient({
     <main className={dashboardStyles.page}>
       <h1>Learning Dashboard</h1>
       <nav className={dashboardStyles.tabs} aria-label="Learning dashboard tabs"><span aria-current="page">Overview</span></nav>
-      <div className={dashboardStyles.toolbar}><p>Continue courses, monitor progress, and discover eligible learning.</p><Link className={dashboardStyles.newCourse} href="/learning/courses">Browse courses</Link></div>
+      <div className={dashboardStyles.toolbar}><p>Continue courses, monitor progress, and discover eligible learning.</p><Link className={dashboardStyles.newCourse} href="/student/courses">Browse courses</Link></div>
       <section className={dashboardStyles.metrics} aria-label="Learning summary">
         <article><span>In progress</span><strong>{enrolled.filter((course) => (course.progress ?? 0) < 100).length}</strong><p>Courses currently being learned</p></article>
         <article><span>Completed</span><strong>{enrolled.filter((course) => course.progress === 100).length}</strong><p>Courses completed successfully</p></article>
@@ -267,7 +267,7 @@ export default function StudentCatalogClient({
               </h1>
             </div>
             <Link
-              href="/learning/my-courses"
+              href="/student/learning"
             >
               {text.viewLearning}
             </Link>

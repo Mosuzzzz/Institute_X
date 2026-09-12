@@ -61,7 +61,7 @@ export default function TeacherCoursesPage() {
       </nav>
 
       <div className={styles.toolbar}>
-        <Link className={styles.newCourse} href={canCreateCourse ? '/teaching/courses/new' : '/teaching/permission'}>
+        <Link className={styles.newCourse} href={canCreateCourse ? '/teacher/courses/new' : '/teacher/permission'}>
           {canCreateCourse ? 'New course' : 'Request teaching permission'}
         </Link>
         <details className={styles.filters}>
@@ -87,13 +87,13 @@ export default function TeacherCoursesPage() {
         <section className={styles.notice}>
           <strong>Teaching permission is required</strong>
           <p>An Approver must approve your request before you can create a new course.</p>
-          <Link href="/teaching/permission">Open permission request <BootstrapIcon name="arrow-right" /></Link>
+          <Link href="/teacher/permission">Open permission request <BootstrapIcon name="arrow-right" /></Link>
         </section>
       ) : null}
 
       <section className={styles.courses} aria-label="Your courses">
         {courses.map((course) => (
-          <Link className={styles.course} href={`/teaching/courses/${course.id}`} key={course.id}>
+          <Link className={styles.course} href={`/teacher/courses/${course.id}`} key={course.id}>
             <div className={styles.artwork}><CourseArtwork /></div>
             <div className={styles.details}>
               <h2>{course.title}</h2>
@@ -116,7 +116,7 @@ export default function TeacherCoursesPage() {
         <section className={styles.empty}>
           <h2>{query ? 'No matching courses' : 'Create your first course'}</h2>
           <p>{query ? 'Try another title, category, status or language.' : 'Start a Draft, add the required assessments and submit it for review.'}</p>
-          {!query && canCreateCourse ? <Link className={styles.newCourse} href="/teaching/courses/new">New course</Link> : null}
+          {!query && canCreateCourse ? <Link className={styles.newCourse} href="/teacher/courses/new">New course</Link> : null}
         </section>
       ) : null}
     </main>

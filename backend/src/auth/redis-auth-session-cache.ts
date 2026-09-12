@@ -26,13 +26,17 @@ export class RedisAuthSessionCache
     const client = createClient({
       url,
       password: this.config.get<string>('REDIS_PASSWORD'),
+      socket: {
+        connectTimeout: 1_000,
+        reconnectStrategy: false,
+      },
     });
     client.on('error', () => undefined);
     try {
       await client.connect();
       this.client = client;
     } catch {
-      await client.disconnect().catch(() => undefined);
+      if (client.isOpen) client.destroy();
     }
   }
 
@@ -133,10 +137,10 @@ export class RedisAuthSessionCache
   }
 
   private key(tokenHash: string): string {
-    return `auth:session:${tokenHash}`;
+    return `auth:otp-session:${tokenHash}`;
   }
   private userKey(userId: string): string {
-    return `auth:user:${userId}:sessions`;
+    return `auth:otp-user:${userId}:sessions`;
   }
   private sign(payload: string): string {
     return createHmac('sha256', this.config.getOrThrow<string>('AUTH_CACHE_SIGNING_KEY'))

@@ -227,47 +227,40 @@ describe('Authoring REST API', () => {
       .expect([{ id: 'version-id', status: 'SUBMITTED' }]);
   });
 
-  it('GET /courses/executive/catalog returns the Owner moderation catalog', async () => {
+  it('does not expose the retired Owner moderation catalog', async () => {
     courses.listPublishedForOwner.mockResolvedValue([{ courseId: 'course-id' }]);
 
     await request(app.getHttpServer() as Server)
       .get('/api/courses/executive/catalog')
       .set('x-test-role', UserRole.EXECUTIVE)
-      .expect(200)
-      .expect([{ courseId: 'course-id' }]);
+      .expect(404);
 
-    expect(courses.listPublishedForOwner).toHaveBeenCalledWith(
-      expect.objectContaining({ role: UserRole.EXECUTIVE }),
-    );
+    expect(courses.listPublishedForOwner).not.toHaveBeenCalled();
   });
 
   it('does not expose Owner Course moderation to an Approver', async () => {
     await request(app.getHttpServer() as Server)
       .get('/api/courses/executive/catalog')
       .set('x-test-role', UserRole.APPROVER)
-      .expect(403);
+      .expect(404);
 
     expect(courses.listPublishedForOwner).not.toHaveBeenCalled();
   });
 
-  it('DELETE /courses/:id archives a Course for an Owner only', async () => {
+  it('does not expose Course deletion to an Executive', async () => {
     courses.archiveCourse.mockResolvedValue(undefined);
     const path = '/api/courses/11111111-1111-4111-8111-111111111111';
 
     await request(app.getHttpServer() as Server)
       .delete(path)
       .set('x-test-role', UserRole.APPROVER)
-      .expect(403);
+      .expect(404);
     await request(app.getHttpServer() as Server)
       .delete(path)
       .set('x-test-role', UserRole.EXECUTIVE)
-      .expect(204);
+      .expect(404);
 
-    expect(courses.archiveCourse).toHaveBeenCalledTimes(1);
-    expect(courses.archiveCourse).toHaveBeenCalledWith(
-      expect.objectContaining({ role: UserRole.EXECUTIVE }),
-      '11111111-1111-4111-8111-111111111111',
-    );
+    expect(courses.archiveCourse).not.toHaveBeenCalled();
   });
 
   it('POST /course-versions/:id/quizzes creates a timed Pre-Test', async () => {

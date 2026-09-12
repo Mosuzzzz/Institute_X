@@ -6,6 +6,7 @@ import ApiState from '../api-state';
 import { staffUi } from '../ui-styles';
 import BootstrapIcon from '../bootstrap-icon';
 import dashboardStyles from '../teacher/overview.module.css';
+import ExecutiveLearningAnalytics from './learning-analytics';
 
 export default function OwnerOverviewPage() {
   const { data, error, loading } = useBackendQuery<OwnerDashboardDto>('executive/dashboard');
@@ -257,6 +258,7 @@ export default function OwnerOverviewPage() {
           </div>
         </article>
       </section>
+      <ExecutiveLearningAnalytics />
     </main>
   );
 }

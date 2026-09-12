@@ -27,14 +27,14 @@ import styles from "../workspace-sidebar.module.css";
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
-  { href: "/reviewing", label: "reviewOverview", icon: "grid" },
-  { href: "/reviewing/courses", label: "allCourses", icon: "courses" },
+  { href: "/approver", label: "reviewOverview", icon: "grid" },
+  { href: "/approver/courses", label: "allCourses", icon: "courses" },
   {
-    href: "/reviewing/teaching-requests",
+    href: "/approver/teacher-requests",
     label: "teacherRequests",
     icon: "users",
   },
-  { href: "/reviewing/course-reviews", label: "courseReviews", icon: "review" },
+  { href: "/approver/course-reviews", label: "courseReviews", icon: "review" },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
@@ -71,10 +71,10 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!sessionReady) return;
     if (!isAuthenticated) router.replace("/");
-    else if (applicationRole === "STUDENT") router.replace("/learning/courses");
-    else if (applicationRole === "TEACHER") router.replace("/teaching");
-    else if (applicationRole === "EXECUTIVE") router.replace("/dashboard");
-    else if (applicationRole === "REGISTRAR") router.replace("/registration");
+    else if (applicationRole === "STUDENT") router.replace("/student/courses");
+    else if (applicationRole === "TEACHER") router.replace("/teacher");
+    else if (applicationRole === "EXECUTIVE") router.replace("/executive");
+    else if (applicationRole === "REGISTRAR") router.replace("/registrar");
     else if (applicationRole === null) {
       clearAuthSession();
       router.replace("/");
@@ -96,7 +96,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
     void endSession().finally(() => router.replace("/"));
   };
   const currentNavigation = navigation.find((item) =>
-    item.href === "/reviewing"
+    item.href === "/approver"
       ? pathname === item.href
       : pathname.startsWith(item.href),
   );
@@ -106,7 +106,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
     <div className={`${workspaceUi.shell("approver")} ${styles.shell}`}>
       <aside className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
-          <Link className={workspaceUi.brandLink} href="/reviewing" aria-label="Institute X Approver home">
+          <Link className={workspaceUi.brandLink} href="/approver" aria-label="Institute X Approver home">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
@@ -119,7 +119,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
           <p className={workspaceUi.navLabel}>Workspace · 02</p>
           {navigation.map((item) => {
             const active =
-              item.href === "/reviewing"
+              item.href === "/approver"
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
             return (

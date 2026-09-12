@@ -1,4 +1,3 @@
-export const AUTH_TOKEN_KEY = 'institute-x:access-token';
 export const AUTH_TOKEN_EXPIRY_KEY = 'institute-x:token-expiry';
 export const AUTH_PROFILE_KEY = 'institute-x:user-profile';
 export const ACTIVE_ROLE_KEY = 'institute-x:active-role';
@@ -7,7 +6,6 @@ export type ApplicationRole = 'STUDENT' | 'TEACHER' | 'APPROVER' | 'REGISTRAR' |
 
 export type AuthProfile = {
   id?: string;
-  username?: string;
   name?: string;
   email?: string;
   roles?: Exclude<ApplicationRole, null>[];
@@ -16,11 +14,11 @@ export type AuthProfile = {
 
 export function getRoleHomePath(role: ApplicationRole): string | null {
   switch (role) {
-    case 'STUDENT': return '/learning/courses';
-    case 'TEACHER': return '/teaching/courses';
-    case 'APPROVER': return '/reviewing';
-    case 'REGISTRAR': return '/registration';
-    case 'EXECUTIVE': return '/dashboard';
+    case 'STUDENT': return '/student';
+    case 'TEACHER': return '/teacher';
+    case 'APPROVER': return '/approver';
+    case 'REGISTRAR': return '/registrar';
+    case 'EXECUTIVE': return '/executive';
     default: return null;
   }
 }
@@ -46,15 +44,13 @@ export function getSessionHomePath(): string | null {
 }
 
 export function clearAuthSession() {
-  sessionStorage.removeItem(AUTH_TOKEN_KEY);
   sessionStorage.removeItem(AUTH_TOKEN_EXPIRY_KEY);
   sessionStorage.removeItem(AUTH_PROFILE_KEY);
   sessionStorage.removeItem(ACTIVE_ROLE_KEY);
 }
 
 export async function endSession(): Promise<void> {
-  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
-  if (token) await fetch('/api/auth/logout', { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => undefined);
+  await fetch('/api/auth/logout', { method: 'POST', headers: { 'x-csrf-request': '1' } }).catch(() => undefined);
   clearAuthSession();
 }
 
@@ -65,17 +61,15 @@ export function readStoredProfile(): AuthProfile | null {
   catch { clearAuthSession(); return null; }
 }
 
-export function storeSession(token: string, expiresAt: string, profile: AuthProfile) {
-  sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+export function storeSession(expiresAt: string, profile: AuthProfile) {
   sessionStorage.setItem(AUTH_TOKEN_EXPIRY_KEY, String(new Date(expiresAt).getTime()));
   sessionStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(profile));
   if (profile.roles?.length) sessionStorage.setItem(ACTIVE_ROLE_KEY, profile.roles.includes('STUDENT') ? 'STUDENT' : profile.roles[0]);
 }
 
 export function hasActiveSession() {
-  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
   const expiry = Number(sessionStorage.getItem(AUTH_TOKEN_EXPIRY_KEY));
-  if (!token || !Number.isFinite(expiry) || expiry <= Date.now()) {
+  if (!Number.isFinite(expiry) || expiry <= Date.now() || !readStoredProfile()) {
     clearAuthSession();
     return false;
   }

@@ -18,6 +18,7 @@
     "test:integration": "RUN_DATABASE_INTEGRATION=true jest --runInBand --runTestsByPath test/database.integration.spec.ts test/concurrency.integration.spec.ts",
     "test:redis:integration": "RUN_REDIS_INTEGRATION=true jest --runInBand --runTestsByPath test/redis-auth-session-cache.integration.spec.ts",
     "typecheck": "tsc --noEmit",
+    "seed:mock-users": "node --env-file=.env -r ts-node/register scripts/seed-mock-users.ts",
     "bootstrap:executive": "ts-node scripts/create-executive.ts",
     "bootstrap:registrar": "ts-node scripts/create-registrar.ts"
   },
@@ -33,6 +34,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "joi": "^18.0.1",
+    "nodemailer": "^10.0.9",
     "redis": "^6.2.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
@@ -46,6 +48,7 @@
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.3.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/supertest": "^6.0.3",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",

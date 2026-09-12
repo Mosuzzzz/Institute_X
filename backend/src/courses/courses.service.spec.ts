@@ -807,29 +807,8 @@ describe('CoursesService', () => {
     });
   });
 
-  describe('archiveCourse', () => {
-    it('allows an Owner to archive any Course', async () => {
-      db.course.findUnique.mockResolvedValue({
-        id: 'course-id',
-        teacherId: 'teacher-id',
-        archivedAt: null,
-      });
-      db.course.updateMany.mockResolvedValue({ count: 1 });
-
-      await service.archiveCourse({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'course-id');
-
-      expect(db.course.updateMany).toHaveBeenCalledWith({
-        where: { id: 'course-id', archivedAt: null },
-        data: { archivedAt: expect.any(Date) },
-      });
-    });
-
-    it.each([UserRole.TEACHER, UserRole.APPROVER])('denies Course archival to %s', async (role) => {
-      await expect(
-        service.archiveCourse({ id: 'actor-id', role }, 'course-id'),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-      expect(db.course.updateMany).not.toHaveBeenCalled();
-    });
+  it('does not expose obsolete Executive Course archival', () => {
+    expect(service).not.toHaveProperty('archiveCourse');
   });
 
   describe('listPublishedForApprover', () => {

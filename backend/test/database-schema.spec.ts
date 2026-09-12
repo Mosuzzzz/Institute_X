@@ -10,6 +10,8 @@ describe('database schema contract', () => {
     'User',
     'UserRoleAssignment',
     'AuthSession',
+    'EmailOtp',
+    'RoleChangeAudit',
     'TeacherPermissionRequest',
     'Course',
     'Category',
@@ -64,8 +66,9 @@ describe('database schema contract', () => {
     ]);
     const user = Prisma.dmmf.datamodel.models.find((model) => model.name === 'User');
     expect(user?.fields.map((field) => field.name)).toEqual(
-      expect.arrayContaining(['passwordHash', 'roles', 'authSessions']),
+      expect.arrayContaining(['emailVerifiedAt', 'roles', 'authSessions']),
     );
+    expect(user?.fields.map((field) => field.name)).not.toEqual(expect.arrayContaining(['username', 'passwordHash']));
     expect(user?.fields.map((field) => field.name)).not.toContain('role');
   });
 
@@ -136,12 +139,16 @@ describe('database schema contract', () => {
     );
   });
 
-  it('stores the institutional username separately from the display name', () => {
-    const user = Prisma.dmmf.datamodel.models.find((model) => model.name === 'User');
-
-    expect(user?.fields.map((field) => field.name)).toEqual(
-      expect.arrayContaining(['username', 'fullName']),
-    );
+  it('stores hashed, expiring, single-use OTP challenges and role-change audits', () => {
+    const otp = Prisma.dmmf.datamodel.models.find((model) => model.name === 'EmailOtp');
+    const audit = Prisma.dmmf.datamodel.models.find((model) => model.name === 'RoleChangeAudit');
+    const migration = readFileSync(resolve(__dirname, '../prisma/migrations/202609120001_email_otp_auth/migration.sql'), 'utf8');
+    expect(otp?.fields.map((field) => field.name)).toEqual(expect.arrayContaining(['email', 'otpHash', 'expiresAt', 'usedAt', 'attempts']));
+    expect(audit?.fields.map((field) => field.name)).toEqual(expect.arrayContaining(['actorId', 'targetUserId', 'oldRoles', 'newRoles']));
+    expect(migration).toContain('DROP COLUMN "password_hash"');
+    expect(migration).toContain('DROP COLUMN "username"');
+    expect(migration).toContain('CREATE TABLE "public"."email_otps"');
+    expect(migration).toContain('CREATE TABLE "public"."role_change_audits"');
   });
 
   it('persists quiz timing, randomized order, answers, and enrollments', () => {

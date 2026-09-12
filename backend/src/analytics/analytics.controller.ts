@@ -32,4 +32,22 @@ export class AnalyticsController {
   ): ReturnType<AnalyticsService['getOwnerDashboard']> {
     return this.analytics.getOwnerDashboard(user);
   }
+
+  @Get('executive/learning-analytics')
+  @Roles(UserRole.EXECUTIVE)
+  executiveLearning(@CurrentUser() user: CurrentUserValue): ReturnType<AnalyticsService['getExecutiveLearningAnalytics']> {
+    return this.analytics.getExecutiveLearningAnalytics(user);
+  }
+
+  @Get('executive/users')
+  @Roles(UserRole.EXECUTIVE)
+  executiveUsers(@CurrentUser() user: CurrentUserValue): ReturnType<AnalyticsService['listOwnerUsers']> {
+    return this.analytics.listOwnerUsers(user);
+  }
+
+  @Get('executive/activity')
+  @Roles(UserRole.EXECUTIVE)
+  executiveActivity(@CurrentUser() user: CurrentUserValue): ReturnType<AnalyticsService['listOwnerActivity']> {
+    return this.analytics.listOwnerActivity(user);
+  }
 }

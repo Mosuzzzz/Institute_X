@@ -2,10 +2,10 @@ const DEFAULT_BACKEND_URL = 'http://localhost:3000';
 const SUPPORTED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 
 async function proxy(request: Request, context: { params: Promise<{ path: string[] }> }) {
-  const authorization = request.headers.get('authorization');
-  if (!authorization?.startsWith('Bearer ')) {
-    return Response.json({ message: 'Bearer token is required' }, { status: 401 });
-  }
+  const token = readSessionToken(request);
+  if (!token) return Response.json({ message: 'Session is required' }, { status: 401 });
+  if (request.method !== 'GET' && !hasValidMutationOrigin(request)) return Response.json({ message: 'Invalid request origin' }, { status: 403 });
+  const authorization = `Bearer ${token}`;
 
   const { path } = await context.params;
   if (!path.length || path.some((segment) => !segment || segment === '.' || segment === '..')) {
@@ -55,3 +55,4 @@ export function OPTIONS() {
     headers: { allow: [...SUPPORTED_METHODS, 'OPTIONS'].join(', ') },
   });
 }
+import { hasValidMutationOrigin, readSessionToken } from '../../auth/session-cookie';

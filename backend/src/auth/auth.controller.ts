@@ -2,17 +2,25 @@ import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/c
 import { Request } from 'express';
 import { CurrentUser, CurrentUserValue } from './current-user.decorator';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
+import { RequestOtpDto } from './dto/request-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { AuthGuard } from './auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  @Post('login')
+  @Post('otp/request')
   @HttpCode(200)
-  login(@Body() input: LoginDto): ReturnType<AuthService['login']> {
-    return this.auth.login(input.email, input.password);
+  requestOtp(@Body() input: RequestOtpDto): ReturnType<AuthService['requestOtp']> {
+    // The BFF shares one IP across users; enforce the per-mailbox limit here.
+    return this.auth.requestOtp(input.email);
+  }
+
+  @Post('otp/verify')
+  @HttpCode(200)
+  verifyOtp(@Body() input: VerifyOtpDto): ReturnType<AuthService['verifyOtp']> {
+    return this.auth.verifyOtp(input.challengeId, input.otp);
   }
 
   @Get('me')

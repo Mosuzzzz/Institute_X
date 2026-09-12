@@ -1,5 +1,7 @@
 # Institute X Backend Completion
 
+> Current authentication update (12 September 2026): the historical verification report below is not the current auth contract. Authentication now uses institutional Email OTP, HttpOnly cookie sessions and five additive roles (STUDENT, TEACHER, APPROVER, REGISTRAR, EXECUTIVE). Password/SSO login and public manual account creation are removed. Registrar manages existing verified users with role-change audits; Executive is read-only. See `System_Business_Rules_Blueprint.md` and `Email_OTP_Setup.md`. Migration, live email delivery and real-browser verification remain operational acceptance steps.
+
 Date: 26 August 2026
 Source: Institute X eLearning SRS v1.5
 

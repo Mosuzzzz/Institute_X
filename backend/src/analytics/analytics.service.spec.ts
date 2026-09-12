@@ -173,4 +173,21 @@ describe('AnalyticsService', () => {
       );
     });
   });
+
+  describe('getExecutiveLearningAnalytics', () => {
+    it('returns completion and assessment performance without double-counting repeat passes', async () => {
+      prisma.$queryRaw
+        .mockResolvedValueOnce([{ courseId: 'course', title: 'Course', enrollments: 10n, completed: 4n, accesses: 25n, preTestAttempts: 10n, postTestAttempts: 12n, preTestAverage: 50, postTestAverage: 80 }])
+        .mockResolvedValueOnce([{ majorCode: 'VOC-ICT', majorName: 'Information Technology', enrollments: 10n, completed: 4n, preTestAverage: 50, postTestAverage: 80 }]);
+      const result = await service.getExecutiveLearningAnalytics({ id: 'executive', role: UserRole.EXECUTIVE });
+      expect(result.summary).toEqual({ enrollments: 10, completedEnrollments: 4, completionRate: 40, preTestAverage: 50, postTestAverage: 80 });
+      expect(result.courses[0]).toMatchObject({ enrollments: 10, completed: 4, completionRate: 40 });
+      expect(result.byMajor[0]).toMatchObject({ majorCode: 'VOC-ICT', completionRate: 40 });
+    });
+
+    it('denies learning analytics to a non-Executive', async () => {
+      await expect(service.getExecutiveLearningAnalytics({ id: 'teacher', role: UserRole.TEACHER })).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    });
+  });
 });

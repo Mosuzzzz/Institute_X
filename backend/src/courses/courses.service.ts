@@ -745,26 +745,6 @@ export class CoursesService {
     return { courseId, categoryIds };
   }
 
-  async archiveCourse(actor: CourseActor, courseId: string): Promise<void> {
-    if (actor.role !== UserRole.EXECUTIVE) {
-      throw new ForbiddenException('EXECUTIVE role is required');
-    }
-    const course = await this.prisma.course.findUnique({
-      where: { id: courseId },
-      select: { teacherId: true, archivedAt: true },
-    });
-    if (!course || course.archivedAt) {
-      throw new NotFoundException('Course was not found');
-    }
-    const archived = await this.prisma.course.updateMany({
-      where: { id: courseId, archivedAt: null },
-      data: { archivedAt: new Date() },
-    });
-    if (archived.count !== 1) {
-      throw new ConflictException('Course was deleted concurrently');
-    }
-  }
-
   async listPublishedForApprover(actor: CourseActor): Promise<PublishedCourseSummary[]> {
     if (actor.role !== UserRole.APPROVER) {
       throw new ForbiddenException('APPROVER role is required');

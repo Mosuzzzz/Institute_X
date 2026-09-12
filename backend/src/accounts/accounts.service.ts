@@ -1,24 +1,32 @@
-import { ConflictException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { AccountStatus, Prisma, UserRole } from '@prisma/client';
-import { PasswordHasher } from '../auth/password-hasher';
-import { PrismaService } from '../database/prisma.service';
-import { CreateAccountDto } from './dto/create-account.dto';
 import { AUTH_SESSION_CACHE, AuthSessionCache } from '../auth/auth-session-cache';
+import { PrismaService } from '../database/prisma.service';
 
 @Injectable()
 export class AccountsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly passwords: PasswordHasher,
     @Inject(AUTH_SESSION_CACHE) private readonly cache: AuthSessionCache,
   ) {}
 
-  list(): Promise<unknown[]> {
+  list(search?: string): Promise<unknown[]> {
+    const term = search?.trim();
     return this.prisma.user.findMany({
+      where: {
+        emailVerifiedAt: { not: null },
+        ...(term
+          ? {
+              OR: [
+                { fullName: { contains: term, mode: 'insensitive' as const } },
+                { universityEmail: { contains: term, mode: 'insensitive' as const } },
+              ],
+            }
+          : {}),
+      },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
-        username: true,
         universityEmail: true,
         fullName: true,
         accountStatus: true,
@@ -30,77 +38,45 @@ export class AccountsService {
     });
   }
 
-  async create(input: CreateAccountDto): Promise<unknown> {
-    const passwordHash = await this.passwords.hash(input.password);
-    try {
-      return await this.prisma.user.create({
-        data: {
-          universityEmail: input.email.trim().toLowerCase(),
-          username: input.username.trim(),
-          fullName: input.fullName.trim(),
-          passwordHash,
-          accountStatus: AccountStatus.ACTIVE,
-          majorId: input.majorId,
-          roles: { create: { role: UserRole.STUDENT } },
-        },
-        select: {
-          id: true,
-          username: true,
-          universityEmail: true,
-          fullName: true,
-          accountStatus: true,
-          roles: { select: { role: true } },
-        },
-      });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Email or username already exists');
-      }
-      throw error;
-    }
+  listRoleAudits(): Promise<unknown[]> {
+    return this.prisma.roleChangeAudit.findMany({
+      take: 200,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        actor: { select: { id: true, fullName: true, universityEmail: true } },
+        targetUser: { select: { id: true, fullName: true, universityEmail: true } },
+      },
+    });
   }
 
   async addRole(actorId: string, userId: string, role: UserRole): Promise<unknown> {
-    if (actorId === userId) throw new ForbiddenException('You cannot assign a role to yourself');
-    if (role !== UserRole.TEACHER) {
-      throw new ForbiddenException('Registrar can only assign the TEACHER role');
-    }
-    await this.prisma.userRoleAssignment.upsert({
-      where: { userId_role: { userId, role } },
-      create: { userId, role },
-      update: {},
-    });
+    this.validateRoleChange(actorId, userId, role);
+    await this.changeRole(actorId, userId, role, true);
     await this.cache.invalidateUser(userId);
-    return this.prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { id: true, roles: { select: { role: true }, orderBy: { assignedAt: 'asc' } } },
-    });
+    return this.userRoles(userId);
   }
 
   async removeRole(actorId: string, userId: string, role: UserRole): Promise<unknown> {
-    if (actorId === userId) throw new ForbiddenException('You cannot remove your own role');
-    if (role !== UserRole.TEACHER) {
-      throw new ForbiddenException('Registrar can only remove the TEACHER role');
-    }
-    await this.prisma.userRoleAssignment.deleteMany({ where: { userId, role } });
+    this.validateRoleChange(actorId, userId, role);
+    await this.changeRole(actorId, userId, role, false);
     await this.cache.invalidateUser(userId);
-    return this.prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { id: true, roles: { select: { role: true }, orderBy: { assignedAt: 'asc' } } },
-    });
+    return this.userRoles(userId);
   }
 
   async update(
     userId: string,
     input: { fullName?: string; majorId?: string | null },
   ): Promise<unknown> {
-    const data: Prisma.UserUpdateInput = {};
-    if (input.fullName !== undefined) data.fullName = input.fullName.trim();
-    if (input.majorId === null) data.major = { disconnect: true };
-    else if (input.majorId !== undefined) data.major = { connect: { id: input.majorId } };
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data,
+      data: {
+        ...(input.fullName !== undefined ? { fullName: input.fullName.trim() } : {}),
+        ...(input.majorId === null
+          ? { major: { disconnect: true } }
+          : input.majorId !== undefined
+            ? { major: { connect: { id: input.majorId } } }
+            : {}),
+      },
       select: { id: true, fullName: true, major: { select: { id: true, code: true, name: true } } },
     });
     await this.cache.invalidateUser(userId);
@@ -115,16 +91,55 @@ export class AccountsService {
       data: { accountStatus: status },
       select: { id: true, accountStatus: true },
     });
+    await this.prisma.authSession.deleteMany({ where: { userId } });
     await this.cache.invalidateUser(userId);
     return user;
   }
 
-  async resetPassword(userId: string, password: string): Promise<void> {
-    const passwordHash = await this.passwords.hash(password);
-    await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
-      this.prisma.authSession.deleteMany({ where: { userId } }),
-    ]);
-    await this.cache.invalidateUser(userId);
+  private validateRoleChange(actorId: string, userId: string, role: UserRole): void {
+    if (actorId === userId) throw new ForbiddenException('You cannot change your own roles');
+    if (role === UserRole.STUDENT)
+      throw new ForbiddenException('The mandatory STUDENT role cannot be changed');
+  }
+
+  private async changeRole(
+    actorId: string,
+    userId: string,
+    role: UserRole,
+    add: boolean,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT user_id FROM users WHERE user_id = ${userId}::uuid FOR UPDATE`,
+      );
+      const current = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { emailVerifiedAt: true, roles: { select: { role: true } } },
+      });
+      if (!current.emailVerifiedAt)
+        throw new ForbiddenException('The user must verify their institutional email first');
+      const oldRoles = current.roles.map((entry) => entry.role);
+      if (add)
+        await tx.userRoleAssignment.upsert({
+          where: { userId_role: { userId, role } },
+          create: { userId, role },
+          update: {},
+        });
+      else await tx.userRoleAssignment.deleteMany({ where: { userId, role } });
+      const newRoles = add
+        ? [...new Set([...oldRoles, role])]
+        : oldRoles.filter((item) => item !== role);
+      if (oldRoles.length !== newRoles.length)
+        await tx.roleChangeAudit.create({
+          data: { actorId, targetUserId: userId, oldRoles, newRoles },
+        });
+    });
+  }
+
+  private userRoles(userId: string): Promise<unknown> {
+    return this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, roles: { select: { role: true }, orderBy: { assignedAt: 'asc' } } },
+    });
   }
 }

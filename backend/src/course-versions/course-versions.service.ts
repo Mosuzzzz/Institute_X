@@ -394,7 +394,7 @@ export class CourseVersionsService {
   }
 
   async unpublish(actor: VersionActor, versionId: string): Promise<void> {
-    this.requireTeacherOrOwner(actor);
+    this.requireRole(actor, UserRole.TEACHER);
     const version = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
       select: {
@@ -405,7 +405,7 @@ export class CourseVersionsService {
     if (!version) {
       throw new NotFoundException('Course Version was not found');
     }
-    if (actor.role === UserRole.TEACHER && version.course.teacherId !== actor.id) {
+    if (version.course.teacherId !== actor.id) {
       throw new ForbiddenException('Only the owning Teacher may unpublish this Version');
     }
     if (version.status !== CourseVersionStatus.PUBLISHED) {
@@ -422,7 +422,7 @@ export class CourseVersionsService {
   }
 
   async republish(actor: VersionActor, versionId: string): Promise<void> {
-    this.requireTeacherOrOwner(actor);
+    this.requireRole(actor, UserRole.TEACHER);
     const version = await this.prisma.courseVersion.findUnique({
       where: { id: versionId },
       select: {
@@ -435,7 +435,7 @@ export class CourseVersionsService {
     if (!version) {
       throw new NotFoundException('Course Version was not found');
     }
-    if (actor.role === UserRole.TEACHER && version.course.teacherId !== actor.id) {
+    if (version.course.teacherId !== actor.id) {
       throw new ForbiddenException('Only the owning Teacher may publish this Version');
     }
     if (version.status !== CourseVersionStatus.UNPUBLISHED) {
@@ -557,9 +557,4 @@ export class CourseVersionsService {
     }
   }
 
-  private requireTeacherOrOwner(actor: VersionActor): void {
-    if (actor.role !== UserRole.TEACHER && actor.role !== UserRole.EXECUTIVE) {
-      throw new ForbiddenException('TEACHER or EXECUTIVE role is required');
-    }
-  }
 }

@@ -154,7 +154,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
       <div className="border-b border-[#e2e6ec] bg-[#f8fafc] px-6 py-3">
         <div className="mx-auto flex max-w-[1720px] items-center justify-between">
           <Link
-            href="/learning/courses"
+            href="/student/courses"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#073d78] hover:underline"
           >
             <BootstrapIcon name="arrow-left" /> Back to Course catalog
@@ -188,8 +188,8 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 {entry.preTestId ? (
                   <Link
                     className="mt-3 rounded bg-[#7b39d8] px-6 py-3 font-semibold text-white transition hover:bg-[#682ac0]"
-                    href={`/learning/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
-                      `/learning/courses/${courseId}`
+                    href={`/student/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
+                      `/student/courses/${courseId}`
                     )}`}
                   >
                     Start Pre-Test now <BootstrapIcon name="arrow-right" />
@@ -323,8 +323,8 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             {entry.contentUnlocked && entry.preTestId ? (
               <Link
                 className="mt-8 inline-flex text-sm font-bold text-[#073d78] hover:underline"
-                href={`/learning/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
-                  `/learning/courses/${courseId}`,
+                href={`/student/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
+                  `/student/courses/${courseId}`,
                 )}`}
               >
                 View Pre-Test result <BootstrapIcon name="arrow-right" />
@@ -340,7 +340,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 </p>
                 <Link
                   className="mt-4 inline-flex rounded bg-[#6f2bd2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5b1fb6]"
-                  href={`/learning/assessments/post-test/${entry.postTestId}`}
+                  href={`/student/assessments/post-test/${entry.postTestId}`}
                 >
                   Take Post-Test <BootstrapIcon name="arrow-right" />
                 </Link>
@@ -430,8 +430,8 @@ export default function CourseClient({ courseId }: { courseId: string }) {
               {entry.preTestId ? (
                 <Link
                   className="rounded bg-[#6f2bd2] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#5b1fb6]"
-                  href={`/learning/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
-                    `/learning/courses/${courseId}`
+                  href={`/student/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
+                    `/student/courses/${courseId}`
                   )}`}
                 >
                   Start Pre-Test <BootstrapIcon name="arrow-right" />

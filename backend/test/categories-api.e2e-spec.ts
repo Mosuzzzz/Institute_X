@@ -56,29 +56,13 @@ describe('Categories REST API', () => {
       ]);
   });
 
-  it('POST /api/categories allows an Owner to create a category', async () => {
-    categories.create.mockResolvedValue({ id: 'category-id', slug: 'technology' });
-
-    await request(app.getHttpServer() as Server)
+  it('does not expose category mutations to a read-only Executive', async () => {
+    const response = await request(app.getHttpServer() as Server)
       .post('/api/categories')
       .set('x-test-role', UserRole.EXECUTIVE)
-      .send({ slug: 'technology', name: 'Technology' })
-      .expect(201)
-      .expect({ id: 'category-id', slug: 'technology' });
-
-    expect(categories.create).toHaveBeenCalledWith(
-      expect.objectContaining({ role: UserRole.EXECUTIVE }),
-      { slug: 'technology', name: 'Technology' },
-    );
-  });
-
-  it('POST /api/categories rejects invalid slugs before the service', async () => {
-    await request(app.getHttpServer() as Server)
-      .post('/api/categories')
-      .set('x-test-role', UserRole.EXECUTIVE)
-      .send({ slug: 'Not Valid', name: '' })
-      .expect(400);
-
+      .send({ slug: 'technology', name: 'Technology' });
+    expect(response.status).toBeGreaterThanOrEqual(400);
     expect(categories.create).not.toHaveBeenCalled();
+    expect(categories.update).not.toHaveBeenCalled();
   });
 });

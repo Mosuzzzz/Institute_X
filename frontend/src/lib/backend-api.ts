@@ -1,5 +1,3 @@
-import { AUTH_TOKEN_KEY } from "./auth-session";
-
 export class BackendApiError extends Error {
   constructor(
     message: string,
@@ -14,16 +12,14 @@ export async function backendApi<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
-  if (!token) throw new BackendApiError("Your session has expired.", 401);
-
   const response = await fetch(`/api/backend/${path.replace(/^\/+/, "")}`, {
     ...init,
     headers: {
       ...(init?.body ? { "content-type": "application/json" } : {}),
       ...init?.headers,
-      authorization: `Bearer ${token}`,
+      ...(init?.method && init.method !== "GET" ? { "x-csrf-request": "1" } : {}),
     },
+    credentials: "same-origin",
     cache: "no-store",
   });
 
@@ -229,7 +225,6 @@ export type SignedViewUrlDto = { url: string; expiresAt: string };
 
 export type OwnerUserDto = {
   id: string;
-  username: string;
   universityEmail: string;
   fullName: string;
   roles: Array<"STUDENT" | "TEACHER" | "APPROVER" | "REGISTRAR" | "EXECUTIVE">;
@@ -369,6 +364,12 @@ export type TeacherCourseAnalyticsDto = {
     notPass: number;
     passRate: number;
   };
+};
+
+export type ExecutiveLearningAnalyticsDto = {
+  summary: { enrollments: number; completedEnrollments: number; completionRate: number; preTestAverage: number | null; postTestAverage: number | null };
+  courses: Array<{ courseId: string; title: string; enrollments: number; completed: number; completionRate: number; accesses: number; preTestAttempts: number; postTestAttempts: number; preTestAverage: number | null; postTestAverage: number | null }>;
+  byMajor: Array<{ majorCode: string | null; majorName: string | null; enrollments: number; completed: number; completionRate: number; preTestAverage: number | null; postTestAverage: number | null }>;
 };
 
 export type PostTestResultDto = {

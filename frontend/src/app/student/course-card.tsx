@@ -22,7 +22,7 @@ export default function CourseCard({
     >
       <Link
         className={`${styles.cover} ${isLearning ? styles.learningCover : ""}`}
-        href={`/learning/courses/${course.id}`}
+        href={`/student/courses/${course.id}`}
         style={{ "--course-accent": course.accent } as CSSProperties}
       >
         <CourseCoverImage
@@ -37,7 +37,7 @@ export default function CourseCard({
         <h3 className="text-[1.05rem] leading-relaxed font-medium text-[#20243a]">
           <Link
             className="text-inherit no-underline hover:text-[#073d78] hover:underline hover:underline-offset-3"
-            href={`/learning/courses/${course.id}`}
+            href={`/student/courses/${course.id}`}
           >
             {course.title}
           </Link>

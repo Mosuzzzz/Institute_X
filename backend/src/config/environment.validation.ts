@@ -5,6 +5,8 @@ const FILE_SECRETS = [
   'DATABASE_URL',
   'REDIS_URL',
   'AUTH_CACHE_SIGNING_KEY',
+  'OTP_HASH_SECRET',
+  'RESEND_API_KEY',
   'S3_ACCESS_KEY_ID',
   'S3_SECRET_ACCESS_KEY',
 ] as const;
@@ -63,6 +65,20 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
       then: Joi.required(),
       otherwise: Joi.optional(),
     }),
+  OTP_HASH_SECRET: Joi.string().min(32).invalid('replace-with-at-least-32-random-characters').when('NODE_ENV', {
+    is: 'test',
+    then: Joi.optional().default('test-only-otp-secret-at-least-32-characters'),
+    otherwise: Joi.required(),
+  }),
+  RESEND_API_KEY: Joi.string().when('NODE_ENV', { is: 'production', then: Joi.required(), otherwise: Joi.optional() }),
+  OTP_EMAIL_PROVIDER: Joi.string().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.valid('resend').default('resend'),
+    otherwise: Joi.valid('mailpit', 'resend').default('mailpit'),
+  }),
+  MAILPIT_HOST: Joi.string().hostname().default('127.0.0.1'),
+  MAILPIT_SMTP_PORT: Joi.number().port().default(1025),
+  OTP_FROM_EMAIL: Joi.string().max(320).when('NODE_ENV', { is: 'production', then: Joi.required(), otherwise: Joi.optional() }),
   S3_ENDPOINT: Joi.string().uri().optional(),
   S3_PUBLIC_ENDPOINT: Joi.string()
     .uri({ scheme: ['http', 'https'] })

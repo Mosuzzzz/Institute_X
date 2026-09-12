@@ -28,9 +28,9 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   const expiryRetryAt = useRef(0);
   const [canRetryExpiry, setCanRetryExpiry] = useState(false);
   const requestedReturnTo = searchParams.get('returnTo');
-  const returnTo = requestedReturnTo?.startsWith('/learning/courses/')
+  const returnTo = requestedReturnTo?.startsWith('/student/courses/')
     ? requestedReturnTo
-    : '/learning/my-courses';
+    : '/student/learning';
 
   useEffect(() => {
     if (!validType) return;
@@ -88,7 +88,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
         .then((submitted) => {
           router.replace(
             submitted.courseId
-              ? `/learning/courses/${encodeURIComponent(submitted.courseId)}`
+              ? `/student/courses/${encodeURIComponent(submitted.courseId)}`
               : returnTo,
           );
         })
@@ -97,7 +97,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
             const completed = await backendApi<CompletedPreTestDto>(
               `pre-tests/${quizId}/result`,
             );
-            router.replace(`/learning/courses/${encodeURIComponent(completed.courseId)}`);
+            router.replace(`/student/courses/${encodeURIComponent(completed.courseId)}`);
           } catch {
             setError(
               requestError instanceof Error
@@ -140,7 +140,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
       } else {
         router.replace(
           submitted.courseId
-            ? `/learning/courses/${encodeURIComponent(submitted.courseId)}`
+            ? `/student/courses/${encodeURIComponent(submitted.courseId)}`
             : returnTo,
         );
       }
@@ -156,7 +156,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   if (!attempt && isPostTest && !loading) {
     return (
       <main className={pageClasses}>
-        <Link className="text-sm font-bold text-[#073d78]" href="/learning/my-courses">
+        <Link className="text-sm font-bold text-[#073d78]" href="/student/learning">
           <BootstrapIcon name="arrow-left" /> My learning
         </Link>
         <section className="mt-10 border border-[#d8dde5] bg-white p-6" aria-label="Post-Test attempt history">
@@ -227,7 +227,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
                 </table>
               </div>
             ) : null}
-            <Link className="mt-5 font-bold text-[#073d78]" href={completedPreTest ? `/learning/courses/${encodeURIComponent(completedPreTest.courseId)}` : '/learning/my-courses'}>{completedPreTest ? 'Continue to Course' : 'Return to My learning'} <BootstrapIcon name="arrow-right" /></Link>
+            <Link className="mt-5 font-bold text-[#073d78]" href={completedPreTest ? `/student/courses/${encodeURIComponent(completedPreTest.courseId)}` : '/student/learning'}>{completedPreTest ? 'Continue to Course' : 'Return to My learning'} <BootstrapIcon name="arrow-right" /></Link>
           </section>
         ) : <ApiState loading={loading} error={error} />}
       </main>
@@ -237,7 +237,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   return (
     <main className={pageClasses}>
       <header className="mb-[42px] grid gap-2.5">
-        <Link className="mb-6 w-fit text-[0.78rem] font-bold text-[#073d78] no-underline" href={returnTo}><BootstrapIcon name="arrow-left" /> {returnTo === '/learning/my-courses' ? 'My learning' : 'Back to course'}</Link>
+        <Link className="mb-6 w-fit text-[0.78rem] font-bold text-[#073d78] no-underline" href={returnTo}><BootstrapIcon name="arrow-left" /> {returnTo === '/student/learning' ? 'My learning' : 'Back to course'}</Link>
         <p className="mb-2 text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase">{isPostTest ? 'Post-Test' : 'Pre-Test'}</p>
         <h1 className="text-[clamp(2.3rem,5vw,4.8rem)] font-medium tracking-[-0.055em] text-[#202a38]">{isPostTest ? 'Check your mastery' : 'Before you begin'}</h1>
         <div className="flex flex-wrap items-center justify-between gap-4">

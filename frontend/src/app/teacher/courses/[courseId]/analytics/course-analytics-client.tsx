@@ -28,7 +28,7 @@ export default function CourseAnalyticsClient({ courseId }: { courseId: string }
 
   return (
     <main className="mx-auto w-[min(calc(100%-48px),1200px)] py-14">
-      <Link className="text-sm font-semibold text-[#073d78]" href={`/teaching/courses/${courseId}`}><BootstrapIcon name="arrow-left" /> Back to course</Link>
+      <Link className="text-sm font-semibold text-[#073d78]" href={`/teacher/courses/${courseId}`}><BootstrapIcon name="arrow-left" /> Back to course</Link>
       <header className="mt-7 border-b border-slate-200 pb-7">
         <p className="text-xs font-bold tracking-[0.13em] text-[#063777] uppercase">Course performance</p>
         <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] text-slate-900">Analytics</h1>

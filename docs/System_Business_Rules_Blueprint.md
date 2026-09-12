@@ -1,6 +1,6 @@
 # Institute X: Authoritative Business Rules & System Architecture Blueprint
 
-> **Status:** Final & Frozen (Single Source of Truth)  
+> **Status:** Current contract, revised 12 September 2026 for Email OTP and multi-role accounts
 > **Date:** September 2026  
 > **Scope:** Full-stack specifications covering Database, Backend (NestJS + Prisma), and Frontend (Next.js App Router).
 
@@ -8,15 +8,17 @@
 
 ## 1. Role Boundaries & Access Control (Strict Role Separation)
 
-To prevent routing conflicts, unauthorized actions, and UI confusion, each of the 4 roles has strictly demarcated boundaries.
+The only supported roles are STUDENT, TEACHER, APPROVER, REGISTRAR and EXECUTIVE. Every verified account retains STUDENT; additional roles are assigned by a Registrar. Permissions are additive, but each workspace is isolated and the switcher lists only assigned roles. OWNER and ADMIN are not supported.
 
-| Role | Default Workspace Route | Primary Responsibilities | Strict Boundaries (What they CANNOT do) |
-| :--- | :--- | :--- | :--- |
-| **STUDENT** | `/student` | - Browse eligible courses<br>- Auto-enroll upon starting a course<br>- Complete mandatory 1-attempt Pre-Test<br>- View text & media content<br>- Attempt Post-Tests (unlimited attempts, 80% passing mark)<br>- View own scores & history | - Cannot access any `/teacher`, `/approver`, or `/owner` routes.<br>- Cannot bypass Pre-Test to access content.<br>- Cannot view courses from other majors when configured as `LIMITED`. |
-| **TEACHER** | `/teacher` | - Request course creation permission (`/teacher/permission`)<br>- Create and edit Course Versions (in `DRAFT` status)<br>- Organize content into optional Sections<br>- Add Text, Video, Audio, Image, Document content<br>- Create mandatory Pre-Test and Post-Test assessments<br>- Submit Draft Version for Approver review<br>- Reopen rejected drafts for correction<br>- Discard unwanted draft revisions<br>- Unpublish/republish own published courses<br>- View analytics for own courses | - **Cannot create courses without APPROVED permission.**<br>- **Cannot directly edit `PUBLISHED` content.** Changes must create a new Version.<br>- **Cannot approve own or others' courses.**<br>- Cannot access Approver review queues or Owner administrative panels. |
-| **APPROVER** | `/approver` | - Review Teacher Permission requests (`APPROVE` / `REJECT`)<br>- Review Course Version submissions (`APPROVE` / `REJECT` with mandatory comment for rejection)<br>- View submitted content and quiz structures in read-only mode | - Cannot create, edit, or author courses.<br>- Cannot modify course content during review.<br>- Cannot access Owner system-wide analytics. |
-| **OWNER** | `/owner` | - Executive Dashboard: Active users, course totals, enrollments, assessment statistics, traffic & peak hours<br>- Central Category Management (Create, Edit, List course categories)<br>- Administrative Course Moderation (Unpublish / Archive courses for institutional policy) | - Does not participate in routine course approval queues (handled strictly by Approver).<br>- Does not author courses directly. |
+STUDENT learns; TEACHER authors only after separate teaching approval; APPROVER reviews teaching requests and submitted courses; REGISTRAR manages existing verified users' roles; EXECUTIVE has read-only analytics.
 
+| Role | Workspace | Responsibility |
+|---|---|---|
+| STUDENT | `/student` | Eligible catalog, Pre-Test gate, lessons and Post-Test history |
+| TEACHER | `/teacher` | Teaching permission request, own draft authoring and publication visibility |
+| APPROVER | `/approver` | Teaching requests and submitted course reviews with media previews |
+| REGISTRAR | `/registrar` | Existing verified user search, role assignment/removal and role audit history |
+| EXECUTIVE | `/executive` | Read-only system, course, enrollment, completion, score and major analytics |
 ---
 
 ## 2. Course Lifecycle & Versioning State Machine
@@ -46,7 +48,7 @@ All course content revisions are strictly versioned. A course never mutates live
     ┌───────────────┐          ┌───────────────┐
     │  UNPUBLISHED  │          │  SUPERSEDED   │
     └───────────────┘          └───────────────┘
-  (By Teacher/Owner)        (When v(n+1) Published)
+  (By owning Teacher)      (When v(n+1) Published)
 ```
 
 ### Key Business Rules for Course Versions:
@@ -129,19 +131,13 @@ To eliminate "Object storage is not configured" and stuck `PENDING` assets:
 
 ---
 
-## 6. local authentication Contract & Role Mapping
+## 6. Email OTP Authentication and Role Management
 
-- Authentication source: `the retired identity provider`
-- Direct role mapping supported:
-  - `STUDENT` $\rightarrow$ Student role, requires valid `major_code`.
-  - `TEACHER` $\rightarrow$ Teacher role (subject to internal `TeacherPermissionRequest`).
-  - `APPROVER` $\rightarrow$ Course & Teacher Approver role.
-  - `OWNER` $\rightarrow$ Executive Director role.
-- Redirection upon local authentication Callback:
-  - Strictly routes according to verified role (`/student`, `/teacher`, `/approver`, or `/owner`).
-- Authenticated API sessions are cached in Redis for a short configurable TTL (default: 5 minutes):
-  - Cache keys contain a SHA-256 token digest; raw Bearer tokens are never stored as Redis keys.
-  - A cache hit supplies the synchronized local User and avoids repeated local authentication verification and PostgreSQL upsert operations.
-  - Cache misses perform normal local authentication verification and local User synchronization before caching the result.
-  - Redis failures are fail-open for availability: authentication falls back to local authentication and PostgreSQL rather than denying valid users.
-  - The TTL may be configured from 1 to 15 minutes to limit stale Role or account-status data.
+- Only exact `@x.ac.th` email addresses are accepted; no passwords, SSO or public account-creation endpoint.
+- OTPs contain six cryptographically random digits, expire after five minutes, are stored as email-bound HMAC hashes, and may be consumed only once. Each mailbox has a five-request/15-minute limit and each challenge permits at most five verification attempts.
+- No new User exists before successful OTP verification. New users receive STUDENT only; existing users retain their assigned roles.
+- The browser receives an opaque HttpOnly, SameSite=Lax session cookie (Secure in production). Tokens are not returned to browser JavaScript or stored in local/session storage. Mutation routes require a custom CSRF header and reject cross-origin requests.
+- Redis caches verified local sessions for 60 seconds by default (configurable 15–300 seconds, bounded by session expiry). Keys use token digests, values are integrity-signed, and cache failure falls back to PostgreSQL session validation, not to an identity provider.
+- Registrar role changes target existing email-verified accounts, disallow self-modification and modification of the mandatory STUDENT role, and record actor, target, old/new roles and timestamp atomically. Relevant cached sessions are invalidated.
+- TEACHER assignment does not itself grant teaching permission. Creation requires a separate APPROVED permission request; EXECUTIVE cannot mutate courses, categories or roles.
+- Initial Registrar provisioning is an operator bootstrap of an already mailbox-verified account, not public user creation. See `Email_OTP_Setup.md` for the migration and operational prerequisites.

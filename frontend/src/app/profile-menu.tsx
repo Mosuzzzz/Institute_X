@@ -28,7 +28,7 @@ export default function ProfileMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
-  const displayName = profile?.name ?? profile?.username ?? fallbackName;
+  const displayName = profile?.name ?? profile?.email ?? fallbackName;
   const email = profile?.email ?? accountLabel;
   const initials = displayName
     .split(/\s+/)

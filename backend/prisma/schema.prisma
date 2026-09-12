@@ -90,10 +90,9 @@ model Major {
 
 model User {
   id                 String                     @id @default(uuid()) @map("user_id") @db.Uuid
-  username           String                     @unique @db.VarChar(255)
   universityEmail    String                     @unique @map("university_email") @db.VarChar(320)
-  passwordHash       String                     @map("password_hash") @db.VarChar(512)
   fullName           String                     @map("full_name") @db.VarChar(255)
+  emailVerifiedAt    DateTime?                   @map("email_verified_at") @db.Timestamptz
   accountStatus      AccountStatus              @map("account_status")
   majorId            String?                    @map("major_id") @db.Uuid
   createdAt          DateTime                   @default(now()) @map("created_at") @db.Timestamptz
@@ -108,8 +107,40 @@ model User {
   courseAccessEvents CourseAccessEvent[]
   roles              UserRoleAssignment[]
   authSessions       AuthSession[]
+  roleChangesMade    RoleChangeAudit[]          @relation("RoleChangeActor")
+  roleChangesReceived RoleChangeAudit[]         @relation("RoleChangeTarget")
 
   @@map("users")
+}
+
+model EmailOtp {
+  id           String    @id @default(uuid()) @map("otp_id") @db.Uuid
+  email        String    @db.VarChar(320)
+  otpHash      String    @map("otp_hash") @db.Char(64)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz
+  usedAt       DateTime? @map("used_at") @db.Timestamptz
+  attempts     Int       @default(0)
+  requestedBy String?   @map("requested_by") @db.Char(64)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+  @@map("email_otps")
+}
+
+model RoleChangeAudit {
+  id           String     @id @default(uuid()) @map("audit_id") @db.Uuid
+  actorId      String     @map("actor_id") @db.Uuid
+  targetUserId String     @map("target_user_id") @db.Uuid
+  oldRoles     UserRole[] @map("old_roles")
+  newRoles     UserRole[] @map("new_roles")
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  actor        User       @relation("RoleChangeActor", fields: [actorId], references: [id])
+  targetUser   User       @relation("RoleChangeTarget", fields: [targetUserId], references: [id])
+
+  @@index([actorId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@map("role_change_audits")
 }
 
 model UserRoleAssignment {

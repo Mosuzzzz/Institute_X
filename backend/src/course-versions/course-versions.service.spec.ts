@@ -490,7 +490,7 @@ describe('CourseVersionsService', () => {
       });
     });
 
-    it('allows an Owner to unpublish any published Version', async () => {
+    it('denies unpublishing to a read-only Executive', async () => {
       db.courseVersion.findUnique.mockResolvedValue({
         id: 'version-id',
         status: CourseVersionStatus.PUBLISHED,
@@ -498,12 +498,8 @@ describe('CourseVersionsService', () => {
       });
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.unpublish({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'version-id');
-
-      expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
-        where: { id: 'version-id', status: CourseVersionStatus.PUBLISHED },
-        data: { status: CourseVersionStatus.UNPUBLISHED },
-      });
+      await expect(service.unpublish({ id: 'executive-id', role: UserRole.EXECUTIVE }, 'version-id')).rejects.toBeInstanceOf(ForbiddenException);
+      expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
     });
 
     it('denies unpublishing another Teacher Version', async () => {
@@ -567,7 +563,7 @@ describe('CourseVersionsService', () => {
       });
     });
 
-    it('allows an Owner to republish an unpublished Version', async () => {
+    it('denies republishing to a read-only Executive', async () => {
       db.courseVersion.findUnique.mockResolvedValue({
         id: 'version-id',
         courseId: 'course-id',
@@ -577,13 +573,8 @@ describe('CourseVersionsService', () => {
       db.courseVersion.findFirst.mockResolvedValue(null);
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.republish({ id: 'owner-id', role: UserRole.EXECUTIVE }, 'version-id');
-
-      expect(db.courseVersion.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'version-id', status: CourseVersionStatus.UNPUBLISHED },
-        }),
-      );
+      await expect(service.republish({ id: 'executive-id', role: UserRole.EXECUTIVE }, 'version-id')).rejects.toBeInstanceOf(ForbiddenException);
+      expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
     });
 
     it('does not replace a newer published Version', async () => {

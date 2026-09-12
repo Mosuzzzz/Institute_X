@@ -20,6 +20,37 @@ interface AssessmentSummary {
   averageScore: number | null;
 }
 
+interface ExecutiveLearningAnalytics {
+  summary: {
+    enrollments: number;
+    completedEnrollments: number;
+    completionRate: number;
+    preTestAverage: number | null;
+    postTestAverage: number | null;
+  };
+  courses: Array<{
+    courseId: string;
+    title: string;
+    enrollments: number;
+    completed: number;
+    accesses: number;
+    preTestAttempts: number;
+    postTestAttempts: number;
+    preTestAverage: number | null;
+    postTestAverage: number | null;
+    completionRate: number;
+  }>;
+  byMajor: Array<{
+    majorCode: string | null;
+    majorName: string | null;
+    enrollments: number;
+    completed: number;
+    preTestAverage: number | null;
+    postTestAverage: number | null;
+    completionRate: number;
+  }>;
+}
+
 interface TeacherCourseAnalytics {
   enrollments: number;
   accesses: number;
@@ -58,7 +89,6 @@ interface OwnerDashboard {
 type OwnerUser = Prisma.UserGetPayload<{
   select: {
     id: true;
-    username: true;
     universityEmail: true;
     fullName: true;
     roles: { select: { role: true } };
@@ -80,6 +110,104 @@ interface OwnerActivity {
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getExecutiveLearningAnalytics(actor: AnalyticsActor): Promise<ExecutiveLearningAnalytics> {
+    this.requireRole(actor, UserRole.EXECUTIVE);
+    type CourseRow = {
+      courseId: string;
+      title: string;
+      enrollments: bigint;
+      completed: bigint;
+      accesses: bigint;
+      preTestAttempts: bigint;
+      postTestAttempts: bigint;
+      preTestAverage: number | null;
+      postTestAverage: number | null;
+    };
+    type MajorRow = {
+      majorCode: string | null;
+      majorName: string | null;
+      enrollments: bigint;
+      completed: bigint;
+      preTestAverage: number | null;
+      postTestAverage: number | null;
+    };
+    const [courseRows, majorRows] = await Promise.all([
+      this.prisma.$queryRaw<CourseRow[]>(Prisma.sql`
+        SELECT c.course_id AS "courseId",
+          COALESCE((SELECT title FROM course_versions WHERE course_id = c.course_id ORDER BY version_number DESC LIMIT 1), 'Untitled Course') AS title,
+          (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.course_id) AS enrollments,
+          (SELECT COUNT(*) FROM course_enrollments e WHERE e.course_id = c.course_id AND EXISTS (
+            SELECT 1 FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
+            WHERE v.course_id = c.course_id AND a.student_id = e.student_id AND q.quiz_type = 'POST_TEST' AND a.result = 'PASS' AND a.submitted_at IS NOT NULL
+          )) AS completed,
+          (SELECT COUNT(*) FROM course_access_events WHERE course_id = c.course_id) AS accesses,
+          s."preTestAttempts", s."postTestAttempts", s."preTestAverage", s."postTestAverage"
+        FROM courses c
+        CROSS JOIN LATERAL (
+          SELECT COUNT(*) FILTER (WHERE q.quiz_type = 'PRE_TEST') AS "preTestAttempts",
+            COUNT(*) FILTER (WHERE q.quiz_type = 'POST_TEST') AS "postTestAttempts",
+            AVG(a.score) FILTER (WHERE q.quiz_type = 'PRE_TEST')::float8 AS "preTestAverage",
+            AVG(a.score) FILTER (WHERE q.quiz_type = 'POST_TEST')::float8 AS "postTestAverage"
+          FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
+          WHERE v.course_id = c.course_id AND a.submitted_at IS NOT NULL
+        ) s
+        ORDER BY enrollments DESC, title ASC
+      `),
+      this.prisma.$queryRaw<MajorRow[]>(Prisma.sql`
+        SELECT m.major_code AS "majorCode", m.major_name AS "majorName", COUNT(*) AS enrollments,
+          COUNT(*) FILTER (WHERE EXISTS (
+            SELECT 1 FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
+            WHERE v.course_id = e.course_id AND a.student_id = e.student_id AND q.quiz_type = 'POST_TEST' AND a.result = 'PASS' AND a.submitted_at IS NOT NULL
+          )) AS completed,
+          AVG((SELECT AVG(a.score) FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
+            WHERE v.course_id = e.course_id AND a.student_id = e.student_id AND q.quiz_type = 'PRE_TEST' AND a.submitted_at IS NOT NULL))::float8 AS "preTestAverage",
+          AVG((SELECT AVG(a.score) FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
+            WHERE v.course_id = e.course_id AND a.student_id = e.student_id AND q.quiz_type = 'POST_TEST' AND a.submitted_at IS NOT NULL))::float8 AS "postTestAverage"
+        FROM course_enrollments e JOIN users u ON u.user_id = e.student_id LEFT JOIN majors m ON m.major_id = u.major_id
+        GROUP BY m.major_code, m.major_name ORDER BY enrollments DESC
+      `),
+    ]);
+    const completionRate = (completed: number, total: number): number =>
+      total ? (completed / total) * 100 : 0;
+    const courses = courseRows.map((row) => ({
+      ...row,
+      enrollments: Number(row.enrollments),
+      completed: Number(row.completed),
+      accesses: Number(row.accesses),
+      preTestAttempts: Number(row.preTestAttempts),
+      postTestAttempts: Number(row.postTestAttempts),
+      completionRate: completionRate(Number(row.completed), Number(row.enrollments)),
+    }));
+    const byMajor = majorRows.map((row) => ({
+      ...row,
+      enrollments: Number(row.enrollments),
+      completed: Number(row.completed),
+      completionRate: completionRate(Number(row.completed), Number(row.enrollments)),
+    }));
+    const enrollments = courses.reduce((sum, row) => sum + row.enrollments, 0);
+    const completedEnrollments = courses.reduce((sum, row) => sum + row.completed, 0);
+    const average = (type: 'preTest' | 'postTest'): number | null => {
+      const count = courses.reduce((sum, row) => sum + row[`${type}Attempts`], 0);
+      return count
+        ? courses.reduce(
+            (sum, row) => sum + (row[`${type}Average`] ?? 0) * row[`${type}Attempts`],
+            0,
+          ) / count
+        : null;
+    };
+    return {
+      summary: {
+        enrollments,
+        completedEnrollments,
+        completionRate: completionRate(completedEnrollments, enrollments),
+        preTestAverage: average('preTest'),
+        postTestAverage: average('postTest'),
+      },
+      courses,
+      byMajor,
+    };
+  }
 
   async getTeacherCourseAnalytics(
     actor: AnalyticsActor,
@@ -269,7 +397,6 @@ export class AnalyticsService {
     return this.prisma.user.findMany({
       select: {
         id: true,
-        username: true,
         universityEmail: true,
         fullName: true,
         roles: { select: { role: true }, orderBy: { assignedAt: 'asc' } },

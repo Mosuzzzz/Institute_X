@@ -59,10 +59,9 @@ describeIntegration('PostgreSQL and MinIO concurrency integration', () => {
       await prisma.user.create({
         data: {
           id: teacherId,
-          username: `concurrency-teacher-${marker}`,
           universityEmail: `concurrency-${marker}@institute.example`,
           fullName: 'Concurrency Teacher',
-          passwordHash: 'disabled$integration-account',
+          emailVerifiedAt: new Date(),
           roles: { create: { role: UserRole.TEACHER } },
           accountStatus: AccountStatus.ACTIVE,
         },
@@ -204,10 +203,9 @@ describeIntegration('PostgreSQL and MinIO concurrency integration', () => {
       await prisma.user.create({
         data: {
           id: teacherId,
-          username: `minio-teacher-${marker}`,
           universityEmail: `minio-${marker}@institute.example`,
           fullName: 'MinIO Teacher',
-          passwordHash: 'disabled$integration-account',
+          emailVerifiedAt: new Date(),
           roles: { create: { role: UserRole.TEACHER } },
           accountStatus: AccountStatus.ACTIVE,
         },

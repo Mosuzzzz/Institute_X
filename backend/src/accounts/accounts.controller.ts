@@ -7,6 +7,7 @@ import {
   ParseEnumPipe,
   ParseUUIDPipe,
   Patch,
+  Query,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -17,10 +18,8 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AccountsService } from './accounts.service';
 import { AddRoleDto } from './dto/add-role.dto';
-import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { UpdateAccountStatusDto } from './dto/update-account-status.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('registrar/users')
 @UseGuards(AuthGuard, RolesGuard)
@@ -29,14 +28,12 @@ export class AccountsController {
   constructor(private readonly accounts: AccountsService) {}
 
   @Get()
-  list(): ReturnType<AccountsService['list']> {
-    return this.accounts.list();
+  list(@Query('search') search?: string): ReturnType<AccountsService['list']> {
+    return this.accounts.list(search);
   }
 
-  @Post()
-  create(@Body() input: CreateAccountDto): ReturnType<AccountsService['create']> {
-    return this.accounts.create(input);
-  }
+  @Get('role-audits')
+  audits(): ReturnType<AccountsService['listRoleAudits']> { return this.accounts.listRoleAudits(); }
 
   @Post(':userId/roles')
   addRole(
@@ -73,11 +70,4 @@ export class AccountsController {
     return this.accounts.updateStatus(actor.id, userId, input.status);
   }
 
-  @Post(':userId/reset-password')
-  resetPassword(
-    @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
-    @Body() input: ResetPasswordDto,
-  ): ReturnType<AccountsService['resetPassword']> {
-    return this.accounts.resetPassword(userId, input.password);
-  }
 }
