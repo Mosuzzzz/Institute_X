@@ -62,6 +62,24 @@ describe('AccountsService', () => {
     expect(cache.invalidateUser).toHaveBeenCalledWith('target');
   });
 
+  it('adds another role without replacing existing roles', async () => {
+    const oldRoles = [UserRole.STUDENT, UserRole.TEACHER];
+    tx.user.findUniqueOrThrow.mockResolvedValue({
+      emailVerifiedAt: new Date(),
+      roles: oldRoles.map((role) => ({ role })),
+    });
+    await service.addRole('registrar', 'target', UserRole.APPROVER);
+    expect(tx.userRoleAssignment.deleteMany).not.toHaveBeenCalled();
+    expect(tx.roleChangeAudit.create).toHaveBeenCalledWith({
+      data: {
+        actorId: 'registrar',
+        targetUserId: 'target',
+        oldRoles,
+        newRoles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.APPROVER],
+      },
+    });
+  });
+
   it('prevents changing the mandatory STUDENT role', async () => {
     await expect(
       service.removeRole('registrar', 'target', UserRole.STUDENT),

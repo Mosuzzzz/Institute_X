@@ -24,13 +24,19 @@ export default function AuthenticationPage() {
 
   async function requestOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^@\s]+@x\.ac\.th$/.test(normalizedEmail)) {
+      setError('กรุณาใช้อีเมลสถาบัน @x.ac.th');
+      return;
+    }
+    setEmail(normalizedEmail);
     setSubmitting(true);
     setError('');
     try {
       const response = await fetch('/api/auth/otp/request', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-csrf-request': '1' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
       const payload = await response.json() as { challengeId?: string; expiresAt?: string; message?: string };
       if (!response.ok || !payload.challengeId || !payload.expiresAt) throw new Error(payload.message ?? 'ส่งรหัส OTP ไม่สำเร็จ');
@@ -43,9 +49,13 @@ export default function AuthenticationPage() {
 
   async function verifyOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const otp = String(new FormData(event.currentTarget).get('otp') ?? '').trim();
+    if (!/^[0-9]{6}$/.test(otp)) {
+      setError('กรุณากรอกรหัส OTP เป็นตัวเลข 6 หลัก');
+      return;
+    }
     setSubmitting(true);
     setError('');
-    const otp = new FormData(event.currentTarget).get('otp');
     try {
       const response = await fetch('/api/auth/otp/verify', {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-request': '1' },
@@ -68,11 +78,11 @@ export default function AuthenticationPage() {
       <section className={authUi.panel} aria-labelledby="login-title">
         <header className={authUi.brand}><Image className={authUi.logo} src="/logoX.png" alt="Institute X" width={1238} height={1238} priority /><h1 id="login-title">Institute X</h1></header>
         <div className={authUi.rule} />
-        <form className={`${authUi.access} grid gap-4`} onSubmit={challengeId ? verifyOtp : requestOtp}>
+        <form noValidate className={`${authUi.access} grid gap-4`} onSubmit={challengeId ? verifyOtp : requestOtp}>
           <h2>เข้าสู่ระบบ</h2>
-          {!challengeId ? <label className="grid gap-1 text-sm">อีเมลสถาบัน (@x.ac.th)<input className="rounded-md border border-[#ccd1df] px-4 py-3" name="email" type="email" autoComplete="email" pattern="[^@\\s]+@x\\.ac\\.th" placeholder="name@x.ac.th" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
+          {!challengeId ? <label className="grid gap-1 text-sm">อีเมลสถาบัน (@x.ac.th)<input className="rounded-md border border-[#ccd1df] px-4 py-3" name="email" type="email" autoComplete="email" placeholder="name@x.ac.th" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
             <p className="text-sm text-muted">ส่งรหัส 6 หลักไปที่ <strong>{email}</strong> แล้ว รหัสหมดอายุภายใน 5 นาที</p>
-            <label className="grid gap-1 text-sm">รหัส OTP<input className="rounded-md border border-[#ccd1df] px-4 py-3 text-center text-xl tracking-[0.35em]" name="otp" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required autoFocus /></label>
+            <label className="grid gap-1 text-sm">รหัส OTP<input className="rounded-md border border-[#ccd1df] px-4 py-3 text-center text-xl tracking-[0.35em]" name="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus /></label>
           </>}
           {error ? <p className="text-sm text-red-700" role="alert">{error}</p> : null}
           <button className={authUi.loginButton} type="submit" disabled={submitting}>{submitting ? 'กำลังดำเนินการ…' : challengeId ? 'ยืนยันและเข้าสู่ระบบ' : 'ส่งรหัส OTP'}</button>

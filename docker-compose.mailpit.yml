@@ -11,4 +11,4 @@ services:
 
 networks:
   mock_mail:
-    internal: true
+    internal: false
