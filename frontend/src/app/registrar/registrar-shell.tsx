@@ -7,6 +7,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { clearAuthSession, endSession, hasActiveSession, readStoredProfile, resolveApplicationRole } from '../../lib/auth-session';
 import BootstrapIcon from '../bootstrap-icon';
 import ProfileMenu from '../profile-menu';
+import { commonUi } from '../ui-styles';
 
 const subscribe = () => () => undefined;
 
@@ -27,10 +28,10 @@ export default function RegistrarShell({ children }: { children: ReactNode }) {
     }
   }, [authenticated, ready, role, router]);
 
-  if (!ready || !authenticated || role !== 'REGISTRAR') return <main className="grid min-h-screen place-items-center"><span>Checking access…</span></main>;
+  if (!ready || !authenticated || role !== 'REGISTRAR') return <main className={commonUi.callbackShell}><section className={commonUi.callbackPanel} role="status"><span className={commonUi.spinner} aria-hidden="true" /><h1>Checking access…</h1></section></main>;
 
   return <div className="min-h-screen bg-[#f5f7fa] text-[#20243a]">
-    <header className="flex min-h-18 items-center justify-between border-b border-[#d6dbe4] bg-white px-6 md:px-12">
+    <header className="flex min-h-18 flex-wrap items-center justify-between gap-4 border-b border-line bg-white px-4 py-3 md:px-8">
       <div className="flex items-center gap-3"><Image src="/logoX.png" alt="" width={42} height={42} /><div><small className="block text-[#687083]">Institute X</small><strong>Role Management</strong></div></div>
       <div className="flex items-center gap-3"><span className="hidden items-center gap-2 rounded bg-[#edf3fa] px-3 py-2 text-sm text-[#073d78] sm:flex"><BootstrapIcon name="person-badge" /> Registrar</span><ProfileMenu profile={profile} roleLabel="Registrar" fallbackName="Registrar" onSignOut={() => void endSession().finally(() => router.replace('/'))} /></div>
     </header>

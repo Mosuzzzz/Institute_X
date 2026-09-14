@@ -13,7 +13,7 @@ export default function OwnerOverviewPage() {
 
   if (!data) {
     return (
-      <main className={staffUi.page}>
+      <main data-ui="page" className={staffUi.page}>
         <ApiState loading={loading} error={error} />
       </main>
     );
@@ -73,32 +73,28 @@ export default function OwnerOverviewPage() {
   const passRate = decided === 0 ? 0 : (data.postTestResults.pass / decided) * 100;
 
   return (
-    <main className={dashboardStyles.page}>
+    <main data-ui="page" className={dashboardStyles.page}>
       {/* Header Banner */}
       <header className="mb-8 flex flex-col gap-6 border-b border-slate-200/80 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 text-xs font-bold tracking-wider text-amber-700 uppercase">
-            <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-            Live Institutional Telemetry
-          </div>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Operational Overview
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600">
             Platform throughput, learning engagement, and assessment quality indicators.
           </p>
         </div>
       </header>
 
       {/* 5-Metric KPI Strip */}
-      <section aria-label="Platform Key Performance Indicators" className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <section aria-label="Platform Key Performance Indicators" className="executive-metrics mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className="group flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
+            className="group flex flex-col justify-between rounded-panel border border-slate-200/80 bg-white p-5 shadow-none transition-all duration-150  "
           >
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[0.68rem] font-bold tracking-wider uppercase text-slate-500">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-[0.68rem] font-bold tracking-wider uppercase text-slate-600">
                 {metric.label}
               </span>
               <div className="grid size-8 place-items-center rounded-lg bg-slate-50 text-slate-600 ring-1 ring-slate-200/60 group-hover:bg-blue-50 group-hover:text-blue-600">
@@ -109,7 +105,7 @@ export default function OwnerOverviewPage() {
               <strong className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">
                 {metric.value.toLocaleString()}
               </strong>
-              <p className="mt-1 text-xs text-slate-500">{metric.sublabel}</p>
+              <p className="mt-1 text-xs text-slate-600">{metric.sublabel}</p>
             </div>
           </div>
         ))}
@@ -118,11 +114,10 @@ export default function OwnerOverviewPage() {
       {/* Interactive Visual Analytics Grid */}
       <section aria-label="Platform telemetry charts" className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Hourly Peak Usage Chart (2 Columns Wide) */}
-        <article className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs lg:col-span-2">
+        <article className="rounded-panel border border-slate-200/80 bg-white p-6 shadow-none lg:col-span-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <span className="text-xs font-bold tracking-wider text-amber-700 uppercase">Traffic & Demand</span>
-              <h2 className="text-base font-bold text-slate-900">Hourly Platform Accesses</h2>
+                <h2 className="text-base font-bold text-slate-900">Hourly Platform Accesses</h2>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-600/20">
               Peak: {peak.hour}:00 ({peak.accesses.toLocaleString()} accesses)
@@ -157,7 +152,7 @@ export default function OwnerOverviewPage() {
               );
             })}
           </div>
-          <div className="mt-3 flex justify-between text-[0.65rem] font-semibold text-slate-400">
+          <div className="mt-3 flex justify-between text-[0.65rem] font-semibold text-slate-600">
             <span>00:00</span>
             <span>04:00</span>
             <span>08:00</span>
@@ -169,11 +164,10 @@ export default function OwnerOverviewPage() {
         </article>
 
         {/* Assessment Outcomes Card (1 Column Wide) */}
-        <article className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+        <article className="flex flex-col justify-between rounded-panel border border-slate-200/80 bg-white p-6 shadow-none">
           <div>
-            <span className="text-xs font-bold tracking-wider text-emerald-700 uppercase">Quality Benchmark</span>
             <h2 className="text-base font-bold text-slate-900">Post-Test Passing Rate</h2>
-            <p className="mt-1 text-xs text-slate-500">Students must score ≥ 80% to achieve PASS status</p>
+            <p className="mt-1 text-xs text-slate-600">Students must score ≥ 80% to achieve PASS status</p>
           </div>
 
           <div className="my-6 flex flex-col items-center justify-center">
@@ -182,7 +176,7 @@ export default function OwnerOverviewPage() {
                 <strong className="block text-3xl font-extrabold tracking-tight text-emerald-700">
                   {passRate.toFixed(1)}%
                 </strong>
-                <span className="text-[0.65rem] font-bold tracking-wider uppercase text-slate-500">
+                <span className="text-[0.65rem] font-bold tracking-wider uppercase text-slate-600">
                   Passing Rate
                 </span>
               </div>
@@ -209,11 +203,11 @@ export default function OwnerOverviewPage() {
       {/* Distribution Breakdowns Grid */}
       <section aria-label="Platform distributions" className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {/* Users by Role */}
-        <article className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+        <article className="rounded-panel border border-slate-200/80 bg-white p-6 shadow-none">
           <div className="mb-5">
             <div>
               <h2 className="text-sm font-bold text-slate-900">Account Distribution by Role</h2>
-              <p className="text-xs text-slate-500">Total institutional profiles</p>
+              <p className="text-xs text-slate-600">Total institutional profiles</p>
             </div>
           </div>
           <div className="grid gap-3.5">
@@ -233,11 +227,11 @@ export default function OwnerOverviewPage() {
         </article>
 
         {/* Course Versions by Status */}
-        <article className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+        <article className="rounded-panel border border-slate-200/80 bg-white p-6 shadow-none">
           <div className="mb-5">
             <div>
               <h2 className="text-sm font-bold text-slate-900">Publishing Pipeline Status</h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-600">
                 {data.overview.pendingTeacherPermissions} teacher permissions pending
               </p>
             </div>

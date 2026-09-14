@@ -96,8 +96,7 @@ const studentCopy = {
 
 const studentMain =
   "mx-auto w-[min(calc(100%-48px),1720px)] pt-[clamp(54px,6vw,96px)] pb-[70px] max-[820px]:w-[min(calc(100%-36px),760px)] max-[820px]:pt-11 max-[540px]:w-[min(calc(100%-28px),500px)] max-[540px]:pt-9";
-const eyebrow =
-  "mb-2 text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase";
+const eyebrow = "hidden";
 const emptyState = "my-5 py-7 leading-[1.55] text-[#667182]";
 const courseGrid =
   "grid grid-cols-5 gap-[clamp(18px,1.6vw,30px)] max-[1180px]:grid-cols-3 max-[820px]:grid-cols-2 max-[540px]:grid-cols-1 max-[540px]:gap-11";
@@ -159,7 +158,7 @@ export default function StudentCatalogClient({
   );
   if (!data)
     return (
-      <main className={studentMain}>
+      <main data-ui="page" className={studentMain}>
         <ApiState loading={loading} error={error} />
       </main>
     );
@@ -177,7 +176,7 @@ export default function StudentCatalogClient({
 
   if (mode === "learning") {
     return (
-      <main className={`${studentMain} min-h-[calc(100svh-158px)]`}>
+      <main data-ui="page" className={`${studentMain} min-h-[calc(100svh-158px)]`}>
         <header className="mb-11">
           <p className={eyebrow}>{text.enrolled}</p>
           <h1 className="text-[clamp(2rem,3vw,3.15rem)] tracking-[-0.035em] text-[#20243a] uppercase max-[540px]:text-[2rem]">
@@ -195,10 +194,10 @@ export default function StudentCatalogClient({
             <h2 className="text-2xl tracking-[-0.035em] text-[#20243a]">
               {text.noEnrolled}
             </h2>
-            <p className="mt-2 text-[#747b92]">{text.enterCourse}</p>
+            <p className="mt-2 text-[#58677c]">{text.enterCourse}</p>
           </section>
         )}
-        <p className="mt-12 text-xs text-[#747b92]">{text.progress}</p>
+        <p className="mt-12 text-xs text-[#58677c]">{text.progress}</p>
       </main>
     );
   }
@@ -217,13 +216,13 @@ export default function StudentCatalogClient({
           ? humanizeCategorySlug(category)
           : text.allCourses;
     return (
-      <main className={`${studentMain} min-h-[calc(100svh-158px)]`}>
+      <main data-ui="page" className={`${studentMain} min-h-[calc(100svh-158px)]`}>
         <header className="mb-11">
           <p className={eyebrow}>{text.catalog}</p>
           <h1 className="text-[clamp(2rem,3vw,3.15rem)] tracking-[-0.035em] text-[#20243a] max-[540px]:text-[2rem]">
             {title}
           </h1>
-          <p className="mt-2.5 text-[#747b92]">
+          <p className="mt-2.5 text-[#58677c]">
             {visible.length} {text.eligible}
           </p>
         </header>
@@ -238,7 +237,7 @@ export default function StudentCatalogClient({
             <h2 className="text-2xl tracking-[-0.035em] text-[#20243a]">
               {text.noMatch}
             </h2>
-            <p className="mt-2 text-[#747b92]">{text.tryAgain}</p>
+            <p className="mt-2 text-[#58677c]">{text.tryAgain}</p>
           </section>
         )}
       </main>
@@ -246,7 +245,7 @@ export default function StudentCatalogClient({
   }
 
   return (
-    <main className={dashboardStyles.page}>
+    <main data-ui="page" className={dashboardStyles.page}>
       <h1>Learning Dashboard</h1>
       <nav className={dashboardStyles.tabs} aria-label="Learning dashboard tabs"><span aria-current="page">Overview</span></nav>
       <div className={dashboardStyles.toolbar}><p>Continue courses, monitor progress, and discover eligible learning.</p><Link className={dashboardStyles.newCourse} href="/student/courses">Browse courses</Link></div>

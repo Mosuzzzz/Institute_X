@@ -19,10 +19,10 @@ export default function CreateCourseClient() {
   const [eligibilityMode, setEligibilityMode] = useState<'OPEN' | 'LIMITED'>('OPEN');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (categories.loading || majors.loading || permission.loading) return <main className={formUi.page}><ApiState loading error={null} /></main>;
-  if (categories.error || majors.error || permission.error) return <main className={formUi.page}><ApiState loading={false} error={categories.error ?? majors.error ?? permission.error} /></main>;
-  if (permission.data?.status !== 'APPROVED') return <main className={formUi.page}><section className="border border-[#dce1e7] bg-white p-8"><p className={staffUi.eyebrow}>Permission required</p><h1 className="mt-2 text-3xl text-[#202a38]">Course creation is locked</h1><p className="mt-3 text-[#667182]">An Approver must approve your Teacher permission before you can create a Course.</p><Link className={`${staffUi.primaryAction} mt-6 inline-flex`} href="/teacher/permission">Open permission request</Link></section></main>;
-  if (!categories.data || !majors.data) return <main className={formUi.page}><ApiState loading={false} error="Course reference data is unavailable." /></main>;
+  if (categories.loading || majors.loading || permission.loading) return <main data-ui="editor" className={formUi.page}><ApiState loading error={null} /></main>;
+  if (categories.error || majors.error || permission.error) return <main data-ui="editor" className={formUi.page}><ApiState loading={false} error={categories.error ?? majors.error ?? permission.error} /></main>;
+  if (permission.data?.status !== 'APPROVED') return <main data-ui="editor" className={formUi.page}><section className="border border-[#dce1e7] bg-white p-8"><p className={staffUi.eyebrow}>Permission required</p><h1 className="mt-2 text-3xl text-[#202a38]">Course creation is locked</h1><p className="mt-3 text-[#667182]">An Approver must approve your Teacher permission before you can create a Course.</p><Link className={`${staffUi.primaryAction} mt-6 inline-flex`} href="/teacher/permission">Open permission request</Link></section></main>;
+  if (!categories.data || !majors.data) return <main data-ui="editor" className={formUi.page}><ApiState loading={false} error="Course reference data is unavailable." /></main>;
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -57,7 +57,7 @@ export default function CreateCourseClient() {
   };
 
   return (
-    <main className="min-h-full bg-[#f7f7f9] pb-16">
+    <main data-ui="editor" className="min-h-full bg-[#f7f7f9] pb-16">
       <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#1c1d1f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
         <Link className="text-sm font-medium text-white/80 no-underline transition hover:text-white" href="/teacher/courses">
           Back to courses
@@ -77,17 +77,17 @@ export default function CreateCourseClient() {
           <div>
             <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">Plan your course</h2>
             <div className="mt-3 grid gap-1">
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-[#1c1d1f] bg-white px-4 py-2.5 text-sm font-bold text-[#1c1d1f] no-underline shadow-xs" href="#course-information">
+              <a className="flex min-w-0 items-center gap-3 border-l-[3px] border-[#1c1d1f] bg-white px-4 py-2.5 text-sm font-bold text-[#1c1d1f] no-underline shadow-xs" href="#course-information">
                 <span className="size-4.5 rounded-full border border-[#1c1d1f] bg-[#1c1d1f] flex items-center justify-center">
                   <span className="size-1.5 rounded-full bg-white" />
                 </span>
                 Course information
               </a>
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#1c1d1f] hover:bg-white hover:text-[#1c1d1f]" href="#discovery">
+              <a className="flex min-w-0 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#1c1d1f] hover:bg-white hover:text-[#1c1d1f]" href="#discovery">
                 <span className="size-4.5 rounded-full border border-[#6a6f73]" />
                 Discovery
               </a>
-              <a className="flex min-w-52 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#1c1d1f] hover:bg-white hover:text-[#1c1d1f]" href="#eligibility">
+              <a className="flex min-w-0 items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-sm text-[#4c4d5e] no-underline transition hover:border-[#1c1d1f] hover:bg-white hover:text-[#1c1d1f]" href="#eligibility">
                 <span className="size-4.5 rounded-full border border-[#6a6f73]" />
                 Student eligibility
               </a>
@@ -95,7 +95,7 @@ export default function CreateCourseClient() {
           </div>
           <div>
             <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">Create your content</h2>
-            <p className="px-3 text-xs leading-5 text-[#747d8c]">
+            <p className="px-3 text-xs leading-5 text-[#58677c]">
               Curriculum, media, Pre-Test and Post-Test become available after the Draft is created.
             </p>
           </div>
@@ -112,7 +112,6 @@ export default function CreateCourseClient() {
 
         <div className="min-w-0 overflow-hidden bg-white shadow-[0_8px_30px_rgba(24,24,35,0.09)]">
           <section className="scroll-mt-28 border-b border-[#e2e4eb] p-6 sm:p-10" id="course-information">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">Course setup</p>
             <h1 className="mt-2 text-3xl tracking-[-0.04em] text-[#202a38]">Course information</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-[#687486]">
               Enter the title and description that students will see in the course catalog.
@@ -130,7 +129,6 @@ export default function CreateCourseClient() {
           </section>
 
           <section className="scroll-mt-28 border-b border-[#e2e4eb] p-6 sm:p-10" id="discovery">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">Catalog discovery</p>
             <h2 className="mt-2 text-2xl text-[#202a38]">Categories</h2>
             <p className="mt-2 text-sm text-[#687486]">Choose at least one category so students can find the course.</p>
             <fieldset className="mt-6">
@@ -147,7 +145,6 @@ export default function CreateCourseClient() {
           </section>
 
           <section className="scroll-mt-28 p-6 sm:p-10" id="eligibility">
-            <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">Audience access</p>
             <h2 className="mt-2 text-2xl text-[#202a38]">Student eligibility</h2>
             <p className="mt-2 text-sm text-[#687486]">Choose whether every active student or only selected majors can access this course.</p>
             <fieldset className="mt-6">

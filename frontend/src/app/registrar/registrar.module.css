@@ -1,0 +1,12 @@
+.table { width: 100%; }
+.table tbody tr:hover { background: #f8fafc; }
+@media (max-width: 700px) {
+  .table { display: block; min-width: 0; }
+  .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .table tbody { display: block; }
+  .table tbody tr { display: grid; gap: 14px; padding: 20px; }
+  .table td { display: block; padding: 0; overflow-wrap: anywhere; }
+  .table td[data-label]::before { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 13px; font-weight: 500; content: attr(data-label); }
+  .table td:last-child > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .table button { min-height: 44px; }
+}

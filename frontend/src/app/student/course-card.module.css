@@ -3,9 +3,9 @@
   min-width: 0;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 12px;
   background: var(--surface);
-  box-shadow: 0 2px 6px rgb(25 48 80 / 3%);
+  box-shadow: none;
   transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
 }
 
@@ -16,7 +16,7 @@
 
 @media (hover: hover) {
   .card:hover {
-    transform: translateY(-3px);
+
     border-color: #b3c6dc;
     box-shadow: 0 12px 30px rgb(25 48 80 / 9%);
   }
@@ -29,8 +29,8 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   place-items: center;
-  border-radius: 17px 17px 0 0;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--course-accent) 28%, #f8fafc), color-mix(in srgb, var(--course-accent) 65%, #edf2f7));
+  border-radius: 11px 11px 0 0;
+  background: color-mix(in srgb, var(--course-accent) 12%, #f8fafc);
   text-decoration: none;
 }
 
@@ -48,7 +48,7 @@
   height: 84px;
   place-items: center;
   border: 1px solid rgb(255 255 255 / 75%);
-  border-radius: 24px;
+  border-radius: 12px;
   background: rgb(255 255 255 / 65%);
   color: #173754;
   font-size: 2rem;
@@ -60,11 +60,11 @@
 .footer { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding: 0 20px 20px; overflow-wrap: anywhere; }
 .progress { margin-top: auto; padding: 6px 20px 20px; }
 .continueCard { display: grid; grid-template-columns: 140px minmax(0, 1fr); }
-.continueCard .cover { grid-row: span 2; height: 100%; aspect-ratio: auto; border-radius: 17px 0 0 17px; }
+.continueCard .cover { grid-row: span 2; height: 100%; aspect-ratio: auto; border-radius: 11px 0 0 11px; }
 
 @media (max-width: 540px) {
   .continueCard { grid-template-columns: 100px minmax(0, 1fr); }
-  .continueCard .monogram { width: 60px; height: 60px; border-radius: 18px; font-size: 1.5rem; }
+  .continueCard .monogram { width: 60px; height: 60px; border-radius: 12px; font-size: 1.5rem; }
   .details { padding: 16px 16px 10px; }
   .footer, .progress { padding-inline: 16px; padding-bottom: 16px; }
 }

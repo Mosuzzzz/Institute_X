@@ -9,7 +9,7 @@ export default function ApiState({ loading, error }: { loading: boolean; error: 
   const text = commonCopy[language];
 
   const stateClasses =
-    'grid min-h-[280px] place-content-center justify-items-center gap-3 rounded-2xl border border-line bg-surface px-6 py-12 text-center text-muted shadow-[0_2px_10px_rgb(25_48_80_/_3%)]';
+    'grid min-h-[280px] place-content-center justify-items-center gap-3 rounded-panel border border-line bg-surface px-6 py-12 text-center text-muted shadow-[0_2px_10px_rgb(25_48_80_/_3%)]';
 
   if (loading) {
     return (
@@ -27,7 +27,7 @@ export default function ApiState({ loading, error }: { loading: boolean; error: 
         <span className="mb-1 grid size-11 place-items-center rounded-full bg-[#fff1f2] text-xl font-medium text-[#8d3039]" aria-hidden="true">!</span>
         <strong className="text-[1.1rem] text-[#8d3039]">{text.loadError}</strong>
         <p className="max-w-[520px] leading-[1.55]">{error}</p>
-        <small className="text-[#7a8492]">{text.retryHint}</small>
+        <small className="text-[#58677c]">{text.retryHint}</small>
       </section>
     );
   }

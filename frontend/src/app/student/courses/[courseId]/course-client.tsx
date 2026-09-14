@@ -135,7 +135,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
 
   if (!course || !entry) {
     return (
-      <main className="mx-auto w-[min(calc(100%-48px),1720px)] pt-[clamp(54px,6vw,96px)] pb-[70px] max-[820px]:w-[min(calc(100%-36px),760px)]">
+      <main data-ui="page" className="mx-auto w-[min(calc(100%-48px),1720px)] pt-[clamp(54px,6vw,96px)] pb-[70px] max-[820px]:w-[min(calc(100%-36px),760px)]">
         <ApiState loading={loading} error={error} />
       </main>
     );
@@ -149,10 +149,10 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   const viewerIsLight = selectedItem?.contentType === 'TEXT' || selectedItem?.contentType === 'IMAGE';
 
   return (
-    <main className="bg-white">
+    <main data-ui="page" className="bg-white">
       {/* Top back navigation bar */}
       <div className="border-b border-[#e2e6ec] bg-[#f8fafc] px-6 py-3">
-        <div className="mx-auto flex max-w-[1720px] items-center justify-between">
+        <div className="mx-auto flex max-w-[1720px] flex-wrap items-center justify-between gap-3">
           <Link
             href="/student/courses"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#073d78] hover:underline"
@@ -168,9 +168,9 @@ export default function CourseClient({ courseId }: { courseId: string }) {
       <div className="grid min-h-svh grid-cols-[minmax(0,1fr)_minmax(360px,520px)] max-[1180px]:grid-cols-[minmax(0,1fr)_390px] max-[900px]:block">
         <section className="min-w-0">
           <section
-            className={`relative grid min-h-[clamp(520px,61vw,820px)] scroll-mt-24 overflow-hidden ${
+            className={`relative grid min-h-[clamp(320px,42vw,680px)] max-[900px]:min-h-[clamp(240px,56vw,440px)] scroll-mt-24 overflow-hidden ${
               viewerIsLight ? 'bg-white text-[#292b3a]' : 'bg-[#252832] text-white'
-            } max-[900px]:min-h-[560px] max-[560px]:min-h-[500px]`}
+            }`}
             id="lesson-viewer"
           >
             {!entry.contentUnlocked ? (
@@ -181,7 +181,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 <h1 className="text-[clamp(2rem,5vw,4rem)] font-bold tracking-[-0.04em]">
                   Complete the Pre-Test to begin
                 </h1>
-                <p className="max-w-md text-sm leading-6 text-[#687486]">
+                <p className="max-w-md text-sm leading-6 text-[#d7e3f0]">
                   Institutional policy requires taking a short Pre-Test before accessing this course&apos;s learning content.
                   You will have one attempt to complete it.
                 </p>
@@ -208,12 +208,12 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                   >
                     Lesson {Math.max(1, selectedIndex + 1)} · {selectedItem.contentType}
                   </p>
-                  <h1 className="mt-3 max-w-[920px] text-[clamp(2rem,4.5vw,4rem)] leading-[1.1] tracking-[-0.045em]">
+                  <h1 className="mt-3 max-w-[920px] text-[clamp(2rem,4.5vw,4rem)] leading-[1.1] tracking-[-0.03em]">
                     {selectedItem.title ?? selectedItem.contentType}
                   </h1>
 
                   {contentError ? (
-                    <div className="mt-7 border-l-4 border-[#e96b72] bg-[#fae9eb] px-5 py-4 text-[#8b343b]">
+                    <div className="mt-7 rounded-control border border-[#e96b72] bg-[#fae9eb] px-5 py-4 text-[#8b343b]">
                       <p>{contentError}</p>
                       <button
                         type="button"
@@ -226,7 +226,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                   ) : openingContent ? (
                     <p className="mt-7 text-[#85899a]">Opening content…</p>
                   ) : selectedItem.contentType === 'TEXT' ? (
-                    <div className="mt-10 max-h-[520px] overflow-y-auto whitespace-pre-wrap border-l-4 border-[#7b39d8] pl-7 text-[clamp(1rem,1.4vw,1.25rem)] leading-[2] text-[#4c4d5e]">
+                    <div className="mt-10 max-h-[520px] overflow-y-auto whitespace-pre-wrap border-t border-line pt-6 text-[clamp(1rem,1.4vw,1.25rem)] leading-[2] text-[#4c4d5e]">
                       {selectedItem.textBody || 'No text content in this lesson.'}
                     </div>
                   ) : mediaUrl && selectedItem.contentType === 'VIDEO' ? (
@@ -266,7 +266,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             ) : (
               <div className="grid place-content-center justify-items-center gap-3 p-10 text-center">
                 <p className="text-xs font-bold tracking-[0.13em] text-[#b79be5] uppercase">{course.title}</p>
-                <h1 className="text-[clamp(2rem,5vw,4.5rem)] tracking-[-0.05em]">Select a lesson to begin</h1>
+                <h1 className="text-[clamp(2rem,5vw,4.5rem)] tracking-[-0.03em]">Select a lesson to begin</h1>
               </div>
             )}
 

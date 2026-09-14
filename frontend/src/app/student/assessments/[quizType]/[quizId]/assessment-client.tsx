@@ -155,7 +155,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
 
   if (!attempt && isPostTest && !loading) {
     return (
-      <main className={pageClasses}>
+      <main data-ui="page" className={pageClasses}>
         <Link className="text-sm font-bold text-[#073d78]" href="/student/learning">
           <BootstrapIcon name="arrow-left" /> My learning
         </Link>
@@ -211,12 +211,12 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   if (!attempt || result || completedPreTest) {
     const displayedResult = result ?? completedPreTest;
     return (
-      <main className={pageClasses}>
+      <main data-ui="page" className={pageClasses}>
         {displayedResult ? (
           <section className="grid min-h-[520px] place-content-center justify-items-center gap-3 text-center">
             <p className="mb-2 text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase">Assessment complete</p>
             <h1 className="text-[clamp(2.5rem,6vw,5rem)] font-medium text-[#202a38]">{displayedResult.result.replace('_', ' ')}</h1>
-            <strong className="text-[clamp(4rem,10vw,8rem)] font-medium tracking-[-0.07em] text-[#0b5b73]">{displayedResult.score}%</strong>
+            <strong className="text-[clamp(3rem,8vw,6rem)] font-medium tracking-[-0.03em] text-[#0b5b73]">{displayedResult.score}%</strong>
             <p className="text-[#697586]">{isPostTest ? 'Your Post-Test result has been recorded.' : 'Your Course content is now unlocked.'}</p>
             {isPostTest && history.length > 0 ? (
               <div className="mt-6 w-full max-w-2xl overflow-x-auto border border-[#d8dde5] bg-white p-5 text-left">
@@ -235,11 +235,11 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
   }
 
   return (
-    <main className={pageClasses}>
+    <main data-ui="page" className={pageClasses}>
       <header className="mb-[42px] grid gap-2.5">
         <Link className="mb-6 w-fit text-[0.78rem] font-bold text-[#073d78] no-underline" href={returnTo}><BootstrapIcon name="arrow-left" /> {returnTo === '/student/learning' ? 'My learning' : 'Back to course'}</Link>
         <p className="mb-2 text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase">{isPostTest ? 'Post-Test' : 'Pre-Test'}</p>
-        <h1 className="text-[clamp(2.3rem,5vw,4.8rem)] font-medium tracking-[-0.055em] text-[#202a38]">{isPostTest ? 'Check your mastery' : 'Before you begin'}</h1>
+        <h1 className="text-[clamp(2.3rem,5vw,4.8rem)] font-medium tracking-[-0.03em] text-[#202a38]">{isPostTest ? 'Check your mastery' : 'Before you begin'}</h1>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="text-[#697586]">Answer every question, then submit your attempt.</p>
           {remainingSeconds !== null ? (
@@ -286,7 +286,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
         {attempt.questions.map((question, index) => (
           <fieldset className="grid gap-2.5 border border-[#d8dde5] bg-white p-[26px]" key={question.id}>
             <legend className="flex gap-3.5 px-2 text-base leading-[1.5] font-[650] text-[#202a38]">
-              <span className="text-[0.7rem] font-extrabold text-[#0b5b73]">{String(index + 1).padStart(2, '0')}</span>
+              <span className="shrink-0 whitespace-nowrap text-[0.7rem] font-extrabold text-[#0b5b73]">{String(index + 1).padStart(2, '0')}</span>
               {question.questionText}
             </legend>
             {question.imageAssetId ? (
@@ -310,7 +310,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
           </fieldset>
         ))}
         {error ? <p className="border-l-[3px] border-[#ad424b] bg-[#faeeee] px-4 py-[13px] text-[#8d3039]" role="alert">{error}</p> : null}
-        <button className="min-w-[200px] cursor-pointer justify-self-end border-0 bg-[#073d78] px-[22px] py-3.5 text-[0.82rem] font-bold text-white disabled:cursor-wait disabled:opacity-65" type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit assessment'}</button>
+        <button className="max-[540px]:w-full max-[540px]:min-w-0 min-w-[200px] cursor-pointer justify-self-end border-0 bg-[#073d78] px-[22px] py-3.5 text-[0.82rem] font-bold text-white disabled:cursor-wait disabled:opacity-65" type="submit" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit assessment'}</button>
       </form>
     </main>
   );

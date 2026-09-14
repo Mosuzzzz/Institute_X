@@ -7,11 +7,11 @@
   color: #18314c;
 }
 .frame { width: min(100%, 1120px); margin-inline: auto; }
-.panel { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(28px, 6vw, 80px); margin-block: 40px; padding: clamp(24px, 5vw, 64px); border: 1px solid #dce3ed; border-radius: 24px; background: white; box-shadow: 0 16px 60px rgb(25 48 80 / 4%); }
-.art { position: relative; display: grid; min-width: 0; min-height: 300px; place-items: center; overflow: hidden; border-radius: 18px; background: radial-gradient(circle at center, #edf4fb, #f8fafc 70%); }
+.panel { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: clamp(28px, 6vw, 80px); margin-block: 40px; padding: clamp(24px, 5vw, 64px); border: 1px solid #dce3ed; border-radius: 16px; background: white; box-shadow: none; }
+.art { position: relative; display: grid; min-width: 0; min-height: 300px; place-items: center; overflow: hidden; border-radius: 12px; background: #f1f5f9; }
 .orbit { position: absolute; width: 78%; aspect-ratio: 1; border: 1px solid #c6d8e9; border-radius: 50%; }
 .orbit::after { content: ''; position: absolute; inset: 24px; border: 1px dashed #c6d8e9; border-radius: 50%; }
-.code { z-index: 1; font-family: 'Kanit', sans-serif; font-size: clamp(90px, 11vw, 152px); font-weight: 600; line-height: 1; letter-spacing: -.065em; color: #073d78; }
+.code { z-index: 1; font-family: 'Kanit', sans-serif; font-size: clamp(90px, 11vw, 152px); font-weight: 600; line-height: 1; letter-spacing: -.03em; color: #073d78; }
 .dot { position: absolute; top: 21%; right: 15%; width: 13px; height: 13px; border: 3px solid white; border-radius: 50%; background: #54a99b; box-shadow: 0 0 0 1px #c6d8e9; }
 .eyebrow { margin: 0 0 14px; color: #437989; font-size: 12px; font-weight: 500; }
 .content { min-width: 0; }
@@ -35,4 +35,16 @@
 @media (max-width: 400px) {
   .page { padding: 16px; }
   .actions { flex-direction: column; align-items: stretch; }
+}
+
+@media (max-width: 760px) {
+  .actions > a, .actions > button { flex: 1 1 180px; }
+  .panel { padding: 24px; }
+}
+@media (max-height: 500px) and (min-width: 600px) {
+  .panel { margin-block: 20px; gap: 24px; }
+  .art { min-height: 180px; }
+}
+@media (max-width: 760px) {
+  .actions > a, .actions > button { flex: 0 0 auto; width: 100%; }
 }

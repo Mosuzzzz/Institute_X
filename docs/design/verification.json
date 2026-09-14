@@ -1,0 +1,1178 @@
+{
+  "date": "2026-09-14",
+  "browser": "Chromium",
+  "data": "Temporary mocked API fixtures; no real backend mutations",
+  "layoutCoverage": {
+    "distinctScreens": 21,
+    "widths": [
+      320,
+      390,
+      540,
+      768,
+      820,
+      821,
+      1024,
+      1440,
+      1920
+    ],
+    "firstSevenScreens": "Confirmed before resuming the remaining route checks; all passed without document overflow or page errors"
+  },
+  "remainingRouteResults": {
+    "results": [
+      {
+        "path": "/teacher",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 288,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 358,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 508,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 728,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 176,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 517,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 720,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 1136,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Overview",
+            "mainWidth": 1440,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/teacher/courses",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 288,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 358,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 508,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 720,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 192,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 533,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 736,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 1136,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Courses",
+            "mainWidth": 1440,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/teacher/permission",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 292,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 362,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 512,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 740,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 176,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 517,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 720,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 1040,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Teaching permission",
+            "mainWidth": 1040,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/teacher/courses/new",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 320,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 390,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 540,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 768,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 820,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 821,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 1024,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 1440,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Course information",
+            "mainWidth": 1920,
+            "sidebarVisible": false,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/teacher/courses/sample",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 320,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 390,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 540,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 768,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 820,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 821,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 1024,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 1440,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Course",
+            "mainWidth": 1920,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "tab": "Course landing page",
+            "overflow": 0
+          },
+          {
+            "width": 390,
+            "tab": "Assessments & Quizzes",
+            "overflow": 0
+          },
+          {
+            "width": 390,
+            "tab": "Curriculum",
+            "overflow": 0
+          }
+        ]
+      },
+      {
+        "path": "/teacher/courses/sample/analytics",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 272,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 342,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 492,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 720,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 772,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 773,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 976,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 1200,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Analytics",
+            "mainWidth": 1200,
+            "sidebarVisible": false,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/approver",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 288,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 358,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 508,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 728,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 176,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 517,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 720,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 1136,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Review Overview",
+            "mainWidth": 1440,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/approver/courses",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 292,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 362,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 512,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 720,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 192,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 533,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 736,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 1152,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "All courses",
+            "mainWidth": 1500,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/approver/teacher-requests",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 292,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 362,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 512,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 740,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 176,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 517,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 720,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 1136,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Teacher requests",
+            "mainWidth": 1440,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/approver/course-reviews",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 292,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 362,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 512,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 740,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 176,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 517,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 720,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 1136,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Course reviews",
+            "mainWidth": 1440,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/approver/course-reviews/version",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 292,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 362,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 512,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 740,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 176,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 517,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 720,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 1136,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "หลักสูตรทดสอบการแสดงผล: การเขียนโปรแกรมและการประยุกต์ใช้งานสำหรับนักเรียนอาชีวศึกษา",
+            "mainWidth": 1440,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "tab": "Course Content (1)",
+            "overflow": 0
+          },
+          {
+            "width": 390,
+            "tab": "Assessments & Quizzes (2)",
+            "overflow": 0
+          },
+          {
+            "width": 390,
+            "tab": "Overview & Checklist",
+            "overflow": 0
+          }
+        ]
+      },
+      {
+        "path": "/registrar",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 292,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 362,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 512,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 740,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 756,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 757,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 960,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 1376,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "จัดการบทบาทผู้ใช้",
+            "mainWidth": 1440,
+            "sidebarVisible": false,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/executive",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 288,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 358,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 508,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 728,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 176,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 517,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 720,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 1136,
+            "sidebarVisible": true,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "Operational Overview",
+            "mainWidth": 1440,
+            "sidebarVisible": true,
+            "offscreen": []
+          }
+        ]
+      },
+      {
+        "path": "/does-not-exist",
+        "errors": [],
+        "unknown": [],
+        "checks": [
+          {
+            "width": 320,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 320,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 390,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 390,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 540,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 540,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 768,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 768,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 820,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 820,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 821,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 821,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1024,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 1024,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1440,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 1440,
+            "sidebarVisible": false,
+            "offscreen": []
+          },
+          {
+            "width": 1920,
+            "overflow": 0,
+            "h1": "ไม่พบหน้าที่คุณกำลังค้นหา",
+            "mainWidth": 1920,
+            "sidebarVisible": false,
+            "offscreen": []
+          }
+        ]
+      }
+    ],
+    "interactions": [
+      "/teacher: drawer, focus trap, Escape, profile keyboard navigation and four language layouts",
+      "Teacher course search and empty state",
+      "Teacher curriculum, landing and assessment editor tabs",
+      "/approver: drawer, focus trap, Escape, profile keyboard navigation and four language layouts",
+      "Approver evidence, content and assessment preview tabs",
+      "Registrar search and empty state",
+      "/executive: drawer, focus trap, Escape, profile keyboard navigation and four language layouts"
+    ]
+  },
+  "stateChecks": [
+    "/student/courses: loading and service error at phone and landscape sizes",
+    "/teacher: loading and service error at phone and landscape sizes",
+    "/approver: loading and service error at phone and landscape sizes",
+    "/registrar: loading and service error at phone and landscape sizes",
+    "/executive: loading and service error at phone and landscape sizes",
+    "OTP email validation, challenge entry, invalid OTP and change-email recovery",
+    "Post-Test answer selection, submission and recorded-result state"
+  ]
+}

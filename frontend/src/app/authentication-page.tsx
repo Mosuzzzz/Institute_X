@@ -74,17 +74,17 @@ export default function AuthenticationPage() {
 
   return (
     <main className={authUi.shell}>
-      <nav className="fixed top-6 right-8"><LanguageSelector value={language} label="Select language" onChange={setLanguage} /></nav>
+      <nav className="absolute top-4 right-4 sm:top-6 sm:right-8"><LanguageSelector value={language} label="Select language" onChange={setLanguage} /></nav>
       <section className={authUi.panel} aria-labelledby="login-title">
         <header className={authUi.brand}><Image className={authUi.logo} src="/logoX.png" alt="Institute X" width={1238} height={1238} priority /><h1 id="login-title">Institute X</h1></header>
         <div className={authUi.rule} />
-        <form noValidate className={`${authUi.access} grid gap-4`} onSubmit={challengeId ? verifyOtp : requestOtp}>
+        <form noValidate aria-busy={submitting} className={`${authUi.access} grid gap-4`} onSubmit={challengeId ? verifyOtp : requestOtp}>
           <h2>เข้าสู่ระบบ</h2>
-          {!challengeId ? <label className="grid gap-1 text-sm">อีเมลสถาบัน (@x.ac.th)<input className="rounded-md border border-[#ccd1df] px-4 py-3" name="email" type="email" autoComplete="email" placeholder="name@x.ac.th" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
+          {!challengeId ? <label className="grid gap-1 text-sm">อีเมลสถาบัน (@x.ac.th)<input className="rounded-md border border-[#ccd1df] px-4 py-3" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} name="email" type="email" autoComplete="email" placeholder="name@x.ac.th" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
             <p className="text-sm text-muted">ส่งรหัส 6 หลักไปที่ <strong>{email}</strong> แล้ว รหัสหมดอายุภายใน 5 นาที</p>
-            <label className="grid gap-1 text-sm">รหัส OTP<input className="rounded-md border border-[#ccd1df] px-4 py-3 text-center text-xl tracking-[0.35em]" name="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus /></label>
+            <label className="grid gap-1 text-sm">รหัส OTP<input className="rounded-md border border-[#ccd1df] px-4 py-3 text-center text-xl tracking-[0.35em]" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} name="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus /></label>
           </>}
-          {error ? <p className="text-sm text-red-700" role="alert">{error}</p> : null}
+          {error ? <p id="auth-error" className="rounded-control border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{error}</p> : null}
           <button className={authUi.loginButton} type="submit" disabled={submitting}>{submitting ? 'กำลังดำเนินการ…' : challengeId ? 'ยืนยันและเข้าสู่ระบบ' : 'ส่งรหัส OTP'}</button>
           {challengeId ? <button className="text-sm underline" type="button" onClick={() => { setChallengeId(''); setExpiresAt(''); setError(''); }}>เปลี่ยนอีเมล / ขอรหัสใหม่</button> : null}
           <p className="text-center text-sm text-muted">ไม่มีการสมัครสมาชิก การเข้าสู่ระบบครั้งแรกด้วยอีเมลที่ยืนยันแล้วจะสร้างบัญชีนักเรียนอัตโนมัติ</p>

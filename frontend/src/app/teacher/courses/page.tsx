@@ -45,7 +45,7 @@ export default function TeacherCoursesPage() {
 
   if (!data) {
     return (
-      <main className={staffUi.page}>
+      <main data-ui="page" className={staffUi.page}>
         <ApiState loading={loading} error={error} />
       </main>
     );
@@ -54,7 +54,7 @@ export default function TeacherCoursesPage() {
   const canCreateCourse = permission.data?.status === 'APPROVED';
 
   return (
-    <main className={styles.page}>
+    <main data-ui="page" className={styles.page}>
       <h1>Courses</h1>
       <nav className={styles.tabs} aria-label="Course workspace tabs">
         <span aria-current="page">Courses</span>

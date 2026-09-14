@@ -46,7 +46,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
 
   if (!data) {
     return (
-      <main className={staffUi.page}>
+      <main data-ui="page" className={staffUi.page}>
         <ApiState loading={loading} error={error} />
       </main>
     );
@@ -55,7 +55,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
   const review = data.find((item) => item.id === versionId);
   if (!review) {
     return (
-      <main className={staffUi.page}>
+      <main data-ui="page" className={staffUi.page}>
         <section className={`${commonUi.empty} border-[#d99da2] bg-[#fae9eb] text-[#8b343b]`}>
           <strong>Version is no longer pending</strong>
           <p>It may already have been reviewed.</p>
@@ -134,7 +134,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
   };
 
   return (
-    <main className={staffUi.page}>
+    <main data-ui="page" className={staffUi.page}>
       <header className={staffUi.reviewHeader}>
         <div>
           <Link className={staffUi.backLink} href="/approver/course-reviews">

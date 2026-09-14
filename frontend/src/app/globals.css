@@ -92,3 +92,61 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Shared browser and control behavior for every role and route. */
+@layer base {
+  html { scroll-padding-top: 96px; scrollbar-color: #aebdce var(--canvas); }
+  body { overflow-wrap: anywhere; }
+  :where(input, textarea) { caret-color: var(--action); }
+  :where(input, textarea)::placeholder { color: var(--text-muted); opacity: 1; }
+  :where(button, input:not([type='checkbox']):not([type='radio']), select, summary) { min-height: 44px; }
+  :where(input:not([type='checkbox']):not([type='radio']), select, textarea) { min-width: 0; max-width: 100%; border-radius: var(--control-radius); }
+  :where(button) { touch-action: manipulation; }
+  :where(button:disabled) { cursor: not-allowed; }
+  :where(table, dl) { font-variant-numeric: tabular-nums; }
+  :where(th) { font-weight: 500; }
+  :where(td, th) { vertical-align: top; }
+  :where(a) { text-underline-offset: 4px; }
+  :where(img, video, audio, iframe) { max-width: 100%; }
+  :where(fieldset) { min-width: 0; }
+  :where(main) { min-width: 0; }
+  @media (max-width: 640px) {
+    :where(input:not([type='checkbox']):not([type='radio']), select, textarea) { font-size: 16px; }
+  }
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+:where(main[data-ui]) :where(h1) { font-size: clamp(26px, 2.8vw, 36px); line-height: 1.35; letter-spacing: -0.025em; }
+:where(main[data-ui]) :where(section, article, div)[class~='border'] { border-radius: var(--panel-radius); box-shadow: none; }
+:where(main[data-ui]) :where(button)[class~='border-0'] { border-radius: var(--control-radius); }
+:where(main[data-ui]) :where(header) { min-width: 0; }
+:where(main[data-ui]) :where(section, article, div, label)[class~='flex'] { min-width: 0; }
+:where(main[data-ui='editor']) > header { background: #142e4f; box-shadow: none; }
+:where(main[data-ui='editor']) :where(section[id]) { scroll-margin-top: 100px; }
+@media (max-width: 640px) {
+  :where(main[data-ui]) :where(fieldset) { padding: 18px; }
+  :where(main[data-ui='editor']) > header { position: relative; }
+  :where(main[data-ui='editor']) > header > strong { white-space: normal; }
+}
+
+:where(main[data-ui]) :where(input:not([type='checkbox']):not([type='radio']), select, textarea) { border-radius: var(--control-radius); }
+:where(main[data-ui]) :where(fieldset[class~='border']) { border-radius: var(--panel-radius); }
+@media (max-width: 700px) {
+  .ui-review-table { overflow: visible; }
+  .ui-review-table > header { display: none; }
+  .ui-review-table > a { min-width: 0; grid-template-columns: 1fr; gap: 10px; padding: 20px; }
+  .ui-review-table > a [data-label]::before { content: attr(data-label) ': '; font-weight: 500; color: var(--text-muted); }
+  .ui-review-table > a > b { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; }
+}
+@media (max-width: 640px) {
+  .executive-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .executive-metrics > div { padding: 16px; }
+  .executive-metrics > div:last-child { grid-column: 1 / -1; }
+  :where(main[data-ui='editor']) nav[aria-label] { gap: 16px; padding: 20px; }
+  :where(main[data-ui='editor']) nav[aria-label] h2 { margin-bottom: 8px; }
+  :where(main[data-ui='editor']) nav[aria-label] > div:first-child > div { display: flex; flex-wrap: wrap; gap: 6px; }
+  :where(main[data-ui='editor']) nav[aria-label] > div:first-child a { flex: 1 1 140px; padding: 8px; }
+}

@@ -20,7 +20,7 @@ export default function ApproverCoursesPage() {
 
   if (!data) {
     return (
-      <main className={staffUi.page}>
+      <main data-ui="page" className={staffUi.page}>
         <ApiState loading={loading} error={error} />
       </main>
     );
@@ -45,13 +45,13 @@ export default function ApproverCoursesPage() {
   });
 
   return (
-    <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
+    <main data-ui="page" className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
       <header className="flex items-end justify-between gap-8 border-b border-[#d8dde5] pb-8 max-[700px]:items-start max-[700px]:flex-col">
         <div>
           <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
             Published catalog
           </p>
-          <h1 className="mt-2 text-[clamp(2.2rem,4vw,4rem)] leading-none tracking-[-0.05em] text-[#202a38]">
+          <h1 className="mt-2 text-[clamp(2.2rem,4vw,4rem)] leading-none tracking-[-0.03em] text-[#202a38]">
             All courses
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-[#687486]">
@@ -60,7 +60,7 @@ export default function ApproverCoursesPage() {
         </div>
         <div className="border-l-4 border-[#8ccbd0] pl-4">
           <strong className="block text-3xl text-[#073d78]">{data.length}</strong>
-          <span className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">Published courses</span>
+          <span className="text-xs tracking-[0.1em] text-[#58677c] uppercase">Published courses</span>
         </div>
       </header>
 

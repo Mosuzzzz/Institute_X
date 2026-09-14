@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BootstrapIcon from "../../../bootstrap-icon";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import {
@@ -248,7 +249,7 @@ function QuizEditor({
       </div>
       {!disabled ? (
         <form
-          className="mt-5 grid gap-3 border-l-4 border-[#073d78] bg-[#f6f8fa] p-4 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end"
+          className="mt-5 grid gap-3 rounded-control border border-line bg-[#f6f8fa] p-4 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end"
           onSubmit={(event) => void updateQuizDetails(event)}
         >
           <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
@@ -445,7 +446,7 @@ function QuizEditor({
                     </button>
                   </form>
                 ) : null}
-                <p className="mt-1 text-xs text-[#747d8c]">
+                <p className="mt-1 text-xs text-[#58677c]">
                   {question.options.length} choices · {Number(question.points)}{" "}
                   point(s)
                 </p>
@@ -456,7 +457,7 @@ function QuizEditor({
       ) : null}
       {!disabled ? (
         <form
-          className="mt-6 grid gap-4 border-l-4 border-[#8ccbd0] bg-[#f8fbfc] p-5"
+          className="mt-6 grid gap-4 rounded-control border border-line bg-[#f8fbfc] p-5"
           onSubmit={(event) => void addQuestion(event)}
         >
           <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
@@ -476,7 +477,7 @@ function QuizEditor({
               name="questionImage"
               type="file"
             />
-            <span className="font-normal text-[#747d8c]">
+            <span className="font-normal text-[#58677c]">
               JPEG, PNG, or WebP · maximum 10 MB
             </span>
           </label>
@@ -517,7 +518,7 @@ function QuizEditor({
               Add question
             </button>
           </div>
-          <p className="text-xs text-[#747d8c]">
+          <p className="text-xs text-[#58677c]">
             Select the radio button beside the correct answer.
           </p>
         </form>
@@ -570,14 +571,14 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
 
   if (!data)
     return (
-      <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
+      <main data-ui="editor" className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
         <ApiState loading={loading} error={error} />
       </main>
     );
   const version = data.versions[0];
   if (!version)
     return (
-      <main className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
+      <main data-ui="editor" className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
         <ApiState loading={false} error="Course Version was not found." />
       </main>
     );
@@ -1028,7 +1029,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         : [];
 
   return (
-    <main className="min-h-full bg-[#f7f7f9] pb-16">
+    <main data-ui="editor" className="min-h-full bg-[#f7f7f9] pb-16">
       <header className="sticky top-0 z-20 flex min-h-[72px] flex-wrap items-center gap-x-5 gap-y-2 bg-[#1c1d1f] px-[clamp(20px,4vw,56px)] py-4 text-white shadow-[0_12px_28px_rgba(23,23,31,0.14)]">
         <Link
           className="text-sm font-medium text-white/80 no-underline transition hover:text-white"
@@ -1189,7 +1190,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
               ) : null}
             </div>
             {!isDraft ? (
-              <p className="mt-4 text-xs leading-5 text-[#747d8c]">
+              <p className="mt-4 text-xs leading-5 text-[#58677c]">
                 {version.status === "SUBMITTED"
                   ? "Waiting for Approver review."
                   : version.status === "UNPUBLISHED"
@@ -1264,14 +1265,14 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                               onClick={() => setEditingSectionId(section.id)}
                               className="text-xs text-[#6a6f73] hover:text-[#1c1d1f] cursor-pointer"
                             >
-                              ✏️ Edit
+                              <BootstrapIcon name="pencil" /> Edit
                             </button>
                             <button
                               type="button"
                               onClick={() => void removeSection(section.id, section.title)}
                               className="text-xs text-[#b42318] hover:text-[#8f1d14] cursor-pointer"
                             >
-                              🗑️ Delete
+                              <BootstrapIcon name="trash" /> Delete
                             </button>
                           </div>
                         ) : null}
@@ -1316,17 +1317,17 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                         type="button"
                                         onClick={() => setEditingLectureId(lecture.id)}
                                         className="text-xs text-[#6a6f73] hover:text-[#1c1d1f] cursor-pointer"
-                                        title="Edit title"
+                                        title="Edit title" aria-label="Edit lecture title"
                                       >
-                                        ✏️
+                                        <BootstrapIcon name="pencil" />
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => void removeLectureItem(lecture)}
                                         className="text-xs text-[#b42318] hover:text-[#8f1d14] cursor-pointer"
-                                        title="Delete lecture"
+                                        title="Delete lecture" aria-label="Delete lecture"
                                       >
-                                        🗑️
+                                        <BootstrapIcon name="trash" />
                                       </button>
                                     </div>
                                   ) : null}
@@ -1337,14 +1338,14 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                   {lecture.mediaAsset ? (
                                     <span className="text-xs font-semibold text-[#0b6a73] bg-[#edfafa] px-2.5 py-1 rounded flex items-center gap-1.5 border border-[#c3f0f0]">
                                       {lecture.contentType === "VIDEO"
-                                        ? "🎬 Video"
+                                        ? "Video"
                                         : lecture.contentType === "AUDIO"
-                                        ? "🎙️ Audio"
+                                        ? "Audio"
                                         : lecture.contentType === "DOCUMENT"
                                         ? "📑 Document"
                                         : lecture.contentType === "IMAGE"
-                                        ? "🖼️ Image"
-                                        : "📁 Media"}{" "}
+                                        ? "Image"
+                                        : "Media"}{" "}
                                       · <span className="font-normal text-[#1c1d1f] max-w-[140px] truncate">{lecture.mediaAsset.fileName}</span>
                                       <span className="text-[0.65rem] uppercase font-bold text-[#0b6a73] bg-white px-1 rounded border border-[#b2e5e7]">
                                         {lecture.mediaAsset.status}
@@ -1352,7 +1353,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                     </span>
                                   ) : lecture.contentType === "TEXT" && lecture.textBody && lecture.textBody.trim() ? (
                                     <span className="text-xs font-semibold text-[#435166] bg-[#f1f3f5] px-2.5 py-1 rounded border border-[#d1d7dc] flex items-center gap-1">
-                                      📝 Article
+                                      <BootstrapIcon name="file-earmark-text" /> Article
                                     </span>
                                   ) : null}
 
@@ -1460,7 +1461,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       }`}
                                     >
                                       <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
-                                        🖼️
+                                        <BootstrapIcon name="image" />
                                       </div>
                                       <span className="text-xs font-bold text-[#1c1d1f]">Image</span>
                                       <span className="text-[0.7rem] text-[#6a6f73]">PNG, JPG, Diagrams</span>
@@ -1476,7 +1477,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       }`}
                                     >
                                       <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
-                                        📝
+                                        <BootstrapIcon name="file-earmark-text" />
                                       </div>
                                       <span className="text-xs font-bold text-[#1c1d1f]">Article</span>
                                       <span className="text-[0.7rem] text-[#6a6f73]">Text &amp; Notes</span>
@@ -1491,12 +1492,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                     >
                                       <h4 className="text-xs font-bold text-[#1c1d1f] uppercase tracking-wider flex items-center gap-1.5">
                                         {selectedContentType === "VIDEO"
-                                          ? "🎬 Upload Video Lecture"
+                                          ? "Upload Video Lecture"
                                           : selectedContentType === "AUDIO"
-                                          ? "🎙️ Upload Audio Lesson"
+                                          ? "Upload Audio Lesson"
                                           : selectedContentType === "DOCUMENT"
                                           ? "📑 Upload PDF or Document"
-                                          : "🖼️ Upload Image or Diagram"}
+                                          : "Upload Image or Diagram"}
                                       </h4>
                                       <p className="text-xs text-[#6a6f73]">
                                         {selectedContentType === "VIDEO"
@@ -1554,7 +1555,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       className="mt-4 border border-[#d1d7dc] bg-[#fafbfc] p-4 rounded-xs grid gap-3"
                                     >
                                       <h4 className="text-xs font-bold text-[#1c1d1f] uppercase tracking-wider flex items-center gap-1.5">
-                                        📝 Write Article / Reading Lesson
+                                        <BootstrapIcon name="file-earmark-text" /> Write Article / Reading Lesson
                                       </h4>
                                       <textarea
                                         className={`${fieldClass} min-h-36 resize-y`}
@@ -1774,7 +1775,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                       <button className={primaryButton} disabled={busy} type="submit">
                         {busy ? "Saving…" : "Save Draft"}
                       </button>
-                      <span className="text-xs text-[#747d8c]">
+                      <span className="text-xs text-[#58677c]">
                         Typed changes are saved only when you press Save Draft.
                       </span>
                     </div>
@@ -1786,7 +1787,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 )}
                 <dl className="mt-7 grid grid-cols-3 border-t border-l border-[#d8dde5] max-[800px]:grid-cols-1">
                   <div className="border-r border-b border-[#d8dde5] p-5">
-                    <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
+                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">
                       Course language
                     </dt>
                     <dd className="mt-2 text-sm font-semibold text-[#202a38]">
@@ -1794,7 +1795,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     </dd>
                   </div>
                   <div className="border-r border-b border-[#d8dde5] p-5">
-                    <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
+                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">
                       Eligible majors
                     </dt>
                     <dd className="mt-2 text-sm font-semibold text-[#202a38]">
@@ -1804,7 +1805,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     </dd>
                   </div>
                   <div className="border-r border-b border-[#d8dde5] p-5">
-                    <dt className="text-xs tracking-[0.1em] text-[#747d8c] uppercase">
+                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">
                       Categories
                     </dt>
                     <dd className="mt-2 text-sm font-semibold text-[#202a38]">
@@ -1903,7 +1904,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                         {version.coverAsset?.fileName ??
                           "Cover can only be changed while this Version is a Draft."}
                       </p>
-                      <p className="mt-1 text-xs text-[#747d8c]">
+                      <p className="mt-1 text-xs text-[#58677c]">
                         {version.coverAsset?.status ?? version.status}
                       </p>
                     </div>

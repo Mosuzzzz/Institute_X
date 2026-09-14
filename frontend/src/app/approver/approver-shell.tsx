@@ -25,6 +25,8 @@ import BootstrapIcon from "../bootstrap-icon";
 import { commonUi, workspaceUi } from "../ui-styles";
 import styles from "../workspace-sidebar.module.css";
 
+import useWorkspaceNavigation from '../use-workspace-navigation';
+
 const subscribeToSession = () => () => undefined;
 const navigation = [
   { href: "/approver", label: "reviewOverview", icon: "grid" },
@@ -49,6 +51,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
   const text = commonCopy[language];
   const shell = shellCopy[language];
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { sidebarRef, triggerRef } = useWorkspaceNavigation(mobileNavOpen, setMobileNavOpen);
   const sessionReady = useSyncExternalStore(
     subscribeToSession,
     () => true,
@@ -104,7 +107,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={`${workspaceUi.shell("approver")} ${styles.shell}`}>
-      <aside className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
+      <aside ref={sidebarRef} data-open={mobileNavOpen} role={mobileNavOpen ? "dialog" : undefined} aria-modal={mobileNavOpen || undefined} aria-label="Workspace navigation" className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
           <Link className={workspaceUi.brandLink} href="/approver" aria-label="Institute X Approver home">
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
@@ -141,6 +144,8 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
       <div className={workspaceUi.workspace}>
         <header className={`${workspaceUi.topbar} ${styles.topbar}`}>
           <button
+            ref={triggerRef}
+            aria-expanded={mobileNavOpen}
             className={workspaceUi.menuButton}
             type="button"
             aria-label="Open navigation"
