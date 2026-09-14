@@ -109,6 +109,7 @@ model User {
   authSessions       AuthSession[]
   roleChangesMade    RoleChangeAudit[]          @relation("RoleChangeActor")
   roleChangesReceived RoleChangeAudit[]         @relation("RoleChangeTarget")
+  lessonCompletions  LessonCompletion[]
 
   @@map("users")
 }
@@ -331,6 +332,7 @@ model ContentItem {
   version     CourseVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
   section     CourseSection? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   mediaAsset  MediaAsset?
+  completions LessonCompletion[]
 
   @@unique([versionId, position])
   @@index([sectionId])
@@ -412,6 +414,18 @@ model QuestionOption {
 
   @@unique([questionId, position])
   @@map("question_options")
+}
+
+model LessonCompletion {
+  studentId String @map("student_id") @db.Uuid
+  contentItemId String @map("content_item_id") @db.Uuid
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, contentItemId])
+  @@index([contentItemId])
+  @@map("lesson_completions")
 }
 
 model CourseEnrollment {

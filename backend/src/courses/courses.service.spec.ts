@@ -172,7 +172,7 @@ describe('CoursesService', () => {
       );
     });
 
-    it('keeps readiness below 100 when the mandatory Post-Test is missing', async () => {
+    it('allows full readiness without an optional Post-Test', async () => {
       db.course.findUnique.mockResolvedValue({
         id: 'course-id',
         teacherId: 'teacher-id',
@@ -206,8 +206,8 @@ describe('CoursesService', () => {
         'course-id',
       );
 
-      expect(result.readiness).toBeLessThan(100);
-      expect(result.checks.postTest).toBe(false);
+      expect(result.readiness).toBe(100);
+      expect(result.checks.postTest).toBe(true);
     });
 
     it('marks the media checklist incomplete while any uploaded asset is not READY', async () => {

@@ -40,6 +40,7 @@ describe('PostTestService', () => {
     randomizeQuestions: true,
     randomizeOptions: true,
     version: {
+      contentItems: [{ completions: [{ studentId: 'student-id' }] }],
       status: CourseVersionStatus.PUBLISHED,
       course: {
         archivedAt: null,
@@ -91,6 +92,26 @@ describe('PostTestService', () => {
       expect.objectContaining({ imageAssetId: 'question-image-1' }),
     );
     expect(JSON.stringify(result)).not.toContain('isCorrect');
+  });
+
+  it('allows a Post-Test without a Pre-Test after completing all lessons', async () => {
+    prisma.quiz.findUnique.mockResolvedValue({
+      ...postTest,
+      version: { ...postTest.version, quizzes: [] },
+    });
+    db.quizAttempt.create.mockResolvedValue({ id: 'attempt-id' });
+    await expect(service.start(student, 'post-test-id')).resolves.toMatchObject({
+      attemptId: 'attempt-id',
+    });
+  });
+
+  it('denies Post-Test start while any lesson is incomplete', async () => {
+    prisma.quiz.findUnique.mockResolvedValue({
+      ...postTest,
+      version: { ...postTest.version, contentItems: [{ completions: [] }] },
+    });
+    await expect(service.start(student, 'post-test-id')).rejects.toThrow('Complete every lesson');
+    expect(db.quizAttempt.create).not.toHaveBeenCalled();
   });
 
   it('denies starting a Post-Test after the Course is archived', async () => {

@@ -28,6 +28,7 @@ describe('Student REST API', () => {
     enterCourse: jest.fn(),
     getPublishedContent: jest.fn(),
     listEligibleCourses: jest.fn(),
+    completeLesson: jest.fn(),
   };
   const preTest = {
     start: jest.fn(),
@@ -80,6 +81,31 @@ describe('Student REST API', () => {
   });
 
   afterEach(async () => app.close());
+
+  it('records lesson completion through a Student-only endpoint', async () => {
+    access.completeLesson.mockResolvedValue({ versionId: 'version-id', contentItems: [] });
+    await request(app.getHttpServer() as Server)
+      .post(
+        '/api/courses/11111111-1111-4111-8111-111111111111/content/22222222-2222-4222-8222-222222222222/complete',
+      )
+      .set('x-test-role', 'STUDENT')
+      .expect(201);
+    expect(access.completeLesson).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'student-id' }),
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
+    );
+  });
+
+  it('rejects non-Student lesson completion', async () => {
+    await request(app.getHttpServer() as Server)
+      .post(
+        '/api/courses/11111111-1111-4111-8111-111111111111/content/22222222-2222-4222-8222-222222222222/complete',
+      )
+      .set('x-test-role', 'TEACHER')
+      .expect(403);
+    expect(access.completeLesson).not.toHaveBeenCalled();
+  });
 
   it('POST /courses/:id/enter enrolls and returns content lock state', async () => {
     access.enterCourse.mockResolvedValue({

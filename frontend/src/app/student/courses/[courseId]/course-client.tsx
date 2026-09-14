@@ -30,6 +30,8 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
   const [openingContent, setOpeningContent] = useState(false);
+  const [savingCompletion, setSavingCompletion] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,6 +134,23 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   const selectedIndex = selectedItem ? flatItems.findIndex((item) => item.id === selectedItem.id) : -1;
   const previousItem = selectedIndex > 0 ? flatItems[selectedIndex - 1] : null;
   const nextItem = selectedIndex >= 0 && selectedIndex < flatItems.length - 1 ? flatItems[selectedIndex + 1] : null;
+  const allLessonsComplete = flatItems.length > 0 && flatItems.every(item => item.completed);
+
+  async function markLessonComplete() {
+    if (!selectedItem || savingCompletion) return;
+    const itemId = selectedItem.id;
+    setSavingCompletion(true);
+    setCompletionError(null);
+    try {
+      const updated = await backendApi<PublishedCourseContentDto>(`courses/${courseId}/content/${itemId}/complete`, { method: 'POST' });
+      setContent(updated);
+      setSelectedItem(current => updated.contentItems.find(item => item.id === current?.id) ?? current);
+      const catalog = await backendApi<EligibleCourseDto[]>('courses');
+      setCourse(current => catalog.find(item => item.courseId === courseId) ?? current);
+    } catch (cause) {
+      setCompletionError(cause instanceof Error ? cause.message : 'Unable to save lesson completion.');
+    } finally { setSavingCompletion(false); }
+  }
 
   if (!course || !entry) {
     return (
@@ -284,6 +303,8 @@ export default function CourseClient({ courseId }: { courseId: string }) {
               >
                 <BootstrapIcon name="arrow-left" />
               </button>
+              {entry.contentUnlocked && selectedItem ? <button type="button" className="mr-auto rounded bg-[#073d78] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={savingCompletion || openingContent || (Boolean(selectedItem.media) && !mediaUrl) || selectedItem.completed} onClick={() => void markLessonComplete()}>{selectedItem.completed ? '✓ Lesson completed' : savingCompletion ? 'Saving…' : 'Mark lesson complete'}</button> : null}
+              {completionError ? <span role="alert" className="text-xs text-red-600">{completionError}</span> : null}
               <button
                 className="grid size-9 cursor-pointer place-items-center rounded border border-transparent bg-transparent text-lg hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-25"
                 type="button"
@@ -338,14 +359,15 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 <p className="mt-1 text-sm text-[#606274]">
                   Test your understanding of this course material. Passing score is 80%. You have unlimited attempts.
                 </p>
-                <Link
+                {allLessonsComplete ? <Link
                   className="mt-4 inline-flex rounded bg-[#6f2bd2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5b1fb6]"
                   href={`/student/assessments/post-test/${entry.postTestId}`}
                 >
                   Take Post-Test <BootstrapIcon name="arrow-right" />
-                </Link>
+                </Link> : <p className="mt-4 text-sm text-[#606274]">Complete every lesson to unlock the Post-Test.</p>}
               </div>
             )}
+            {allLessonsComplete && !entry.postTestId ? <p role="status" className="mt-8 text-emerald-700">✓ Course completed — all lessons finished.</p> : null}
           </section>
         </section>
 
@@ -401,7 +423,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                                       : 'border-[#77798c] text-[#77798c]'
                                   }`}
                                 >
-                                  {active ? '▶' : itemIndex + 1}
+                                  {item.completed ? '✓' : active ? '▶' : itemIndex + 1}
                                 </span>
                                 <strong className="text-[0.9rem] leading-[1.45] font-normal">
                                   {itemIndex + 1}. {item.title ?? item.contentType}

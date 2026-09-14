@@ -40,8 +40,8 @@ const checklistLabels: Record<keyof TeacherCourseDetailDto["checks"], string> = 
   eligibility: "Student eligibility",
   content: "Learning content",
   media: "Media ready",
-  preTest: "Pre-Test",
-  postTest: "Post-Test",
+  preTest: "Pre-Test (optional; valid if added)",
+  postTest: "Post-Test (optional; valid if added)",
   assessments: "Valid assessment questions",
 };
 const checklistTargets: Record<keyof TeacherCourseDetailDto["checks"], string> = {
@@ -1986,7 +1986,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     ))
                   ) : (
                     <p className="bg-[#f6f8fa] p-6 text-sm text-[#687486]">
-                      No assessments yet. Create both the mandatory Pre-test and Post-test.
+                      Assessments are optional. Add a Pre-Test, a Post-Test, both, or neither. Any test you add must contain valid questions before submission.
                     </p>
                   )}
                 </div>

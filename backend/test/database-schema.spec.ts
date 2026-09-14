@@ -22,6 +22,7 @@ describe('database schema contract', () => {
     'DiscardedCourseVersionReview',
     'CourseSection',
     'ContentItem',
+    'LessonCompletion',
     'MediaAsset',
     'CourseCoverAsset',
     'Quiz',

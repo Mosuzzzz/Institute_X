@@ -517,14 +517,6 @@ export class CourseVersionsService {
     ) {
       throw new UnprocessableEntityException('Every media asset must be READY before submission');
     }
-    const preTest = version.quizzes.find((quiz) => quiz.quizType === QuizType.PRE_TEST);
-    if (!preTest || preTest.questions.length === 0) {
-      throw new UnprocessableEntityException('A Pre-Test with questions is required');
-    }
-    const postTest = version.quizzes.find((quiz) => quiz.quizType === QuizType.POST_TEST);
-    if (!postTest || postTest.questions.length === 0) {
-      throw new UnprocessableEntityException('A Post-Test with questions is required');
-    }
     for (const quiz of version.quizzes) {
       if (quiz.questions.length === 0) {
         throw new UnprocessableEntityException(`${quiz.quizType} requires at least one question`);

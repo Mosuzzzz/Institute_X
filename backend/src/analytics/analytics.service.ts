@@ -113,6 +113,17 @@ export class AnalyticsService {
 
   async getExecutiveLearningAnalytics(actor: AnalyticsActor): Promise<ExecutiveLearningAnalytics> {
     this.requireRole(actor, UserRole.EXECUTIVE);
+    const completionSql = Prisma.sql`EXISTS (
+      SELECT 1 FROM course_versions cv
+      WHERE cv.course_id = e.course_id AND cv.status IN ('PUBLISHED', 'SUPERSEDED', 'UNPUBLISHED')
+        AND EXISTS (SELECT 1 FROM content_items ci WHERE ci.version_id = cv.version_id)
+        AND NOT EXISTS (SELECT 1 FROM content_items ci WHERE ci.version_id = cv.version_id
+          AND NOT EXISTS (SELECT 1 FROM lesson_completions lc WHERE lc.content_item_id = ci.content_item_id AND lc.student_id = e.student_id))
+        AND NOT EXISTS (SELECT 1 FROM quizzes q WHERE q.version_id = cv.version_id AND q.quiz_type = 'PRE_TEST'
+          AND NOT EXISTS (SELECT 1 FROM quiz_attempts a WHERE a.quiz_id = q.quiz_id AND a.student_id = e.student_id AND a.result = 'COMPLETED' AND a.submitted_at IS NOT NULL))
+        AND NOT EXISTS (SELECT 1 FROM quizzes q WHERE q.version_id = cv.version_id AND q.quiz_type = 'POST_TEST'
+          AND NOT EXISTS (SELECT 1 FROM quiz_attempts a WHERE a.quiz_id = q.quiz_id AND a.student_id = e.student_id AND a.result = 'PASS' AND a.submitted_at IS NOT NULL))
+    )`;
     type CourseRow = {
       courseId: string;
       title: string;
@@ -137,10 +148,7 @@ export class AnalyticsService {
         SELECT c.course_id AS "courseId",
           COALESCE((SELECT title FROM course_versions WHERE course_id = c.course_id ORDER BY version_number DESC LIMIT 1), 'Untitled Course') AS title,
           (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.course_id) AS enrollments,
-          (SELECT COUNT(*) FROM course_enrollments e WHERE e.course_id = c.course_id AND EXISTS (
-            SELECT 1 FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
-            WHERE v.course_id = c.course_id AND a.student_id = e.student_id AND q.quiz_type = 'POST_TEST' AND a.result = 'PASS' AND a.submitted_at IS NOT NULL
-          )) AS completed,
+          (SELECT COUNT(*) FROM course_enrollments e WHERE e.course_id = c.course_id AND ${completionSql}) AS completed,
           (SELECT COUNT(*) FROM course_access_events WHERE course_id = c.course_id) AS accesses,
           s."preTestAttempts", s."postTestAttempts", s."preTestAverage", s."postTestAverage"
         FROM courses c
@@ -156,10 +164,7 @@ export class AnalyticsService {
       `),
       this.prisma.$queryRaw<MajorRow[]>(Prisma.sql`
         SELECT m.major_code AS "majorCode", m.major_name AS "majorName", COUNT(*) AS enrollments,
-          COUNT(*) FILTER (WHERE EXISTS (
-            SELECT 1 FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
-            WHERE v.course_id = e.course_id AND a.student_id = e.student_id AND q.quiz_type = 'POST_TEST' AND a.result = 'PASS' AND a.submitted_at IS NOT NULL
-          )) AS completed,
+          COUNT(*) FILTER (WHERE ${completionSql}) AS completed,
           AVG((SELECT AVG(a.score) FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id
             WHERE v.course_id = e.course_id AND a.student_id = e.student_id AND q.quiz_type = 'PRE_TEST' AND a.submitted_at IS NOT NULL))::float8 AS "preTestAverage",
           AVG((SELECT AVG(a.score) FROM quiz_attempts a JOIN quizzes q ON q.quiz_id = a.quiz_id JOIN course_versions v ON v.version_id = q.version_id

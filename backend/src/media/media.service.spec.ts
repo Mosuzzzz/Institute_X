@@ -581,6 +581,38 @@ describe('MediaService', () => {
     ).resolves.toEqual(expect.objectContaining({ url: 'https://storage.example/signed-view' }));
   });
 
+  it('allows ready lesson media when the published course has no Pre-Test', async () => {
+    db.mediaAsset.findUnique.mockResolvedValue({
+      id: 'asset-id',
+      storageKey: 'private/key',
+      status: AssetStatus.READY,
+      contentItem: {
+        version: {
+          status: CourseVersionStatus.PUBLISHED,
+          course: {
+            archivedAt: null,
+            eligibilityMode: 'OPEN',
+            allowedMajors: [],
+            enrollments: [{ studentId: 'student-id' }],
+          },
+          quizzes: [],
+        },
+      },
+    });
+    storage.createViewUrl.mockResolvedValue({ url: 'https://storage.example/view' });
+    await expect(
+      service.createStudentViewUrl(
+        {
+          id: 'student-id',
+          role: UserRole.STUDENT,
+          accountStatus: AccountStatus.ACTIVE,
+          majorId: null,
+        },
+        'asset-id',
+      ),
+    ).resolves.toMatchObject({ url: 'https://storage.example/view' });
+  });
+
   it('denies fresh Student media URLs after the Course is archived', async () => {
     db.mediaAsset.findUnique.mockResolvedValue({
       id: 'asset-id',

@@ -106,6 +106,7 @@ export type PublishedCourseContentDto = {
     title: string | null;
     textBody: string | null;
     position: number;
+    completed: boolean;
     section: { id: string; title: string; position: number } | null;
     media: {
       assetId: string;

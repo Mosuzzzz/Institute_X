@@ -1,6 +1,6 @@
 # Institute X: Authoritative Business Rules & System Architecture Blueprint
 
-> **Status:** Current contract, revised 12 September 2026 for Email OTP and multi-role accounts
+> **Status:** Current contract, revised 14 September 2026: Email OTP, multi-role accounts and optional assessments
 > **Date:** September 2026  
 > **Scope:** Full-stack specifications covering Database, Backend (NestJS + Prisma), and Frontend (Next.js App Router).
 
@@ -82,8 +82,8 @@ A Draft Course Version cannot be submitted to the Approver until all mandatory i
 | **Learning Content** | Mandatory | At least 1 `ContentItem` must exist. |
 | **Sections** | Optional | Content can be organized into Sections or remain unsectioned. |
 | **Media Assets** | Mandatory Condition | All uploaded media (cover, content video/audio/doc, question image) must have status `READY`. Uploads in `PENDING` or `FAILED` will block submission. |
-| **Pre-Test** | Mandatory | Must have at least 1 Question. Each question must have $\ge 2$ options and exactly 1 correct answer. |
-| **Post-Test** | Mandatory | Must have at least 1 Question conforming to the same question rules ($\ge 2$ options, exactly 1 correct answer). |
+| **Pre-Test** | Optional | If added, must have at least 1 Question. Each question must have $\ge 2$ options and exactly 1 correct answer. An empty configured quiz blocks submission; remove it to omit the test. |
+| **Post-Test** | Optional | If added, must have at least 1 Question conforming to the same question rules ($\ge 2$ options, exactly 1 correct answer). |
 
 ### UI Experience:
 - The editor uses explicit **Save Draft** actions. Unsaved typed changes remain local to the current page and are not persisted until the Teacher presses Save Draft or another clearly labelled save/add action.
@@ -100,16 +100,21 @@ A Draft Course Version cannot be submitted to the Approver until all mandatory i
      - `LIMITED` courses where the course's allowed majors includes the student's `majorId`.
 2. **Automatic Enrollment:**
    - Clicking an eligible course enrolls the student automatically (`CourseEnrollment` record created if not already enrolled) and logs a `CourseAccessEvent`.
-3. **Mandatory Pre-Test Barrier:**
-   - Students cannot view course learning content until they complete the Pre-Test.
+3. **Conditional Pre-Test Barrier:**
+   - If configured, students cannot view learning content until they complete the Pre-Test. Without one, enrollment immediately unlocks content and media.
    - Pre-Test allows exactly **1 attempt**.
    - Questions and options are randomized.
    - Submitting the Pre-Test records score and immediately unlocks the course content.
 4. **Post-Test:**
-   - Every published Course must include a Post-Test.
+   - Post-Test is optional. If configured, every lesson must be completed before starting it, and passing is required for course completion.
    - Can be attempted unlimited times.
    - Passing criteria is 80%.
    - Full history of attempts is preserved for teacher and student analytics.
+5. **Lesson-based completion and progress:**
+   - Students explicitly mark each lesson complete using the lesson viewer. Completion is persisted per student/content item, cannot bypass enrollment or Pre-Test, and repeated requests are idempotent.
+   - Without Post-Test, all lessons completed means 100%. With Post-Test, lesson completion accounts for up to 90%; all lessons plus a pass means 100%. A configured incomplete Pre-Test keeps progress at 0%.
+   - Completion is not inferred from opening a lesson or downloading media. New version content has new identifiers and its lesson progress starts afresh; prior completion records/history remain available.
+   - Executive completed-enrollment counts include students who fulfilled all configured requirements in any released version, counted once per course/student. Catalog progress reflects the current published version.
 
 ---
 

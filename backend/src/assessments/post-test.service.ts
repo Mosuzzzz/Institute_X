@@ -62,6 +62,11 @@ export class PostTestService {
       include: {
         version: {
           include: {
+            contentItems: {
+              select: {
+                completions: { where: { studentId: student.id }, select: { studentId: true } },
+              },
+            },
             course: {
               select: {
                 archivedAt: true,
@@ -115,8 +120,15 @@ export class PostTestService {
       throw new ForbiddenException('Course enrollment is required');
     }
     const preTest = quiz.version.quizzes[0];
-    if (!preTest || preTest.attempts.length === 0) {
+    if (preTest && preTest.attempts.length === 0) {
       throw new ForbiddenException('Pre-Test completion is required');
+    }
+
+    if (
+      !quiz.version.contentItems.length ||
+      quiz.version.contentItems.some((item) => item.completions.length === 0)
+    ) {
+      throw new ForbiddenException('Complete every lesson before starting the Post-Test');
     }
 
     const questions = quiz.randomizeQuestions

@@ -729,7 +729,7 @@ export class MediaService {
     ) {
       throw new ForbiddenException('Student is not eligible for this Course');
     }
-    if (!version.quizzes[0]?.attempts.length) {
+    if (version.quizzes[0] && !version.quizzes[0].attempts.length) {
       throw new ForbiddenException('Pre-Test completion is required');
     }
     return this.storage.createViewUrl(asset.storageKey);

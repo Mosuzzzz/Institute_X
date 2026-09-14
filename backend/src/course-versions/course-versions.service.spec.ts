@@ -77,6 +77,8 @@ describe('CourseVersionsService', () => {
     prisma.$transaction.mockImplementation((operation) => operation(db));
     db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
     service = new CourseVersionsService(prisma as never, storage as never);
+    db.courseVersionReview.aggregate.mockResolvedValue({ _max: { submissionNumber: null } });
+    db.courseVersionReview.create.mockResolvedValue({ id: 'review-id' });
   });
 
   it('submits a complete owned Draft and creates review history', async () => {
@@ -118,7 +120,7 @@ describe('CourseVersionsService', () => {
     expect(db.courseVersionReview.create).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects submission without a Pre-Test', async () => {
+  it('allows submission without an optional Pre-Test', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       ...validDraft,
       quizzes: validDraft.quizzes.filter((quiz) => quiz.quizType !== QuizType.PRE_TEST),
@@ -126,10 +128,10 @@ describe('CourseVersionsService', () => {
 
     await expect(
       service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
-    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    ).resolves.toBeUndefined();
   });
 
-  it('rejects submission without a Post-Test', async () => {
+  it('allows submission without an optional Post-Test', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       ...validDraft,
       quizzes: validDraft.quizzes.filter((quiz) => quiz.quizType !== QuizType.POST_TEST),
@@ -137,7 +139,7 @@ describe('CourseVersionsService', () => {
 
     await expect(
       service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
-    ).rejects.toThrow('A Post-Test with questions is required');
+    ).resolves.toBeUndefined();
   });
 
   it('rejects a question without exactly one correct option', async () => {
@@ -154,6 +156,12 @@ describe('CourseVersionsService', () => {
     await expect(
       service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
+  });
+
+  it('submits a course with neither assessment configured', async () => {
+    db.courseVersion.findUnique.mockResolvedValue({ ...validDraft, quizzes: [] });
+    await expect(service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id')).resolves.toBeUndefined();
+    expect(db.courseVersionReview.create).toHaveBeenCalled();
   });
 
   it('rejects submission while a media asset is not READY', async () => {
@@ -196,7 +204,7 @@ describe('CourseVersionsService', () => {
     expect(db.courseVersion.updateMany).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects a mandatory Post-Test that has no valid questions', async () => {
+  it('rejects a configured Post-Test that has no valid questions', async () => {
     db.courseVersion.findUnique.mockResolvedValue({
       ...validDraft,
       quizzes: validDraft.quizzes.map((quiz) =>
@@ -498,7 +506,9 @@ describe('CourseVersionsService', () => {
       });
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(service.unpublish({ id: 'executive-id', role: UserRole.EXECUTIVE }, 'version-id')).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.unpublish({ id: 'executive-id', role: UserRole.EXECUTIVE }, 'version-id'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
     });
 
@@ -573,7 +583,9 @@ describe('CourseVersionsService', () => {
       db.courseVersion.findFirst.mockResolvedValue(null);
       db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(service.republish({ id: 'executive-id', role: UserRole.EXECUTIVE }, 'version-id')).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.republish({ id: 'executive-id', role: UserRole.EXECUTIVE }, 'version-id'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(db.courseVersion.updateMany).not.toHaveBeenCalled();
     });
 

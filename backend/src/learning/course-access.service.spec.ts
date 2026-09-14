@@ -12,6 +12,9 @@ import { CourseAccessService } from './course-access.service';
 
 describe('CourseAccessService', () => {
   const db = {
+    courseVersion: { findUnique: jest.fn() },
+    lessonCompletion: { createMany: jest.fn() },
+    $queryRaw: jest.fn(),
     courseEnrollment: { upsert: jest.fn(), createMany: jest.fn() },
     courseAccessEvent: { create: jest.fn() },
   };
@@ -136,6 +139,86 @@ describe('CourseAccessService', () => {
     expect(db.courseAccessEvent.create).not.toHaveBeenCalled();
   });
 
+  it('unlocks learning immediately when there is no Pre-Test', async () => {
+    prisma.course.findUnique.mockResolvedValue({
+      ...accessibleCourse,
+      versions: [{ ...accessibleCourse.versions[0], quizzes: [] }],
+    });
+    expect(await service.enterCourse(student, 'course-id')).toMatchObject({
+      contentUnlocked: true,
+      preTestId: null,
+      postTestId: null,
+    });
+  });
+
+  describe('lesson completion', () => {
+    const course = {
+      archivedAt: null,
+      eligibilityMode: 'OPEN',
+      allowedMajors: [],
+      enrollments: [{ id: 'enrollment-id' }],
+      versions: [
+        {
+          id: 'version-id',
+          title: 'Course',
+          description: null,
+          languageCode: 'en',
+          quizzes: [],
+          contentItems: [
+            {
+              id: 'lesson-id',
+              contentType: ContentType.TEXT,
+              position: 1,
+              title: 'Lesson',
+              textBody: 'Text',
+              section: null,
+              mediaAsset: null,
+              completions: [],
+            },
+          ],
+        },
+      ],
+    };
+    it('records completion idempotently for an enrolled learner', async () => {
+      prisma.course.findUnique.mockResolvedValue(course);
+      db.courseVersion.findUnique.mockResolvedValue({
+        status: CourseVersionStatus.PUBLISHED,
+        course: { archivedAt: null },
+      });
+      await service.completeLesson(student, 'course-id', 'lesson-id');
+      expect(db.lessonCompletion.createMany).toHaveBeenCalledWith({
+        data: [{ studentId: 'student-id', contentItemId: 'lesson-id' }],
+        skipDuplicates: true,
+      });
+      expect(db.$queryRaw).toHaveBeenCalled();
+    });
+    it('rejects lessons outside the current published course', async () => {
+      prisma.course.findUnique.mockResolvedValue(course);
+      await expect(
+        service.completeLesson(student, 'course-id', 'other-lesson'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(db.lessonCompletion.createMany).not.toHaveBeenCalled();
+    });
+    it('rejects completion if publication changes before the locked write', async () => {
+      prisma.course.findUnique.mockResolvedValue(course);
+      db.courseVersion.findUnique.mockResolvedValue({
+        status: CourseVersionStatus.SUPERSEDED,
+        course: { archivedAt: null },
+      });
+      await expect(service.completeLesson(student, 'course-id', 'lesson-id')).rejects.toThrow(
+        'Course publication changed',
+      );
+      expect(db.lessonCompletion.createMany).not.toHaveBeenCalled();
+    });
+    it('does not allow unenrolled students to mark lessons complete', async () => {
+      prisma.course.findUnique.mockResolvedValue({ ...course, enrollments: [] });
+      await expect(
+        service.completeLesson(student, 'course-id', 'lesson-id'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(db.lessonCompletion.createMany).not.toHaveBeenCalled();
+    });
+  });
+
   it('allows a Student into an OPEN Course without a matching Major', async () => {
     prisma.course.findUnique.mockResolvedValue({
       ...accessibleCourse,
@@ -205,6 +288,7 @@ describe('CourseAccessService', () => {
               title: 'Introduction',
               textBody: 'Welcome',
               position: 1,
+              completions: [],
               mediaAsset: null,
             },
             {
@@ -213,6 +297,7 @@ describe('CourseAccessService', () => {
               title: 'Lesson video',
               textBody: null,
               position: 2,
+              completions: [],
               mediaAsset: {
                 id: 'asset-id',
                 fileName: 'lesson.mp4',
@@ -241,6 +326,7 @@ describe('CourseAccessService', () => {
             title: 'Introduction',
             textBody: 'Welcome',
             position: 1,
+            completed: false,
             media: null,
           },
           {
@@ -249,6 +335,7 @@ describe('CourseAccessService', () => {
             title: 'Lesson video',
             textBody: null,
             position: 2,
+            completed: false,
             media: {
               assetId: 'asset-id',
               fileName: 'lesson.mp4',
@@ -324,6 +411,7 @@ describe('CourseAccessService', () => {
               languageCode: 'en',
               publishedAt: new Date('2026-08-25T00:00:00.000Z'),
               coverAsset: { id: 'cover-id', status: AssetStatus.READY },
+              contentItems: [{ completions: [{ studentId: 'student-id' }] }],
               quizzes: [
                 { quizType: QuizType.PRE_TEST, attempts: [{ result: QuizResult.COMPLETED }] },
                 { quizType: QuizType.POST_TEST, attempts: [{ result: QuizResult.PASS }] },

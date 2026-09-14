@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   AccountStatus,
   AssetStatus,
@@ -8,8 +13,10 @@ import {
   QuizResult,
   QuizType,
   UserRole,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { learningProgress } from './learning-progress';
 
 interface StudentActor {
   id: string;
@@ -36,6 +43,7 @@ export interface PublishedCourseContent {
     title: string | null;
     textBody: string | null;
     position: number;
+    completed: boolean;
     section: { id: string; title: string; position: number } | null;
     media: {
       assetId: string;
@@ -98,6 +106,11 @@ export class CourseAccessService {
             languageCode: true,
             publishedAt: true,
             coverAsset: { select: { id: true, status: true } },
+            contentItems: {
+              select: {
+                completions: { where: { studentId: student.id }, select: { studentId: true } },
+              },
+            },
             quizzes: {
               where: { quizType: { in: [QuizType.PRE_TEST, QuizType.POST_TEST] } },
               select: {
@@ -141,7 +154,11 @@ export class CourseAccessService {
                 version.coverAsset?.status === AssetStatus.READY ? version.coverAsset.id : null,
               enrollments: course._count.enrollments,
               enrolled: course.enrollments.length > 0,
-              progress: this.progressFor(version.quizzes, course.enrollments.length > 0),
+              progress: this.progressFor(
+                version.quizzes,
+                course.enrollments.length > 0,
+                version.contentItems,
+              ),
               categories: course.categories.map(({ category }) => category),
             },
           ]
@@ -152,6 +169,7 @@ export class CourseAccessService {
   private progressFor(
     quizzes: Array<{ quizType: QuizType; attempts: Array<{ result: QuizResult | null }> }>,
     enrolled: boolean,
+    items: Array<{ completions: Array<{ studentId: string }> }>,
   ): number {
     if (!enrolled) return 0;
     const preTestCompleted = quizzes.some(
@@ -164,7 +182,14 @@ export class CourseAccessService {
         quiz.quizType === QuizType.POST_TEST &&
         quiz.attempts.some((attempt) => attempt.result === QuizResult.PASS),
     );
-    return postTestPassed ? 100 : preTestCompleted ? 50 : 10;
+    return learningProgress(
+      items.length,
+      items.filter((item) => item.completions.length > 0).length,
+      quizzes.some((quiz) => quiz.quizType === QuizType.PRE_TEST),
+      preTestCompleted,
+      quizzes.some((quiz) => quiz.quizType === QuizType.POST_TEST),
+      postTestPassed,
+    );
   }
 
   async enterCourse(student: StudentActor, courseId: string): Promise<CourseEntry> {
@@ -223,7 +248,7 @@ export class CourseAccessService {
     const preTest = publishedVersion.quizzes.find((quiz) => quiz.quizType === QuizType.PRE_TEST);
     const postTest = publishedVersion.quizzes.find((quiz) => quiz.quizType === QuizType.POST_TEST);
     const contentUnlocked =
-      preTest?.attempts.some((attempt) => attempt.result === QuizResult.COMPLETED) ?? false;
+      !preTest || preTest.attempts.some((attempt) => attempt.result === QuizResult.COMPLETED);
     return {
       versionId: publishedVersion.id,
       preTestId: preTest?.id ?? null,
@@ -279,6 +304,7 @@ export class CourseAccessService {
                 title: true,
                 textBody: true,
                 position: true,
+                completions: { where: { studentId: student.id }, select: { studentId: true } },
                 section: { select: { id: true, title: true, position: true } },
                 mediaAsset: {
                   select: {
@@ -305,7 +331,7 @@ export class CourseAccessService {
     if (course.enrollments.length === 0) {
       throw new ForbiddenException('Course enrollment is required');
     }
-    if (!version.quizzes[0]?.attempts.length) {
+    if (version.quizzes[0] && !version.quizzes[0].attempts.length) {
       throw new ForbiddenException('Pre-Test completion is required');
     }
 
@@ -320,6 +346,7 @@ export class CourseAccessService {
         title: item.title,
         textBody: item.textBody,
         position: item.position,
+        completed: item.completions.length > 0,
         section: item.section,
         media:
           item.mediaAsset?.status === AssetStatus.READY
@@ -332,6 +359,35 @@ export class CourseAccessService {
             : null,
       })),
     };
+  }
+
+  async completeLesson(
+    student: StudentActor,
+    courseId: string,
+    contentItemId: string,
+  ): Promise<PublishedCourseContent> {
+    const content = await this.getPublishedContent(student, courseId);
+    if (!content.contentItems.some((item) => item.id === contentItemId)) {
+      throw new NotFoundException('Published lesson was not found');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT version_id FROM course_versions WHERE version_id = ${content.versionId}::uuid FOR UPDATE`,
+      );
+      const version = await tx.courseVersion.findUnique({
+        where: { id: content.versionId },
+        select: { status: true, course: { select: { archivedAt: true } } },
+      });
+      if (!version || version.status !== CourseVersionStatus.PUBLISHED || version.course.archivedAt)
+        throw new ConflictException(
+          'Course publication changed; refresh before completing the lesson',
+        );
+      await tx.lessonCompletion.createMany({
+        data: [{ studentId: student.id, contentItemId }],
+        skipDuplicates: true,
+      });
+    });
+    return this.getPublishedContent(student, courseId);
   }
 
   private requireActiveStudent(student: StudentActor): void {

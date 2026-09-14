@@ -32,3 +32,6 @@ The system is also designed to support future growth, multiple languages, access
 | Content Approver | Review and approve/reject course content before publication |
 | Director / Owner | View system-wide dashboard, popular courses, low-usage courses, and traffic |
 | System Administrator | Exact responsibilities remain TBD and should follow the defined access-control policy |
+# Current learning rule update — 14 September 2026
+
+Pre-Test and Post-Test are independently optional. A configured Pre-Test gates learning; without it, enrollment unlocks lessons. Students explicitly mark every lesson complete. Without Post-Test this completes the course; with Post-Test, an 80% pass is also required after all lessons. This supersedes previous mandatory-test language. See `Optional_Assessments.md`.

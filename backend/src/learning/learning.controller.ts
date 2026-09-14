@@ -47,4 +47,18 @@ export class LearningController {
   ): ReturnType<CourseAccessService['getPublishedContent']> {
     return this.access.getPublishedContent({ ...user, majorId: user.majorId ?? null }, courseId);
   }
+
+  @Post(':courseId/content/:contentItemId/complete')
+  @Roles(UserRole.STUDENT)
+  completeLesson(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+    @Param('contentItemId', new ParseUUIDPipe({ version: '4' })) contentItemId: string,
+  ): ReturnType<CourseAccessService['completeLesson']> {
+    return this.access.completeLesson(
+      { ...user, majorId: user.majorId ?? null },
+      courseId,
+      contentItemId,
+    );
+  }
 }

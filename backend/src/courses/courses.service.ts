@@ -231,12 +231,12 @@ export class CoursesService {
                   !question.imageAsset || question.imageAsset.status === AssetStatus.READY,
               ),
             ),
-          preTest: latest.quizzes.some(
-            (quiz) => quiz.quizType === 'PRE_TEST' && hasValidQuestions(quiz),
-          ),
-          postTest: latest.quizzes.some(
-            (quiz) => quiz.quizType === 'POST_TEST' && hasValidQuestions(quiz),
-          ),
+          preTest: latest.quizzes
+            .filter((quiz) => quiz.quizType === 'PRE_TEST')
+            .every(hasValidQuestions),
+          postTest: latest.quizzes
+            .filter((quiz) => quiz.quizType === 'POST_TEST')
+            .every(hasValidQuestions),
           assessments: latest.quizzes.every(hasValidQuestions),
         }
       : {

@@ -379,3 +379,8 @@ erDiagram
 |---|---|
 | `202608260001_add_course_categories` | Add Category tables, seed `Uncategorized`, and backfill existing Courses |
 | `202608270002_add_course_cover_assets` | Add one private cover image asset per Course Version |
+# Schema addition — 14 September 2026
+
+`lesson_completions` records explicit learning completion, with composite primary key (`student_id`, `content_item_id`), `completed_at TIMESTAMPTZ`, a content-item index, and cascading foreign keys to `users` and `content_items`. Completion belongs to a particular version through its ContentItem; it is not copied to new revisions. Migration: `202609140001_lesson_completions`.
+
+Pre-Test and Post-Test records are optional per course version. All lessons must be completed; configured Pre-Test completion and configured Post-Test pass are additional conditional requirements. See `Optional_Assessments.md`.

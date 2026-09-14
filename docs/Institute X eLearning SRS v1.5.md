@@ -13,7 +13,7 @@ Institute X E-Learning Management System is a free, web-based learning platform 
 
 The system supports four mutually exclusive roles: `STUDENT`, `TEACHER`, `APPROVER`, and `OWNER`. A Teacher must be authorized before creating courses. Course access is validated by the Student's Major. Teachers submit Course Versions for approval; rejected Versions must be fixed and resubmitted, while approved Versions are automatically published.
 
-Every Course must include both a Pre-Test and a Post-Test before it can be submitted for approval. Students must complete the Pre-Test once before accessing learning content. The Pre-Test has no passing requirement. Post-Tests may be taken an unlimited number of times, and a score of at least 80% is required to pass.
+Updated 14 September 2026: Pre-Test and Post-Test are independently optional. Configured tests must have valid questions before submission. If a Pre-Test exists, students must complete it once before learning; it has no passing requirement. All lessons must be explicitly completed. If a Post-Test exists, it unlocks after all lessons and requires at least 80% to complete the course, with unlimited attempts. Without Post-Test, all lessons completed means the course is complete. See `Optional_Assessments.md` for versioning and progress rules.
 
 ---
 
@@ -30,8 +30,8 @@ The system includes:
 - Course versioning and approval
 - Automatic publication after approval
 - Video, audio, image, text, and document learning content
-- Mandatory Pre-Test before learning
-- Mandatory Post-Test with unlimited attempts
+- Optional Pre-Test, required before learning only when configured
+- Optional Post-Test with unlimited attempts, required to pass only when configured
 - Automatic grading
 - Multiple Choice questions
 - Optional Teacher-configured quiz timer
@@ -113,8 +113,8 @@ Teacher → Request Permission → Approver
 | FR-CM-01 | An authorized Teacher shall be able to create a Course. |
 | FR-CM-02 | A Teacher shall be able to edit a Course owned by that Teacher. |
 | FR-CM-03 | A Teacher shall be able to add learning content. |
-| FR-CM-04 | A Teacher shall create a Pre-Test for the Course. |
-| FR-CM-05 | A Teacher shall create a Post-Test for the Course. |
+| FR-CM-04 | A Teacher may create or omit a Pre-Test for the Course. If created, valid questions are required before submission. |
+| FR-CM-05 | A Teacher may create or omit a Post-Test for the Course. If created, valid questions are required before submission. |
 | FR-CM-06 | A Teacher shall submit a Course Version for approval. |
 | FR-CM-07 | Published content shall not be edited directly. |
 | FR-CM-08 | Changes to published content shall create a new Course Version. |
@@ -199,11 +199,11 @@ Teacher → Submit Version → Approver
 
 ## 9. Pre-Test Requirements
 
-The Pre-Test must be completed before learning, may be taken only once, and has no passing requirement.
+When configured, the Pre-Test must be completed before learning, may be taken only once, and has no passing requirement. A course without Pre-Test unlocks after enrollment.
 
 | ID | Requirement |
 |---|---|
-| FR-PRE-01 | A Student shall complete the Pre-Test before accessing learning content. |
+| FR-PRE-01 | A Student shall complete the Pre-Test before accessing learning content only if the course contains one. |
 | FR-PRE-02 | A Student shall be allowed to take the Pre-Test only once. |
 | FR-PRE-03 | The Pre-Test shall use Multiple Choice questions. |
 | FR-PRE-04 | The system shall automatically grade the Pre-Test. |
@@ -233,7 +233,7 @@ Supported learning content:
 | FR-LC-01 | A Teacher shall be able to add supported learning content. |
 | FR-LC-02 | Students shall be able to view or stream authorized content through the web application. |
 | FR-LC-03 | Learning content shall only be available from an approved and published Version. |
-| FR-LC-04 | A Student shall complete the Pre-Test before accessing learning content. |
+| FR-LC-04 | A Student shall complete a configured Pre-Test before accessing learning content; without one, enrollment unlocks learning. |
 | FR-LC-05 | Total Course assets shall not exceed 1 GB. |
 | FR-LC-06 | An individual media file shall not exceed 1 GB. |
 | FR-LC-07 | The system shall not provide an intended offline-download feature. |
@@ -244,11 +244,11 @@ Supported learning content:
 
 ## 11. Post-Test Requirements
 
-Every Course must contain a valid Post-Test before submission. A Student must achieve at least 80% to pass the Post-Test. Post-Test attempts are unlimited.
+Post-Test is optional. When configured, a Student must complete all lessons before starting it and achieve at least 80% to pass. Post-Test attempts are unlimited. Without Post-Test, completion of all lessons completes the course.
 
 | ID | Requirement |
 |---|---|
-| FR-POST-01 | A Student shall be able to take the Post-Test after learning. |
+| FR-POST-01 | A Student shall be able to take a configured Post-Test only after completing every lesson. |
 | FR-POST-02 | The Post-Test shall use Multiple Choice questions. |
 | FR-POST-03 | The system shall automatically grade each attempt. |
 | FR-POST-04 | A score of 80% or higher shall be considered PASS. |
