@@ -102,6 +102,27 @@
   :where(button, input:not([type='checkbox']):not([type='radio']), select, summary) { min-height: 44px; }
   :where(input:not([type='checkbox']):not([type='radio']), select, textarea) { min-width: 0; max-width: 100%; border-radius: var(--control-radius); }
   :where(button) { touch-action: manipulation; }
+  :where(
+    a[href],
+    button,
+    summary,
+    select,
+    input[type='button'],
+    input[type='submit'],
+    input[type='reset'],
+    input[type='checkbox'],
+    input[type='radio'],
+    input[type='file'],
+    [role='button'],
+    [role='link'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='option'],
+    label[for],
+    label:has(input[type='checkbox']:enabled, input[type='radio']:enabled, input[type='file']:enabled)
+  ):not(:disabled):not([aria-disabled='true']) {
+    @apply cursor-pointer;
+  }
   :where(button:disabled) { cursor: not-allowed; }
   :where(table, dl) { font-variant-numeric: tabular-nums; }
   :where(th) { font-weight: 500; }

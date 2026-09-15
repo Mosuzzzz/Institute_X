@@ -11,8 +11,8 @@ web
 An online learning system for Institute X, a vocational school. The current business rules define five user roles:
 
 - STUDENT: Browse eligible courses, study learning content, take assessments, and view score history.
-- TEACHER: Request teaching permission, create and edit their own courses, submit courses for review, and view analytics for their own courses.
-- APPROVER: Review teaching permission requests and course content before publication.
+- TEACHER: Create and edit their own courses, submit courses for review, and view analytics for their own courses.
+- APPROVER: Review course content before publication and review user reports.
 - REGISTRAR: Search email-verified accounts, manage roles, and view role-change audit history.
 - EXECUTIVE: View system, course, enrollment, completion, score, and major analytics with read-only access.
 
@@ -28,7 +28,7 @@ Product success means students can access learning they are eligible for, teache
 
 - Only institutional email addresses ending in @x.ac.th are accepted. Authentication uses Email OTP, with no passwords, SSO, or public account-registration endpoint.
 - New accounts are created only after successful OTP verification and start with STUDENT. Registrars assign additional roles to verified accounts.
-- Teachers must receive separate teaching permission approval before creating courses; assignment of TEACHER alone is insufficient.
+- Registrars assign the TEACHER role. That assignment immediately grants access to Teacher course-authoring capabilities; no separate approval is required.
 - Teachers save drafts through explicit save actions. Unsaved text remains local to the current page.
 - Approver approval automatically publishes the course version. Rejection requires a review comment.
 - Opening an eligible course automatically enrolls the student. Students must submit the Pre-Test before accessing learning content and take the Post-Test after learning.

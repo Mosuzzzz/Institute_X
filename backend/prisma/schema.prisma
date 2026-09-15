@@ -110,6 +110,8 @@ model User {
   roleChangesMade    RoleChangeAudit[]          @relation("RoleChangeActor")
   roleChangesReceived RoleChangeAudit[]         @relation("RoleChangeTarget")
   lessonCompletions  LessonCompletion[]
+  courseReports CourseReport[] @relation("CourseReporter")
+  reviewedCourseReports CourseReport[] @relation("CourseReportReviewer")
 
   @@map("users")
 }
@@ -196,9 +198,27 @@ model Course {
   versions        CourseVersion[]
   enrollments     CourseEnrollment[]
   accessEvents    CourseAccessEvent[]
+  reports CourseReport[]
 
   @@index([teacherId])
   @@map("courses")
+}
+
+model CourseReport {
+  id String @id @default(uuid()) @map("report_id") @db.Uuid
+  courseId String @map("course_id") @db.Uuid
+  reporterId String @map("reporter_id") @db.Uuid
+  reason String @db.VarChar(2000)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  reviewedAt DateTime? @map("reviewed_at") @db.Timestamptz
+  reviewedById String? @map("reviewed_by_id") @db.Uuid
+  course Course @relation(fields: [courseId], references: [id])
+  reporter User @relation("CourseReporter", fields: [reporterId], references: [id])
+  reviewer User? @relation("CourseReportReviewer", fields: [reviewedById], references: [id])
+
+  @@unique([courseId, reporterId])
+  @@index([reviewedAt, createdAt])
+  @@map("course_reports")
 }
 
 model Category {

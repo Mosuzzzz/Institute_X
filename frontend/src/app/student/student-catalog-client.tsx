@@ -10,6 +10,8 @@ import ApiState from "../api-state";
 import CourseCard from "./course-card";
 import type { StudentCourse } from "./course-data";
 import dashboardStyles from "../teacher/overview.module.css";
+import { useUiTranslation } from "../../lib/ui-translations";
+
 
 const studentCopy = {
   th: {
@@ -149,6 +151,7 @@ export default function StudentCatalogClient({
   category?: string;
   query?: string;
 }) {
+  const t = useUiTranslation();
   const [language] = useAppLanguage();
   const text = studentCopy[language];
   const { data, error, loading } =
@@ -177,14 +180,16 @@ export default function StudentCatalogClient({
   if (mode === "learning") {
     return (
       <main data-ui="page" className={`${studentMain} min-h-[calc(100svh-158px)]`}>
-        <header className="mb-11">
-          <p className={eyebrow}>{text.enrolled}</p>
-          <h1 className="text-[clamp(2rem,3vw,3.15rem)] tracking-[-0.035em] text-[#20243a] uppercase max-[540px]:text-[2rem]">
-            {text.myLearning}
-          </h1>
-        </header>
+        <h1>{t("Learning Dashboard")}</h1>
+        <div className={dashboardStyles.toolbar}><p>{t("Continue courses, monitor progress, and discover eligible learning.")}</p><Link className={dashboardStyles.newCourse} href="/student/courses">{t("Browse courses")}</Link></div>
+        <section className={dashboardStyles.metrics} aria-label={t("Learning summary")}>
+          <article><span>{t("In progress")}</span><strong>{enrolled.filter((course) => (course.progress ?? 0) < 100).length}</strong><p>{t("Courses currently being learned")}</p></article>
+          <article><span>{t("Completed")}</span><strong>{enrolled.filter((course) => course.progress === 100).length}</strong><p>{t("Courses completed successfully")}</p></article>
+          <article><span>{t("Available courses")}</span><strong>{allCourses.length}</strong><p>{t("Courses eligible for your profile")}</p></article>
+        </section>
+        <header className="mt-12 mb-8"><p className={eyebrow}>{text.enrolled}</p><h2 className="text-[clamp(1.6rem,2.4vw,2.25rem)] tracking-[-0.025em] text-[#20243a]">{text.myLearning}</h2></header>
         {enrolled.length ? (
-          <div className="grid w-[min(100%,860px)] grid-cols-2 gap-x-[22px] gap-y-[54px] max-[820px]:grid-cols-1">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),300px))] items-stretch gap-x-6 gap-y-8">
             {enrolled.map((course) => (
               <CourseCard key={course.id} course={course} variant="learning" />
             ))}
@@ -246,14 +251,6 @@ export default function StudentCatalogClient({
 
   return (
     <main data-ui="page" className={dashboardStyles.page}>
-      <h1>Learning Dashboard</h1>
-      <nav className={dashboardStyles.tabs} aria-label="Learning dashboard tabs"><span aria-current="page">Overview</span></nav>
-      <div className={dashboardStyles.toolbar}><p>Continue courses, monitor progress, and discover eligible learning.</p><Link className={dashboardStyles.newCourse} href="/student/courses">Browse courses</Link></div>
-      <section className={dashboardStyles.metrics} aria-label="Learning summary">
-        <article><span>In progress</span><strong>{enrolled.filter((course) => (course.progress ?? 0) < 100).length}</strong><p>Courses currently being learned</p></article>
-        <article><span>Completed</span><strong>{enrolled.filter((course) => course.progress === 100).length}</strong><p>Courses completed successfully</p></article>
-        <article><span>Available courses</span><strong>{allCourses.length}</strong><p>Courses eligible for your profile</p></article>
-      </section>
       {enrolled.length ? (
         <section className={dashboardStyles.recent} aria-labelledby="continue-heading">
           <div className={dashboardStyles.sectionHeading}>

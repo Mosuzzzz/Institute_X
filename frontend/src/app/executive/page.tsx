@@ -7,8 +7,13 @@ import { staffUi } from '../ui-styles';
 import BootstrapIcon from '../bootstrap-icon';
 import dashboardStyles from '../teacher/overview.module.css';
 import ExecutiveLearningAnalytics from './learning-analytics';
+import { useAppLanguage } from '../../lib/language';
+import { useUiTranslation } from "../../lib/ui-translations";
+
 
 export default function OwnerOverviewPage() {
+  const t = useUiTranslation();
+  const [language] = useAppLanguage();
   const { data, error, loading } = useBackendQuery<OwnerDashboardDto>('executive/dashboard');
 
   if (!data) {
@@ -21,37 +26,37 @@ export default function OwnerOverviewPage() {
 
   const metrics = [
     {
-      label: 'Active Users',
+      label: t("Active Users"),
       value: data.overview.activeUsers,
-      sublabel: `${data.overview.users.toLocaleString()} total registered`,
+      sublabel: t('{count} total registered', { count: data.overview.users.toLocaleString(language) }),
       accent: 'blue',
       icon: <BootstrapIcon name="people" className="text-xl" />,
     },
     {
-      label: 'Course Catalog',
+      label: t("Course Catalog"),
       value: data.overview.courses,
-      sublabel: 'All institutional courses',
+      sublabel: t("All institutional courses"),
       accent: 'indigo',
       icon: <BootstrapIcon name="book" className="text-xl" />,
     },
     {
-      label: 'Enrollments',
+      label: t("Enrollments"),
       value: data.overview.enrollments,
-      sublabel: 'Student registrations',
+      sublabel: t("Student registrations"),
       accent: 'emerald',
       icon: <BootstrapIcon name="check-circle" className="text-xl" />,
     },
     {
-      label: 'Learning Accesses',
+      label: t("Learning Accesses"),
       value: data.overview.accesses,
-      sublabel: 'Lesson entries recorded',
+      sublabel: t("Lesson entries recorded"),
       accent: 'amber',
       icon: <BootstrapIcon name="play-circle" className="text-xl" />,
     },
     {
-      label: 'Assessment Attempts',
+      label: t("Assessment Attempts"),
       value: data.overview.assessmentAttempts,
-      sublabel: 'Pre & Post-tests taken',
+      sublabel: t("Pre & Post-tests taken"),
       accent: 'teal',
       icon: <BootstrapIcon name="clipboard-check" className="text-xl" />,
     },
@@ -77,17 +82,13 @@ export default function OwnerOverviewPage() {
       {/* Header Banner */}
       <header className="mb-8 flex flex-col gap-6 border-b border-slate-200/80 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Operational Overview
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Platform throughput, learning engagement, and assessment quality indicators.
-          </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{t("Operational Overview")}</h1>
+          <p className="mt-1 text-sm text-slate-600">{t("Platform throughput, learning engagement, and assessment quality indicators.")}</p>
         </div>
       </header>
 
       {/* 5-Metric KPI Strip */}
-      <section aria-label="Platform Key Performance Indicators" className="executive-metrics mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <section aria-label={t("Platform Key Performance Indicators")} className="executive-metrics mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {metrics.map((metric) => (
           <div
             key={metric.label}
@@ -103,7 +104,7 @@ export default function OwnerOverviewPage() {
             </div>
             <div className="my-3">
               <strong className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">
-                {metric.value.toLocaleString()}
+                {metric.value.toLocaleString(language)}
               </strong>
               <p className="mt-1 text-xs text-slate-600">{metric.sublabel}</p>
             </div>
@@ -112,16 +113,14 @@ export default function OwnerOverviewPage() {
       </section>
 
       {/* Interactive Visual Analytics Grid */}
-      <section aria-label="Platform telemetry charts" className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <section aria-label={t("Platform telemetry charts")} className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Hourly Peak Usage Chart (2 Columns Wide) */}
         <article className="rounded-panel border border-slate-200/80 bg-white p-6 shadow-none lg:col-span-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h2 className="text-base font-bold text-slate-900">Hourly Platform Accesses</h2>
+                <h2 className="text-base font-bold text-slate-900">{t("Hourly Platform Accesses")}</h2>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-600/20">
-              Peak: {peak.hour}:00 ({peak.accesses.toLocaleString()} accesses)
-            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-600/20">{t("Peak:")}{peak.hour}:00 ({peak.accesses.toLocaleString(language)}{t("accesses)")}</span>
           </div>
 
           <div className="mt-8 flex h-52 items-end gap-1.5 border-b border-slate-200 pb-2">
@@ -166,8 +165,8 @@ export default function OwnerOverviewPage() {
         {/* Assessment Outcomes Card (1 Column Wide) */}
         <article className="flex flex-col justify-between rounded-panel border border-slate-200/80 bg-white p-6 shadow-none">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Post-Test Passing Rate</h2>
-            <p className="mt-1 text-xs text-slate-600">Students must score ≥ 80% to achieve PASS status</p>
+            <h2 className="text-base font-bold text-slate-900">{t("Post-Test Passing Rate")}</h2>
+            <p className="mt-1 text-xs text-slate-600">{t("Students must score ≥ 80% to achieve PASS status")}</p>
           </div>
 
           <div className="my-6 flex flex-col items-center justify-center">
@@ -176,9 +175,7 @@ export default function OwnerOverviewPage() {
                 <strong className="block text-3xl font-extrabold tracking-tight text-emerald-700">
                   {passRate.toFixed(1)}%
                 </strong>
-                <span className="text-[0.65rem] font-bold tracking-wider uppercase text-slate-600">
-                  Passing Rate
-                </span>
+                <span className="text-[0.65rem] font-bold tracking-wider uppercase text-slate-600">{t("Passing Rate")}</span>
               </div>
             </div>
           </div>
@@ -186,28 +183,28 @@ export default function OwnerOverviewPage() {
           <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-center">
             <div className="rounded-xl bg-emerald-50/60 p-2.5">
               <strong className="block text-lg font-bold text-emerald-800">
-                {data.postTestResults.pass.toLocaleString()}
+                {data.postTestResults.pass.toLocaleString(language)}
               </strong>
-              <span className="text-[0.68rem] font-semibold text-emerald-700">Passed (≥80%)</span>
+              <span className="text-[0.68rem] font-semibold text-emerald-700">{t("Passed (≥80%)")}</span>
             </div>
             <div className="rounded-xl bg-rose-50/60 p-2.5">
               <strong className="block text-lg font-bold text-rose-800">
-                {data.postTestResults.notPass.toLocaleString()}
+                {data.postTestResults.notPass.toLocaleString(language)}
               </strong>
-              <span className="text-[0.68rem] font-semibold text-rose-700">Retake Needed</span>
+              <span className="text-[0.68rem] font-semibold text-rose-700">{t("Retake Needed")}</span>
             </div>
           </div>
         </article>
       </section>
 
       {/* Distribution Breakdowns Grid */}
-      <section aria-label="Platform distributions" className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <section aria-label={t("Platform distributions")} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {/* Users by Role */}
         <article className="rounded-panel border border-slate-200/80 bg-white p-6 shadow-none">
           <div className="mb-5">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Account Distribution by Role</h2>
-              <p className="text-xs text-slate-600">Total institutional profiles</p>
+              <h2 className="text-sm font-bold text-slate-900">{t("Account Distribution by Role")}</h2>
+              <p className="text-xs text-slate-600">{t("Total institutional profiles")}</p>
             </div>
           </div>
           <div className="grid gap-3.5">
@@ -230,16 +227,15 @@ export default function OwnerOverviewPage() {
         <article className="rounded-panel border border-slate-200/80 bg-white p-6 shadow-none">
           <div className="mb-5">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Publishing Pipeline Status</h2>
+              <h2 className="text-sm font-bold text-slate-900">{t("Publishing Pipeline Status")}</h2>
               <p className="text-xs text-slate-600">
-                {data.overview.pendingTeacherPermissions} teacher permissions pending
-              </p>
+                {data.overview.pendingTeacherPermissions}{t("teacher permissions pending")}</p>
             </div>
           </div>
           <div className="grid gap-3.5">
             {data.courseVersionsByStatus.map((item) => (
               <div key={item.status} className="grid grid-cols-[95px_minmax(0,1fr)_44px] items-center gap-3">
-                <span className="text-xs font-semibold text-slate-600">{item.status}</span>
+                <span className="text-xs font-semibold text-slate-600">{t(item.status)}</span>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                   <span
                     className="block h-full rounded-full bg-amber-500 transition-all duration-300"

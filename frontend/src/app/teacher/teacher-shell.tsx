@@ -26,21 +26,23 @@ import { commonUi, workspaceUi } from "../ui-styles";
 import styles from "../workspace-sidebar.module.css";
 
 import useWorkspaceNavigation from '../use-workspace-navigation';
+import { useUiTranslation } from "../../lib/ui-translations";
+
 
 const subscribeToSession = () => () => undefined;
 
 const navigation = [
   { href: "/teacher", label: "overview", icon: "grid" },
   { href: "/teacher/courses", label: "courses", icon: "book" },
-  { href: "/teacher/permission", label: "permission", icon: "shield" },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
-  const names: Record<string, string> = { grid: "grid", book: "book", shield: "shield-check" };
+  const names: Record<string, string> = { grid: "grid", book: "book" };
   return <BootstrapIcon name={names[icon] ?? "circle"} />;
 }
 
 export default function TeacherShell({ children }: { children: ReactNode }) {
+  const t = useUiTranslation();
   const pathname = usePathname();
   const router = useRouter();
   const [language, setLanguage] = useAppLanguage();
@@ -109,19 +111,19 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={`${workspaceUi.shell("teacher")} ${styles.shell}`}>
-      <aside ref={sidebarRef} data-open={mobileNavOpen} role={mobileNavOpen ? "dialog" : undefined} aria-modal={mobileNavOpen || undefined} aria-label="Workspace navigation" className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
+      <aside ref={sidebarRef} data-open={mobileNavOpen} role={mobileNavOpen ? "dialog" : undefined} aria-modal={mobileNavOpen || undefined} aria-label={t("Workspace navigation")} className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
-          <Link className={workspaceUi.brandLink} href="/teacher/courses" aria-label="Institute X teacher courses dashboard">
+          <Link className={workspaceUi.brandLink} href="/teacher/courses" aria-label={t("Institute X teacher courses dashboard")}>
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
               <strong>{shell.teacherWorkspace}</strong>
             </span>
           </Link>
-          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
+          <button className={styles.closeButton} type="button" aria-label={t("Close navigation")} onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
         </header>
-        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Teacher navigation">
-          <p className={workspaceUi.navLabel}>Workspace · 01</p>
+        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label={t("Teacher navigation")}>
+          <p className={workspaceUi.navLabel}>{t("Workspace · 01")}</p>
           {navigation.map((item) => {
             const active =
               item.href === "/teacher"
@@ -151,7 +153,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
             aria-expanded={mobileNavOpen}
             className={workspaceUi.menuButton}
             type="button"
-            aria-label="Open navigation"
+            aria-label={t("Open navigation")}
             onClick={() => setMobileNavOpen(true)}
           >
             <span />
@@ -166,8 +168,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
                 : shell.overview}
             </strong>
           </div>
-          <nav aria-label="Teacher account">
-            <span className={workspaceUi.rolePill}>Teacher</span>
+          <nav aria-label={t("Teacher account")}>
             <LanguageSelector
               className="max-[700px]:w-[104px]"
               value={language}
@@ -177,7 +178,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
             <ProfileMenu
               profile={profile}
               roleLabel={text.teacherAccount}
-              fallbackName="Teacher"
+              fallbackName={t("Teacher")}
               onSignOut={signOut}
               logoutLabel={text.logout}
               logoutHint={text.logoutHint}
@@ -191,7 +192,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
         <button
           className={workspaceUi.scrim}
           type="button"
-          aria-label="Close navigation"
+          aria-label={t("Close navigation")}
           onClick={() => setMobileNavOpen(false)}
         />
       ) : null}

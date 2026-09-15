@@ -324,15 +324,16 @@ describe('CoursesService', () => {
       );
     });
 
-    it('denies a Teacher without effective approved permission', async () => {
+    it('allows a Registrar-assigned Teacher without a separate permission request', async () => {
       db.teacherPermissionRequest.findFirst.mockResolvedValue({
         status: TeacherPermissionStatus.REVOKED,
       });
 
       await expect(
         service.createCourse({ id: 'teacher-id', role: UserRole.TEACHER }, input),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-      expect(db.course.create).not.toHaveBeenCalled();
+      ).resolves.toEqual(expect.objectContaining({ id: 'course-id' }));
+      expect(db.teacherPermissionRequest.findFirst).not.toHaveBeenCalled();
+      expect(db.course.create).toHaveBeenCalled();
     });
 
     it('denies non-Teachers', async () => {

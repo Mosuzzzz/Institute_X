@@ -11,7 +11,6 @@ import {
   CourseVersion,
   CourseVersionStatus,
   Prisma,
-  TeacherPermissionStatus,
   UserRole,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
@@ -267,15 +266,6 @@ export class CoursesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const latestPermission = await tx.teacherPermissionRequest.findFirst({
-        where: { teacherId: actor.id },
-        orderBy: { requestedAt: 'desc' },
-        select: { status: true },
-      });
-      if (latestPermission?.status !== TeacherPermissionStatus.APPROVED) {
-        throw new ForbiddenException('Approved Teacher permission is required');
-      }
-
       if (input.eligibilityMode === CourseEligibilityMode.LIMITED) {
         const majorCount = await tx.major.count({
           where: { id: { in: input.majorIds } },

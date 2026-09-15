@@ -8,6 +8,7 @@ import "@fontsource/kanit/700.css";
 import "@fontsource/kanit/800.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./globals.css";
+import AppLanguage from './app-language';
 
 export const metadata: Metadata = {
   title: "Institute X Authentication Service",
@@ -24,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body className="bg-canvas font-sans text-ink antialiased">
+        <AppLanguage />
         {children}
       </body>
     </html>

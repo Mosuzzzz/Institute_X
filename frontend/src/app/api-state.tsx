@@ -3,8 +3,11 @@
 import { commonCopy } from '../lib/app-copy';
 import { useAppLanguage } from '../lib/language';
 import { commonUi } from './ui-styles';
+import { useUiTranslation } from "../lib/ui-translations";
+
 
 export default function ApiState({ loading, error }: { loading: boolean; error: string | null }) {
+  const t = useUiTranslation();
   const [language] = useAppLanguage();
   const text = commonCopy[language];
 
@@ -26,7 +29,7 @@ export default function ApiState({ loading, error }: { loading: boolean; error: 
       <section className={`${stateClasses} border-l-4 border-l-[#ad424b]`} role="alert">
         <span className="mb-1 grid size-11 place-items-center rounded-full bg-[#fff1f2] text-xl font-medium text-[#8d3039]" aria-hidden="true">!</span>
         <strong className="text-[1.1rem] text-[#8d3039]">{text.loadError}</strong>
-        <p className="max-w-[520px] leading-[1.55]">{error}</p>
+        <p className="max-w-[520px] leading-[1.55]">{t(error)}</p>
         <small className="text-[#58677c]">{text.retryHint}</small>
       </section>
     );

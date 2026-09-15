@@ -17,6 +17,7 @@ import CourseCoverImage from "../../../course-cover-image";
 import QuestionImage from "../../../question-image";
 import StatusBadge from "../../status-badge";
 import { useAppLanguage } from "../../../../lib/language";
+import { learningCopy } from "../../../../lib/learning-copy";
 import {
   translateCategory,
   translateMajor,
@@ -25,6 +26,8 @@ import {
   COURSE_LANGUAGES,
   courseLanguageLabel,
 } from "../../../../lib/course-language";
+import { useUiTranslation } from "../../../../lib/ui-translations";
+
 
 const fieldClass =
   "min-h-11 w-full border border-[#cfd5df] bg-white px-3 py-2.5 text-sm text-[#202a38] outline-none transition focus:border-[#073d78] focus:ring-2 focus:ring-[#073d78]/15";
@@ -34,16 +37,6 @@ const secondaryButton =
   "inline-flex min-h-11 cursor-pointer items-center justify-center border border-[#073d78] bg-white px-5 py-2.5 text-sm font-semibold text-[#073d78] transition hover:bg-[#edf3f8] disabled:cursor-not-allowed disabled:border-[#c8ccd3] disabled:text-[#949aa4]";
 const panelClass =
   "scroll-mt-28 border-b border-[#e2e4eb] bg-white p-6 last:border-b-0 sm:p-10";
-const checklistLabels: Record<keyof TeacherCourseDetailDto["checks"], string> = {
-  details: "Title and language",
-  categories: "Category",
-  eligibility: "Student eligibility",
-  content: "Learning content",
-  media: "Media ready",
-  preTest: "Pre-Test (optional; valid if added)",
-  postTest: "Post-Test (optional; valid if added)",
-  assessments: "Valid assessment questions",
-};
 const checklistTargets: Record<keyof TeacherCourseDetailDto["checks"], string> = {
   details: "details",
   categories: "details",
@@ -78,6 +71,7 @@ function QuizEditor({
   onChanged: () => Promise<void>;
   run: (task: () => Promise<void>, message: string) => Promise<void>;
 }) {
+  const t = useUiTranslation();
   const [correctOption, setCorrectOption] = useState("0");
 
   async function storeQuestionImage(questionId: string, file: File) {
@@ -119,9 +113,9 @@ function QuizEditor({
     await run(
       async () => {
         if (options.length < 2)
-          throw new Error("Add at least two answer choices.");
+          throw new Error(t("Add at least two answer choices."));
         if (!options.some((option) => option.index === correct))
-          throw new Error("The correct answer cannot be empty.");
+          throw new Error(t("The correct answer cannot be empty."));
         const question = await backendApi<CreatedQuestionDto>(
           `quizzes/${quiz.id}/questions`,
           {
@@ -143,7 +137,7 @@ function QuizEditor({
         setCorrectOption("0");
         await onChanged();
       },
-      `Question added to ${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"}.`,
+      `Question added to ${quiz.quizType === "PRE_TEST" ? t("Pre-test") : t("Post-test")}.`,
     );
   }
 
@@ -160,7 +154,7 @@ function QuizEditor({
         }),
       });
       await onChanged();
-    }, `${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"} updated.`);
+    }, `${quiz.quizType === "PRE_TEST" ? t("Pre-test") : t("Post-test")} updated.`);
   }
 
   async function updateQuestion(
@@ -176,9 +170,9 @@ function QuizEditor({
       index,
     })).filter((option) => option.text);
     await run(async () => {
-      if (options.length < 2) throw new Error("Add at least two answer choices.");
+      if (options.length < 2) throw new Error(t("Add at least two answer choices."));
       if (!options.some((option) => option.index === correctIndex)) {
-        throw new Error("The correct answer cannot be empty.");
+        throw new Error(t("The correct answer cannot be empty."));
       }
       await backendApi(`questions/${question.id}`, {
         method: "PATCH",
@@ -194,39 +188,39 @@ function QuizEditor({
         }),
       });
       await onChanged();
-    }, "Question updated.");
+    }, t("Question updated."));
   }
 
   async function clearAllQuestions() {
-    if (!window.confirm(`Clear every question from “${quiz.title}”? This cannot be undone.`)) {
+    if (!window.confirm(t('Clear every question from “{title}”? This cannot be undone.', { title: quiz.title }))) {
       return;
     }
     await run(async () => {
       await backendApi(`quizzes/${quiz.id}/questions`, { method: "DELETE" });
       await onChanged();
-    }, `${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"} questions cleared.`);
+    }, `${quiz.quizType === "PRE_TEST" ? t("Pre-test") : t("Post-test")} questions cleared.`);
   }
 
   async function removeQuestion(
     question: QuizDto["questions"][number],
   ) {
-    if (!window.confirm(`Remove “${question.questionText}”? This cannot be undone.`)) {
+    if (!window.confirm(t('Remove “{question}”? This cannot be undone.', { question: question.questionText }))) {
       return;
     }
     await run(async () => {
       await backendApi(`questions/${question.id}`, { method: "DELETE" });
       await onChanged();
-    }, "Question removed.");
+    }, t("Question removed."));
   }
 
   async function removeTest() {
-    if (!window.confirm(`Remove “${quiz.title}” and all of its questions? This cannot be undone.`)) {
+    if (!window.confirm(t('Remove “{title}” and all of its questions? This cannot be undone.', { title: quiz.title }))) {
       return;
     }
     await run(async () => {
       await backendApi(`quizzes/${quiz.id}`, { method: "DELETE" });
       await onChanged();
-    }, `${quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"} removed.`);
+    }, `${quiz.quizType === "PRE_TEST" ? t("Pre-test") : t("Post-test")} removed.`);
   }
 
   return (
@@ -234,17 +228,17 @@ function QuizEditor({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-            {quiz.quizType === "PRE_TEST" ? "Pre-test" : "Post-test"}
+            {quiz.quizType === "PRE_TEST" ? t("Pre-test") : t("Post-test")}
           </p>
           <h4 className="mt-1 text-lg font-semibold text-[#202a38]">
             {quiz.title}
           </h4>
         </div>
         <span className="bg-[#edf3f8] px-3 py-1.5 text-xs text-[#435166]">
-          {quiz.questions.length} questions ·{" "}
+          {quiz.questions.length}{t(" questions ·")}{" "}
           {quiz.durationSeconds
-            ? `${Math.ceil(quiz.durationSeconds / 60)} min`
-            : "Untimed"}
+            ? t('{count} min', { count: Math.ceil(quiz.durationSeconds / 60) })
+            : t("Untimed")}
         </span>
       </div>
       {!disabled ? (
@@ -252,24 +246,18 @@ function QuizEditor({
           className="mt-5 grid gap-3 rounded-control border border-line bg-[#f6f8fa] p-4 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end"
           onSubmit={(event) => void updateQuizDetails(event)}
         >
-          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-            Test title
-            <input className={fieldClass} defaultValue={quiz.title} name="title" required />
+          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Test title")}<input className={fieldClass} defaultValue={quiz.title} name="title" required />
           </label>
-          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-            Duration (minutes)
-            <input
+          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Duration (minutes)")}<input
               className={fieldClass}
               defaultValue={quiz.durationSeconds ? Math.ceil(quiz.durationSeconds / 60) : ""}
               min="1"
               name="minutes"
-              placeholder="Untimed"
+              placeholder={t("Untimed")}
               type="number"
             />
           </label>
-          <button className={secondaryButton} type="submit">
-            Save test
-          </button>
+          <button className={secondaryButton} type="submit">{t("Save test")}</button>
         </form>
       ) : null}
       {!disabled ? (
@@ -279,17 +267,13 @@ function QuizEditor({
               className="cursor-pointer text-xs font-semibold text-[#b54708] hover:underline"
               onClick={() => void clearAllQuestions()}
               type="button"
-            >
-              Clear questions
-            </button>
+            >{t("Clear questions")}</button>
           ) : null}
           <button
             className="cursor-pointer text-xs font-semibold text-[#8f1d14] hover:underline"
             onClick={() => void removeTest()}
             type="button"
-          >
-            Remove test
-          </button>
+          >{t("Remove test")}</button>
         </div>
       ) : null}
       {quiz.questions.length ? (
@@ -308,9 +292,7 @@ function QuizEditor({
                     className="grid gap-3"
                     onSubmit={(event) => void updateQuestion(event, question)}
                   >
-                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                      Question
-                      <input
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Question")}<input
                         className={fieldClass}
                         defaultValue={question.questionText}
                         name="questionText"
@@ -338,7 +320,7 @@ function QuizEditor({
                                 className={fieldClass}
                                 defaultValue={option?.optionText ?? ""}
                                 name={`option${optionIndex}`}
-                                placeholder={`Choice ${optionIndex + 1}${optionIndex > 1 ? " (optional)" : ""}`}
+                                placeholder={t('Choice {number}', { number: optionIndex + 1 }) + (optionIndex > 1 ? t(' (optional)') : '')}
                                 required={optionIndex < 2}
                               />
                             </label>
@@ -347,9 +329,7 @@ function QuizEditor({
                       )}
                     </div>
                     <div className="flex flex-wrap items-end justify-between gap-3">
-                      <label className="grid w-28 gap-1.5 text-xs font-semibold text-[#435166]">
-                        Points
-                        <input
+                      <label className="grid w-28 gap-1.5 text-xs font-semibold text-[#435166]">{t("Points")}<input
                           className={fieldClass}
                           defaultValue={Number(question.points)}
                           min="0.01"
@@ -364,12 +344,8 @@ function QuizEditor({
                           className="cursor-pointer text-xs font-semibold text-[#8f1d14] hover:underline"
                           onClick={() => void removeQuestion(question)}
                           type="button"
-                        >
-                          Remove question
-                        </button>
-                        <button className={secondaryButton} type="submit">
-                          Save question
-                        </button>
+                        >{t("Remove question")}</button>
+                        <button className={secondaryButton} type="submit">{t("Save question")}</button>
                       </div>
                     </div>
                   </form>
@@ -407,9 +383,7 @@ function QuizEditor({
                           }, "Question image removed.")
                         }
                         type="button"
-                      >
-                        Remove image
-                      </button>
+                      >{t("Remove image")}</button>
                     ) : null}
                   </div>
                 ) : !disabled ? (
@@ -441,15 +415,11 @@ function QuizEditor({
                     <button
                       className="cursor-pointer text-xs font-semibold text-[#073d78] hover:underline"
                       type="submit"
-                    >
-                      Add image
-                    </button>
+                    >{t("Add image")}</button>
                   </form>
                 ) : null}
                 <p className="mt-1 text-xs text-[#58677c]">
-                  {question.options.length} choices · {Number(question.points)}{" "}
-                  point(s)
-                </p>
+                  {question.options.length}{t(" choices · ")}{Number(question.points)}{" "}{t("point(s)")}</p>
               </div>
             </li>
           ))}
@@ -460,26 +430,20 @@ function QuizEditor({
           className="mt-6 grid gap-4 rounded-control border border-line bg-[#f8fbfc] p-5"
           onSubmit={(event) => void addQuestion(event)}
         >
-          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-            Question
-            <input
+          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Question")}<input
               className={fieldClass}
               name="questionText"
-              placeholder="What should the learner understand?"
+              placeholder={t("What should the learner understand?")}
               required
             />
           </label>
-          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-            Question image (optional)
-            <input
+          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Question image (optional)")}<input
               accept="image/jpeg,image/png,image/webp"
               className={fieldClass}
               name="questionImage"
               type="file"
             />
-            <span className="font-normal text-[#58677c]">
-              JPEG, PNG, or WebP · maximum 10 MB
-            </span>
+            <span className="font-normal text-[#58677c]">{t("JPEG, PNG, or WebP · maximum 10 MB")}</span>
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             {[0, 1, 2, 3].map((index) => (
@@ -496,16 +460,14 @@ function QuizEditor({
                 <input
                   className={fieldClass}
                   name={`option${index}`}
-                  placeholder={`Choice ${index + 1}${index > 1 ? " (optional)" : ""}`}
+                  placeholder={t('Choice {number}', { number: index + 1 }) + (index > 1 ? t(' (optional)') : '')}
                   required={index < 2}
                 />
               </label>
             ))}
           </div>
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <label className="grid w-28 gap-1.5 text-xs font-semibold text-[#435166]">
-              Points
-              <input
+            <label className="grid w-28 gap-1.5 text-xs font-semibold text-[#435166]">{t("Points")}<input
                 className={fieldClass}
                 defaultValue="1"
                 min="0.01"
@@ -514,13 +476,9 @@ function QuizEditor({
                 type="number"
               />
             </label>
-            <button className={secondaryButton} type="submit">
-              Add question
-            </button>
+            <button className={secondaryButton} type="submit">{t("Add question")}</button>
           </div>
-          <p className="text-xs text-[#58677c]">
-            Select the radio button beside the correct answer.
-          </p>
+          <p className="text-xs text-[#58677c]">{t("Select the radio button beside the correct answer.")}</p>
         </form>
       ) : null}
     </article>
@@ -528,8 +486,10 @@ function QuizEditor({
 }
 
 export default function CourseDetailClient({ courseId }: { courseId: string }) {
+  const t = useUiTranslation();
   const router = useRouter();
   const [language] = useAppLanguage();
+  const copy = learningCopy[language];
   const { data, error, loading, refresh } =
     useBackendQuery<TeacherCourseDetailDto>(`courses/${courseId}`);
   const categoryOptions = useBackendQuery<CategoryDto[]>('categories');
@@ -562,7 +522,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       setActionError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to save this change.",
+          : t("Unable to save this change."),
       );
     } finally {
       setBusy(false);
@@ -615,7 +575,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       form.reset();
       setAddingSection(false);
       await refresh();
-    }, "Section added.");
+    }, t("Section added."));
   }
 
   async function saveSectionTitle(event: FormEvent<HTMLFormElement>, sectionId: string) {
@@ -630,15 +590,15 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       });
       setEditingSectionId(null);
       await refresh();
-    }, "Section title updated.");
+    }, t("Section title updated."));
   }
 
   async function removeSection(sectionId: string, sectionTitle: string) {
-    if (!window.confirm(`Delete "${sectionTitle}"? Its lessons will be unassigned.`)) return;
+    if (!window.confirm(t('Delete "{title}"? Its lessons will be unassigned.', { title: sectionTitle }))) return;
     await run(async () => {
       await backendApi(`sections/${sectionId}`, { method: "DELETE" });
       await refresh();
-    }, "Section deleted.");
+    }, t("Section deleted."));
   }
 
   async function addLectureToSection(event: FormEvent<HTMLFormElement>, sectionId: string | null) {
@@ -651,7 +611,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         method: "POST",
         body: JSON.stringify({
           title,
-          textBody: "Lecture content will be added.",
+          textBody: t("Lecture content will be added."),
           sectionId: sectionId || undefined,
           position: nextContentPosition,
         }),
@@ -659,7 +619,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       form.reset();
       setAddingLectureSectionId(null);
       await refresh();
-    }, "Lecture added.");
+    }, t("Lecture added."));
   }
 
   async function saveLectureTitle(
@@ -680,7 +640,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       });
       setEditingLectureId(null);
       await refresh();
-    }, "Lecture title updated.");
+    }, t("Lecture title updated."));
   }
 
   async function saveLectureDescription(
@@ -696,13 +656,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         method: "PATCH",
         body: JSON.stringify({
           title: currentTitle || undefined,
-          textBody: description || "Lecture description",
+          textBody: description || t("Lecture description"),
         }),
       });
       setOpenDescriptionId(null);
       setSelectedContentType(null);
       await refresh();
-    }, "Lecture description saved.");
+    }, t("Lecture description saved."));
   }
 
   async function uploadLectureMediaFile(
@@ -757,12 +717,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         await refresh();
         throw error;
       }
-    }, `${contentType === "DOCUMENT" ? "Document" : contentType.charAt(0) + contentType.slice(1).toLowerCase()} uploaded.`);
+    }, `${contentType === "DOCUMENT" ? t("Document") : contentType.charAt(0) + contentType.slice(1).toLowerCase()} uploaded.`);
   }
 
 
   async function removeLectureItem(item: VersionDto["contentItems"][number]) {
-    if (!window.confirm(`Delete "${item.title || item.contentType}"?`)) return;
+    if (!window.confirm(t('Delete "{title}"?', { title: item.title || item.contentType }))) return;
     await run(async () => {
       if (item.mediaAsset) {
         await backendApi(`media/${item.mediaAsset.id}`, { method: "DELETE" });
@@ -770,7 +730,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         await backendApi(`content/${item.id}/text`, { method: "DELETE" });
       }
       await refresh();
-    }, "Lecture removed.");
+    }, t("Lecture removed."));
   }
 
   async function uploadCover(event: FormEvent<HTMLFormElement>) {
@@ -802,7 +762,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         await refresh();
         throw error;
       }
-    }, "Course cover uploaded.");
+    }, t("Course cover uploaded."));
   }
 
   async function updateCourseDetails(event: FormEvent<HTMLFormElement>) {
@@ -814,11 +774,11 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         body: JSON.stringify({
           title: String(values.get("title") ?? ""),
           description: String(values.get("description") ?? ""),
-          languageCode: String(values.get("languageCode") ?? "th"),
+          languageCode: String(values.get("languageCode") ?? t("th")),
         }),
       });
       await refresh();
-    }, "Course details updated.");
+    }, t("Course details updated."));
   }
 
   async function updateCategories(event: FormEvent<HTMLFormElement>) {
@@ -830,7 +790,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         body: JSON.stringify({ categoryIds: values.getAll('category') }),
       });
       await refresh();
-    }, 'Course categories updated.');
+    }, t("Course categories updated."));
   }
 
   async function addText(event: FormEvent<HTMLFormElement>) {
@@ -849,7 +809,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       });
       form.reset();
       await refresh();
-    }, "Text lesson added.");
+    }, t("Text lesson added."));
   }
 
   async function createSection(event: FormEvent<HTMLFormElement>) {
@@ -866,7 +826,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       });
       form.reset();
       await refresh();
-    }, "Section added.");
+    }, t("Section added."));
   }
 
   async function updateTextContent(
@@ -884,7 +844,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         }),
       });
       await refresh();
-    }, "Text lesson updated.");
+    }, t("Text lesson updated."));
   }
 
   async function moveContentToSection(
@@ -901,7 +861,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         }),
       });
       await refresh();
-    }, "Lecture section updated.");
+    }, t("Lecture section updated."));
   }
 
   async function addMedia(event: FormEvent<HTMLFormElement>) {
@@ -936,7 +896,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         await refresh();
         throw error;
       }
-    }, "Media lesson uploaded.");
+    }, t("Media lesson uploaded."));
   }
 
   async function createQuiz(event: FormEvent<HTMLFormElement>) {
@@ -955,7 +915,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       });
       form.reset();
       await refresh();
-    }, "Assessment created. Add its first question below.");
+    }, t("Assessment created. Add its first question below."));
   }
 
   async function submitDraft() {
@@ -964,7 +924,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         method: "POST",
       });
       await refresh();
-    }, "Draft submitted for approval.");
+    }, t("Draft submitted for approval."));
   }
 
   async function reopenRejectedDraft() {
@@ -973,18 +933,18 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         method: "POST",
       });
       await refresh();
-    }, "Rejected Version reopened as a Draft.");
+    }, t("Rejected Version reopened as a Draft."));
   }
 
   async function startRevision() {
     await run(async () => {
       await backendApi(`courses/${courseId}/versions`, { method: "POST" });
       await refresh();
-    }, "Draft revision created. You can now update the Course.");
+    }, t("Draft revision created. You can now update the Course."));
   }
 
   async function cancelRevision() {
-    if (!window.confirm("Discard this Draft? Its unsent changes and uploaded files will be deleted.")) {
+    if (!window.confirm(t("Discard this Draft? Its unsent changes and uploaded files will be deleted."))) {
       return;
     }
     await run(async () => {
@@ -994,11 +954,11 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       } else {
         await refresh();
       }
-    }, "Draft discarded. The published Version remains active.");
+    }, t("Draft discarded. The published Version remains active."));
   }
 
   async function unpublishCourse(versionId: string) {
-    if (!window.confirm("Unpublish this Course? Students will no longer find or open it.")) {
+    if (!window.confirm(t("Unpublish this Course? Students will no longer find or open it."))) {
       return;
     }
     await run(async () => {
@@ -1006,11 +966,11 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         method: "POST",
       });
       await refresh();
-    }, "Course unpublished.");
+    }, t("Course unpublished."));
   }
 
   async function publishCourse(versionId: string) {
-    if (!window.confirm("Republish this Course? Students will be able to find and open it.")) {
+    if (!window.confirm(t("Republish this Course? Students will be able to find and open it."))) {
       return;
     }
     await run(async () => {
@@ -1018,7 +978,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         method: "POST",
       });
       await refresh();
-    }, "Course published again.");
+    }, t("Course published again."));
   }
 
   const allSections =
@@ -1034,11 +994,9 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         <Link
           className="text-sm font-medium text-white/80 no-underline transition hover:text-white"
           href="/teacher/courses"
-        >
-          Back to courses
-        </Link>
+        >{t("Back to courses")}</Link>
         <strong className="max-w-[36rem] truncate text-sm font-semibold">
-          {version.title || "Untitled Course"}
+          {version.title || t("Untitled Course")}
         </strong>
         <span className="rounded bg-[#3e4143] px-2.5 py-0.5 text-xs font-bold tracking-wider text-white uppercase">
           {status}
@@ -1047,9 +1005,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
           <Link
             className="border border-white/40 px-3 py-1.5 text-xs font-semibold text-white no-underline hover:bg-white/10 rounded"
             href={`/teacher/courses/${courseId}/analytics`}
-          >
-            Analytics
-          </Link>
+          >{t("Analytics")}</Link>
 
         </div>
       </header>
@@ -1058,7 +1014,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         <div
           className={`mx-auto mt-6 w-[min(calc(100%-48px),1420px)] border-l-4 p-4 text-sm ${actionError ? "border-[#b42318] bg-[#fff3f2] text-[#8f1d14]" : "border-[#0b6a73] bg-[#effafa] text-[#07545b]"}`}
         >
-          {actionError ?? notice}
+          {t(actionError ?? notice ?? '')}
         </div>
       ) : null}
 
@@ -1066,13 +1022,11 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         {/* Left column navigation matching reference image */}
         <nav
           className="sticky top-[104px] grid h-fit content-start gap-7 px-4 py-6 max-[900px]:static max-[900px]:grid-cols-3 max-[900px]:gap-4 max-[900px]:overflow-x-auto max-[900px]:bg-white max-[640px]:grid-cols-1"
-          aria-label="Course authoring steps"
+          aria-label={t("Course authoring steps")}
         >
 
           <div>
-            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">
-              Create your content
-            </h2>
+            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">{t("Create your content")}</h2>
             <div className="grid gap-1">
               <button
                 type="button"
@@ -1094,15 +1048,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     <span className="size-1.5 rounded-full bg-white" />
                   ) : null}
                 </span>
-                <span>Curriculum</span>
+                <span>{t("Curriculum")}</span>
               </button>
             </div>
           </div>
 
           <div>
-            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">
-              Publish your course
-            </h2>
+            <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">{t("Publish your course")}</h2>
             <div className="grid gap-1">
               <button
                 type="button"
@@ -1124,7 +1076,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     <span className="size-1.5 rounded-full bg-white" />
                   ) : null}
                 </span>
-                <span>Course landing page</span>
+                <span>{t("Course landing page")}</span>
               </button>
 
               <button
@@ -1147,7 +1099,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     <span className="size-1.5 rounded-full bg-white" />
                   ) : null}
                 </span>
-                <span>Assessments &amp; Quizzes</span>
+                <span>{t("Assessments & Quizzes")}</span>
               </button>
             </div>
 
@@ -1158,44 +1110,42 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 onClick={() => void submitDraft()}
                 type="button"
               >
-                {busy ? "Submitting…" : "Submit for Review"}
+                {busy ? t("Submitting…") : t("Submit for Review")}
               </button>
             ) : null}
 
             <div className="mt-4 grid gap-2">
               {version.status === "REJECTED" ? (
                 <button className={secondaryButton} disabled={busy} onClick={() => void reopenRejectedDraft()} type="button">
-                  {busy ? "Reopening…" : "Reopen Draft"}
+                  {busy ? t("Reopening…") : t("Reopen Draft")}
                 </button>
               ) : null}
               {canCreateRevision ? (
                 <button className="mt-2 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#063777] hover:bg-[#044f99] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" disabled={busy} onClick={() => void startRevision()} type="button">
-                  {busy ? "Creating Draft…" : "Edit Course"}
+                  {busy ? t("Creating Draft…") : t("Edit Course")}
                 </button>
               ) : null}
               {!isDraft && publishedVersion ? (
                 <button className="mt-2 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#063777] hover:bg-[#044f99] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" disabled={busy} onClick={() => void unpublishCourse(publishedVersion.id)} type="button">
-                  {busy ? "Working…" : "Unpublish Course"}
+                  {busy ? t("Working…") : t("Unpublish Course")}
                 </button>
               ) : null}
               {!isDraft && publishableVersion ? (
                 <button className={primaryButton} disabled={busy} onClick={() => void publishCourse(publishableVersion.id)} type="button">
-                  {busy ? "Republishing…" : "Republish Course"}
+                  {busy ? t("Republishing…") : t("Republish Course")}
                 </button>
               ) : null}
               {isDraft ? (
-                <button className="min-h-10 cursor-pointer text-sm font-medium text-[#8f1d14] hover:underline disabled:cursor-not-allowed disabled:text-[#a8736f]" disabled={busy} onClick={() => void cancelRevision()} type="button">
-                  Discard Draft
-                </button>
+                <button className="min-h-10 cursor-pointer text-sm font-medium text-[#8f1d14] hover:underline disabled:cursor-not-allowed disabled:text-[#a8736f]" disabled={busy} onClick={() => void cancelRevision()} type="button">{t("Discard Draft")}</button>
               ) : null}
             </div>
             {!isDraft ? (
               <p className="mt-4 text-xs leading-5 text-[#58677c]">
                 {version.status === "SUBMITTED"
-                  ? "Waiting for Approver review."
+                  ? t("Waiting for Approver review.")
                   : version.status === "UNPUBLISHED"
-                    ? "This course is hidden from students."
-                    : "This version is published."}
+                    ? t("This course is hidden from students.")
+                    : t("This version is published.")}
               </p>
             ) : null}
           </div>
@@ -1205,19 +1155,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         <div className="min-w-0">
           {activeTab === "curriculum" ? (
             <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
-              <h1 className="text-3xl font-bold text-[#1c1d1f] tracking-tight">
-                Course
-              </h1>
+              <h1 className="text-3xl font-bold text-[#1c1d1f] tracking-tight">{t("Course")}</h1>
               <hr className="my-6 border-[#d1d7dc]" />
-              <p className="text-sm text-[#2d2f31] leading-relaxed mb-8">
-                Create your course in sections, each focused on a single learning objective. Then add content, practice activities, and assessments.
-              </p>
+              <p className="text-sm text-[#2d2f31] leading-relaxed mb-8">{t("Create your course in sections, each focused on a single learning objective. Then add content, practice activities, and assessments.")}</p>
 
               {allSections.length === 0 ? (
                 <div className="border border-dashed border-[#cfd5df] rounded p-8 text-center bg-[#fafafa] mb-6">
-                  <p className="text-sm text-[#6a6f73] mb-4">
-                    No sections yet. Start organizing your course by adding your first section.
-                  </p>
+                  <p className="text-sm text-[#6a6f73] mb-4">{t("No sections yet. Start organizing your course by adding your first section.")}</p>
                 </div>
               ) : (
                 allSections.map((section, sectionIndex) => {
@@ -1238,8 +1182,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                       {/* Section Header */}
                       <div className="bg-[#f7f9fa] border-b border-[#d1d7dc] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <strong className="text-sm font-bold text-[#1c1d1f] whitespace-nowrap">
-                            Section {sectionIndex + 1}:
+                          <strong className="text-sm font-bold text-[#1c1d1f] whitespace-nowrap">{t("Section")}{sectionIndex + 1}:
                           </strong>
                           {editingSectionId === section.id ? (
                             <form onSubmit={(e) => void saveSectionTitle(e, section.id)} className="flex items-center gap-2">
@@ -1249,8 +1192,8 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                 className="border border-[#1c1d1f] px-2.5 py-1 text-sm bg-white outline-none"
                                 autoFocus
                               />
-                              <button type="submit" className="text-xs font-semibold text-[#063777] hover:underline cursor-pointer">Save</button>
-                              <button type="button" onClick={() => setEditingSectionId(null)} className="text-xs text-[#6a6f73] hover:underline cursor-pointer">Cancel</button>
+                              <button type="submit" className="text-xs font-semibold text-[#063777] hover:underline cursor-pointer">{t("Save")}</button>
+                              <button type="button" onClick={() => setEditingSectionId(null)} className="text-xs text-[#6a6f73] hover:underline cursor-pointer">{t("Cancel")}</button>
                             </form>
                           ) : (
                             <span className="text-sm text-[#1c1d1f] font-normal truncate">
@@ -1265,15 +1208,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                               onClick={() => setEditingSectionId(section.id)}
                               className="text-xs text-[#6a6f73] hover:text-[#1c1d1f] cursor-pointer"
                             >
-                              <BootstrapIcon name="pencil" /> Edit
-                            </button>
+                              <BootstrapIcon name="pencil" />{t("Edit")}</button>
                             <button
                               type="button"
                               onClick={() => void removeSection(section.id, section.title)}
                               className="text-xs text-[#b42318] hover:text-[#8f1d14] cursor-pointer"
                             >
-                              <BootstrapIcon name="trash" /> Delete
-                            </button>
+                              <BootstrapIcon name="trash" />{t("Delete")}</button>
                           </div>
                         ) : null}
                       </div>
@@ -1292,8 +1233,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                               {/* Lecture Title Bar */}
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-sm font-bold text-[#1c1d1f] whitespace-nowrap">
-                                    Lecture {lIdx + 1}:
+                                  <span className="text-sm font-bold text-[#1c1d1f] whitespace-nowrap">{t("Lecture")}{lIdx + 1}:
                                   </span>
                                   {editingLectureId === lecture.id ? (
                                     <form onSubmit={(e) => void saveLectureTitle(e, lecture.id, lecture.textBody)} className="flex items-center gap-2">
@@ -1303,8 +1243,8 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                         className="border border-[#1c1d1f] px-2.5 py-1 text-sm bg-white outline-none"
                                         autoFocus
                                       />
-                                      <button type="submit" className="text-xs font-semibold text-[#063777] hover:underline cursor-pointer">Save</button>
-                                      <button type="button" onClick={() => setEditingLectureId(null)} className="text-xs text-[#6a6f73] hover:underline cursor-pointer">Cancel</button>
+                                      <button type="submit" className="text-xs font-semibold text-[#063777] hover:underline cursor-pointer">{t("Save")}</button>
+                                      <button type="button" onClick={() => setEditingLectureId(null)} className="text-xs text-[#6a6f73] hover:underline cursor-pointer">{t("Cancel")}</button>
                                     </form>
                                   ) : (
                                     <span className="text-sm text-[#2d2f31] font-normal truncate">
@@ -1317,7 +1257,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                         type="button"
                                         onClick={() => setEditingLectureId(lecture.id)}
                                         className="text-xs text-[#6a6f73] hover:text-[#1c1d1f] cursor-pointer"
-                                        title="Edit title" aria-label="Edit lecture title"
+                                        title={t("Edit title")} aria-label={t("Edit lecture title")}
                                       >
                                         <BootstrapIcon name="pencil" />
                                       </button>
@@ -1325,7 +1265,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                         type="button"
                                         onClick={() => void removeLectureItem(lecture)}
                                         className="text-xs text-[#b42318] hover:text-[#8f1d14] cursor-pointer"
-                                        title="Delete lecture" aria-label="Delete lecture"
+                                        title={t("Delete lecture")} aria-label={t("Delete lecture")}
                                       >
                                         <BootstrapIcon name="trash" />
                                       </button>
@@ -1338,23 +1278,22 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                   {lecture.mediaAsset ? (
                                     <span className="text-xs font-semibold text-[#0b6a73] bg-[#edfafa] px-2.5 py-1 rounded flex items-center gap-1.5 border border-[#c3f0f0]">
                                       {lecture.contentType === "VIDEO"
-                                        ? "Video"
+                                        ? t("Video")
                                         : lecture.contentType === "AUDIO"
-                                        ? "Audio"
+                                        ? t("Audio")
                                         : lecture.contentType === "DOCUMENT"
-                                        ? "📑 Document"
+                                        ? t("📑 Document")
                                         : lecture.contentType === "IMAGE"
-                                        ? "Image"
+                                        ? t("Image")
                                         : "Media"}{" "}
                                       · <span className="font-normal text-[#1c1d1f] max-w-[140px] truncate">{lecture.mediaAsset.fileName}</span>
                                       <span className="text-[0.65rem] uppercase font-bold text-[#0b6a73] bg-white px-1 rounded border border-[#b2e5e7]">
-                                        {lecture.mediaAsset.status}
+                                        {t(lecture.mediaAsset.status)}
                                       </span>
                                     </span>
                                   ) : lecture.contentType === "TEXT" && lecture.textBody && lecture.textBody.trim() ? (
                                     <span className="text-xs font-semibold text-[#435166] bg-[#f1f3f5] px-2.5 py-1 rounded border border-[#d1d7dc] flex items-center gap-1">
-                                      <BootstrapIcon name="file-earmark-text" /> Article
-                                    </span>
+                                      <BootstrapIcon name="file-earmark-text" />{t("Article")}</span>
                                   ) : null}
 
                                   {isDraft ? (
@@ -1370,7 +1309,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                           : "border border-[#063777] text-[#063777] hover:bg-[#063777]/5"
                                       }`}
                                     >
-                                      {isContentOpen ? "Close Content" : "Content"}
+                                      {isContentOpen ? t("Close Content") : "Content"}
                                     </button>
                                   ) : null}
                                 </div>
@@ -1387,7 +1326,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       : "border border-[#063777] text-[#063777] hover:bg-[#063777]/5"
                                   }`}
                                 >
-                                  {lecture.textBody && lecture.textBody.trim() ? "Edit Description" : "+ Description"}
+                                  {lecture.textBody && lecture.textBody.trim() ? t("Edit Description") : t("+ Description")}
                                 </button>
                               </div>
 
@@ -1395,13 +1334,9 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                               {isContentOpen && isDraft ? (
                                 <div className="mt-4 border-t border-[#d1d7dc] pt-4">
                                   <div className="flex items-center justify-between border-b border-[#d1d7dc] pb-2 mb-3">
-                                    <span className="text-xs font-bold text-[#1c1d1f] tracking-wide">
-                                      Select content type
-                                    </span>
+                                    <span className="text-xs font-bold text-[#1c1d1f] tracking-wide">{t("Select content type")}</span>
                                   </div>
-                                  <p className="text-xs text-[#6a6f73] mb-4">
-                                    Select the main type of content for this lecture (Video, Audio, PDF &amp; Document, Image, or Article).
-                                  </p>
+                                  <p className="text-xs text-[#6a6f73] mb-4">{t("Select the main type of content for this lecture (Video, Audio, PDF & Document, Image, or Article).")}</p>
                                   <div className="grid grid-cols-5 gap-3 max-[900px]:grid-cols-3 max-[600px]:grid-cols-2">
                                     <button
                                       type="button"
@@ -1415,7 +1350,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
                                         🎬
                                       </div>
-                                      <span className="text-xs font-bold text-[#1c1d1f]">Video</span>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">{t("Video")}</span>
                                       <span className="text-[0.7rem] text-[#6a6f73]">MP4, MOV, WebM</span>
                                     </button>
 
@@ -1431,7 +1366,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
                                         🎙️
                                       </div>
-                                      <span className="text-xs font-bold text-[#1c1d1f]">Audio</span>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">{t("Audio")}</span>
                                       <span className="text-[0.7rem] text-[#6a6f73]">MP3, WAV, M4A</span>
                                     </button>
 
@@ -1447,7 +1382,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
                                         📑
                                       </div>
-                                      <span className="text-xs font-bold text-[#1c1d1f]">PDF &amp; File</span>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">{t("PDF & File")}</span>
                                       <span className="text-[0.7rem] text-[#6a6f73]">PDF, Slides, DOC</span>
                                     </button>
 
@@ -1463,8 +1398,8 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
                                         <BootstrapIcon name="image" />
                                       </div>
-                                      <span className="text-xs font-bold text-[#1c1d1f]">Image</span>
-                                      <span className="text-[0.7rem] text-[#6a6f73]">PNG, JPG, Diagrams</span>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">{t("Image")}</span>
+                                      <span className="text-[0.7rem] text-[#6a6f73]">{t("PNG, JPG, Diagrams")}</span>
                                     </button>
 
                                     <button
@@ -1479,8 +1414,8 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       <div className="size-10 bg-white border border-[#d1d7dc] rounded-full flex items-center justify-center text-lg shadow-xs">
                                         <BootstrapIcon name="file-earmark-text" />
                                       </div>
-                                      <span className="text-xs font-bold text-[#1c1d1f]">Article</span>
-                                      <span className="text-[0.7rem] text-[#6a6f73]">Text &amp; Notes</span>
+                                      <span className="text-xs font-bold text-[#1c1d1f]">{t("Article")}</span>
+                                      <span className="text-[0.7rem] text-[#6a6f73]">{t("Text & Notes")}</span>
                                     </button>
                                   </div>
 
@@ -1492,27 +1427,27 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                     >
                                       <h4 className="text-xs font-bold text-[#1c1d1f] uppercase tracking-wider flex items-center gap-1.5">
                                         {selectedContentType === "VIDEO"
-                                          ? "Upload Video Lecture"
+                                          ? t("Upload Video Lecture")
                                           : selectedContentType === "AUDIO"
-                                          ? "Upload Audio Lesson"
+                                          ? t("Upload Audio Lesson")
                                           : selectedContentType === "DOCUMENT"
-                                          ? "📑 Upload PDF or Document"
-                                          : "Upload Image or Diagram"}
+                                          ? t("📑 Upload PDF or Document")
+                                          : t("Upload Image or Diagram")}
                                       </h4>
                                       <p className="text-xs text-[#6a6f73]">
                                         {selectedContentType === "VIDEO"
-                                          ? "Select an MP4, MOV, or WebM video file (up to 1GB)."
+                                          ? t("Select an MP4, MOV, or WebM video file (up to 1GB).")
                                           : selectedContentType === "AUDIO"
-                                          ? "Select an MP3, WAV, M4A, or AAC audio file (up to 1GB)."
+                                          ? t("Select an MP3, WAV, M4A, or AAC audio file (up to 1GB).")
                                           : selectedContentType === "DOCUMENT"
-                                          ? "Select a PDF, Word document, PowerPoint presentation, or worksheet."
-                                          : "Select a high-resolution PNG, JPG, or SVG infographic or diagram."}
+                                          ? t("Select a PDF, Word document, PowerPoint presentation, or worksheet.")
+                                          : t("Select a high-resolution PNG, JPG, or SVG infographic or diagram.")}
                                       </p>
                                       <input
                                         className={fieldClass}
                                         name="title"
                                         defaultValue={lecture.title ?? ""}
-                                        placeholder="Content title (optional, defaults to file name)"
+                                        placeholder={t("Content title (optional, defaults to file name)")}
                                       />
                                       <input
                                         className={fieldClass}
@@ -1535,15 +1470,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                           disabled={busy}
                                           className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-2 rounded cursor-pointer disabled:opacity-50"
                                         >
-                                          {busy ? "Uploading…" : `Upload ${selectedContentType === "DOCUMENT" ? "Document" : selectedContentType.charAt(0) + selectedContentType.slice(1).toLowerCase()}`}
+                                          {busy ? t("Uploading…") : t('Upload {type}', { type: t(selectedContentType === 'DOCUMENT' ? t("Document") : selectedContentType.charAt(0) + selectedContentType.slice(1).toLowerCase()) })}
                                         </button>
                                         <button
                                           type="button"
                                           onClick={() => setSelectedContentType(null)}
                                           className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
-                                        >
-                                          Cancel
-                                        </button>
+                                        >{t("Cancel")}</button>
                                       </div>
                                     </form>
                                   ) : null}
@@ -1555,13 +1488,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       className="mt-4 border border-[#d1d7dc] bg-[#fafbfc] p-4 rounded-xs grid gap-3"
                                     >
                                       <h4 className="text-xs font-bold text-[#1c1d1f] uppercase tracking-wider flex items-center gap-1.5">
-                                        <BootstrapIcon name="file-earmark-text" /> Write Article / Reading Lesson
-                                      </h4>
+                                        <BootstrapIcon name="file-earmark-text" />{t("Write Article / Reading Lesson")}</h4>
                                       <textarea
                                         className={`${fieldClass} min-h-36 resize-y`}
                                         name="description"
                                         defaultValue={lecture.textBody ?? ""}
-                                        placeholder="Write lecture article content here…"
+                                        placeholder={t("Write lecture article content here…")}
                                         required
                                       />
                                       <div className="flex items-center gap-3 pt-1">
@@ -1570,15 +1502,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                           disabled={busy}
                                           className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-2 rounded cursor-pointer disabled:opacity-50"
                                         >
-                                          {busy ? "Saving…" : "Save Article"}
+                                          {busy ? t("Saving…") : t("Save Article")}
                                         </button>
                                         <button
                                           type="button"
                                           onClick={() => setSelectedContentType(null)}
                                           className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
-                                        >
-                                          Cancel
-                                        </button>
+                                        >{t("Cancel")}</button>
                                       </div>
                                     </form>
                                   ) : null}
@@ -1591,14 +1521,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                   onSubmit={(e) => void saveLectureDescription(e, lecture.id, lecture.title)}
                                   className="mt-3 border-t border-[#d1d7dc] pt-3"
                                 >
-                                  <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">
-                                    Lecture Description
-                                  </label>
+                                  <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">{t("Lecture Description")}</label>
                                   <textarea
                                     name="description"
                                     defaultValue={lecture.textBody ?? ""}
                                     rows={3}
-                                    placeholder="What will students learn in this lecture?"
+                                    placeholder={t("What will students learn in this lecture?")}
                                     className="w-full border border-[#cfd5df] p-2.5 text-sm bg-white outline-none focus:border-[#063777] rounded-xs"
                                   />
                                   <div className="mt-2 flex items-center gap-2">
@@ -1606,16 +1534,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       type="submit"
                                       disabled={busy}
                                       className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-1.5 rounded cursor-pointer disabled:opacity-50"
-                                    >
-                                      Save Description
-                                    </button>
+                                    >{t("Save Description")}</button>
                                     <button
                                       type="button"
                                       onClick={() => setOpenDescriptionId(null)}
                                       className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
-                                    >
-                                      Cancel
-                                    </button>
+                                    >{t("Cancel")}</button>
                                   </div>
                                 </form>
                               ) : null}
@@ -1631,12 +1555,10 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                             onSubmit={(e) => void addLectureToSection(e, section.id === "general" ? null : section.id)}
                             className="border border-[#063777] bg-[#f0f4fc] mx-3 my-3 p-4 rounded-xs"
                           >
-                            <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">
-                              New Lecture Title
-                            </label>
+                            <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">{t("New Lecture Title")}</label>
                             <input
                               name="title"
-                              placeholder="e.g. Introduction to the Topic"
+                              placeholder={t("e.g. Introduction to the Topic")}
                               required
                               className="w-full border border-[#cfd5df] p-2.5 text-sm bg-white outline-none focus:border-[#063777] rounded-xs mb-3"
                               autoFocus
@@ -1646,16 +1568,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                 type="submit"
                                 disabled={busy}
                                 className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-4 py-1.5 rounded cursor-pointer disabled:opacity-50"
-                              >
-                                Add Lecture
-                              </button>
+                              >{t("Add Lecture")}</button>
                               <button
                                 type="button"
                                 onClick={() => setAddingLectureSectionId(null)}
                                 className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
-                              >
-                                Cancel
-                              </button>
+                              >{t("Cancel")}</button>
                             </div>
                           </form>
                         ) : null}
@@ -1666,9 +1584,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                             type="button"
                             onClick={() => setAddingLectureSectionId(section.id)}
                             className="border border-[#063777] text-[#063777] hover:bg-[#063777]/5 font-semibold text-xs px-4 py-2 rounded transition m-3 inline-flex items-center gap-1.5 cursor-pointer"
-                          >
-                            + Curriculum item
-                          </button>
+                          >{t("+ Curriculum item")}</button>
                         ) : null}
                       </div>
                     </div>
@@ -1683,12 +1599,10 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     onSubmit={(e) => void createNewSection(e)}
                     className="border border-[#063777] bg-[#f0f4fc] p-5 rounded-xs mt-4"
                   >
-                    <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">
-                      New Section Title
-                    </label>
+                    <label className="block text-xs font-bold text-[#1c1d1f] mb-1.5">{t("New Section Title")}</label>
                     <input
                       name="title"
-                      placeholder={`e.g. Section ${nextSectionPosition}`}
+                      placeholder={t('e.g. Section {number}', { number: nextSectionPosition })}
                       required
                       className="w-full border border-[#cfd5df] p-2.5 text-sm bg-white outline-none focus:border-[#063777] rounded-xs mb-3"
                       autoFocus
@@ -1698,16 +1612,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                         type="submit"
                         disabled={busy}
                         className="bg-[#063777] hover:bg-[#044f99] text-white text-xs font-semibold px-5 py-2 rounded cursor-pointer disabled:opacity-50"
-                      >
-                        Add Section
-                      </button>
+                      >{t("Add Section")}</button>
                       <button
                         type="button"
                         onClick={() => setAddingSection(false)}
                         className="text-xs text-[#6a6f73] hover:underline cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                      >{t("Cancel")}</button>
                     </div>
                   </form>
                 ) : (
@@ -1715,9 +1625,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     type="button"
                     onClick={() => setAddingSection(true)}
                     className="border border-[#063777] text-[#063777] hover:bg-[#063777]/5 font-semibold text-sm px-5 py-2.5 rounded transition inline-flex items-center gap-1.5 cursor-pointer mt-2"
-                  >
-                    + Section
-                  </button>
+                  >{t("+ Section")}</button>
                 )
               ) : null}
             </div>
@@ -1727,39 +1635,29 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
           {activeTab === "landing" ? (
             <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
               <section id="details">
-                <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-                  Course readiness
-                </p>
-                <h2 className="mt-2 text-3xl tracking-[-0.04em] text-[#202a38]">
-                  Structure overview
-                </h2>
+                <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">{t("Course readiness")}</p>
+                <h2 className="mt-2 text-3xl tracking-[-0.04em] text-[#202a38]">{t("Structure overview")}</h2>
                 {isDraft ? (
                   <form
                     className="mt-6 grid max-w-3xl gap-4"
                     id="course-details-form"
                     onSubmit={(event) => void updateCourseDetails(event)}
                   >
-                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                      Course title
-                      <input
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Course title")}<input
                         className={fieldClass}
                         defaultValue={version.title}
                         name="title"
                         required
                       />
                     </label>
-                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                      Course description
-                      <textarea
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Course description")}<textarea
                         className={`${fieldClass} min-h-32 resize-y`}
                         defaultValue={version.description ?? ""}
                         name="description"
                         required
                       />
                     </label>
-                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                      Course language
-                      <select
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Course language")}<select
                         className={fieldClass}
                         defaultValue={version.languageCode}
                         name="languageCode"
@@ -1773,41 +1671,33 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     </label>
                     <div className="flex flex-wrap items-center gap-4 pt-2">
                       <button className={primaryButton} disabled={busy} type="submit">
-                        {busy ? "Saving…" : "Save Draft"}
+                        {busy ? t("Saving…") : t("Save Draft")}
                       </button>
-                      <span className="text-xs text-[#58677c]">
-                        Typed changes are saved only when you press Save Draft.
-                      </span>
+                      <span className="text-xs text-[#58677c]">{t("Typed changes are saved only when you press Save Draft.")}</span>
                     </div>
                   </form>
                 ) : (
                   <p className="mt-3 max-w-2xl leading-7 text-[#687486]">
-                    {version.description ?? "No Course description."}
+                    {version.description ?? t("No Course description.")}
                   </p>
                 )}
                 <dl className="mt-7 grid grid-cols-3 border-t border-l border-[#d8dde5] max-[800px]:grid-cols-1">
                   <div className="border-r border-b border-[#d8dde5] p-5">
-                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">
-                      Course language
-                    </dt>
+                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">{t("Course language")}</dt>
                     <dd className="mt-2 text-sm font-semibold text-[#202a38]">
                       {courseLanguageLabel(version.languageCode, language)}
                     </dd>
                   </div>
                   <div className="border-r border-b border-[#d8dde5] p-5">
-                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">
-                      Eligible majors
-                    </dt>
+                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">{t("Eligible majors")}</dt>
                     <dd className="mt-2 text-sm font-semibold text-[#202a38]">
                       {data.allowedMajors
                         .map(({ major }) => translateMajor(major, language))
-                        .join(", ") || "Open to all majors"}
+                        .join(", ") || t("Open to all majors")}
                     </dd>
                   </div>
                   <div className="border-r border-b border-[#d8dde5] p-5">
-                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">
-                      Categories
-                    </dt>
+                    <dt className="text-xs tracking-[0.1em] text-[#58677c] uppercase">{t("Categories")}</dt>
                     <dd className="mt-2 text-sm font-semibold text-[#202a38]">
                       {data.categories
                         .map(({ category }) =>
@@ -1819,7 +1709,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 </dl>
                 {isDraft && categoryOptions.data ? (
                   <form className="mt-6 border border-[#d8dde5] bg-[#fafbfc] p-5" onSubmit={(event) => void updateCategories(event)}>
-                    <h3 className="text-sm font-semibold text-[#202a38]">Edit categories</h3>
+                    <h3 className="text-sm font-semibold text-[#202a38]">{t("Edit categories")}</h3>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {categoryOptions.data.map((category) => (
                         <label className="flex items-center gap-2 text-sm text-[#4d5868]" key={category.id}>
@@ -1828,7 +1718,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                         </label>
                       ))}
                     </div>
-                    <button className={`${secondaryButton} mt-4`} disabled={busy} type="submit">Save categories</button>
+                    <button className={`${secondaryButton} mt-4`} disabled={busy} type="submit">{t("Save categories")}</button>
                   </form>
                 ) : null}
               </section>
@@ -1836,13 +1726,9 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
               <section className="mt-10 border-t border-[#d1d7dc] pt-10" id="cover">
                 <div className="flex items-start justify-between gap-5 max-[640px]:flex-col">
                   <div>
-                    <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-                      Visual identity
-                    </p>
-                    <h2 className="mt-2 text-2xl text-[#202a38]">Course cover</h2>
-                    <p className="mt-2 text-sm text-[#687486]">
-                      JPEG, PNG, or WebP · maximum 10 MB · landscape works best.
-                    </p>
+                    <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">{t("Visual identity")}</p>
+                    <h2 className="mt-2 text-2xl text-[#202a38]">{t("Course cover")}</h2>
+                    <p className="mt-2 text-sm text-[#687486]">{t("JPEG, PNG, or WebP · maximum 10 MB · landscape works best.")}</p>
                   </div>
                   {version.coverAsset && isDraft ? (
                     <button
@@ -1858,9 +1744,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                         }, "Course cover removed.")
                       }
                       type="button"
-                    >
-                      Remove cover
-                    </button>
+                    >{t("Remove cover")}</button>
                   ) : null}
                 </div>
                 <div className="mt-6 grid grid-cols-[minmax(240px,420px)_minmax(0,1fr)] gap-6 max-[700px]:grid-cols-1">
@@ -1871,7 +1755,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                           ? version.coverAsset.id
                           : null
                       }
-                      alt={`${version.title} cover`}
+                      alt={t('{title} cover', { title: version.title })}
                       className="h-full w-full object-cover"
                     />
                   </div>
@@ -1880,9 +1764,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                       className="grid content-start gap-4"
                       onSubmit={(event) => void uploadCover(event)}
                     >
-                      <label className="grid gap-2 text-sm font-semibold text-[#435166]">
-                        Choose cover image
-                        <input
+                      <label className="grid gap-2 text-sm font-semibold text-[#435166]">{t("Choose cover image")}<input
                           accept="image/jpeg,image/png,image/webp"
                           className={fieldClass}
                           name="cover"
@@ -1895,17 +1777,17 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                         disabled={busy}
                         type="submit"
                       >
-                        {busy ? "Uploading…" : "Upload cover"}
+                        {busy ? t("Uploading…") : t("Upload cover")}
                       </button>
                     </form>
                   ) : (
                     <div className="grid content-center">
                       <p className="text-sm font-semibold text-[#202a38]">
                         {version.coverAsset?.fileName ??
-                          "Cover can only be changed while this Version is a Draft."}
+                          t("Cover can only be changed while this Version is a Draft.")}
                       </p>
                       <p className="mt-1 text-xs text-[#58677c]">
-                        {version.coverAsset?.status ?? version.status}
+                        {t(version.coverAsset?.status ?? version.status)}
                       </p>
                     </div>
                   )}
@@ -1919,58 +1801,44 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
             <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
               <section id="preTest">
                 <div>
-                  <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-                    Assessment design
-                  </p>
-                  <h2 className="mt-2 text-2xl text-[#202a38]">
-                    Pre-test &amp; Post-test
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-[#687486]">
-                    Create one of each assessment, then add multiple-choice questions and mark the correct answer.
-                  </p>
+                  <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">{t("Assessment design")}</p>
+                  <h2 className="mt-2 text-2xl text-[#202a38]">{t("Pre-test & Post-test")}</h2>
+                  <p className="mt-2 text-sm leading-6 text-[#687486]">{t("Create one of each assessment, then add multiple-choice questions and mark the correct answer.")}</p>
                 </div>
                 {isDraft && version.quizzes.length < 2 ? (
                   <form
                     className="mt-6 grid grid-cols-[160px_minmax(0,1fr)_120px_auto] items-end gap-3 bg-[#f6f8fa] p-5 max-[760px]:grid-cols-1"
                     onSubmit={(event) => void createQuiz(event)}
                   >
-                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                      Type
-                      <select className={fieldClass} name="quizType">
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Type")}<select className={fieldClass} name="quizType">
                         {!version.quizzes.some(
                           (quiz) => quiz.quizType === "PRE_TEST",
                         ) ? (
-                          <option value="PRE_TEST">Pre-test</option>
+                          <option value="PRE_TEST">{t("Pre-test")}</option>
                         ) : null}
                         {!version.quizzes.some(
                           (quiz) => quiz.quizType === "POST_TEST",
                         ) ? (
-                          <option value="POST_TEST">Post-test</option>
+                          <option value="POST_TEST">{t("Post-test")}</option>
                         ) : null}
                       </select>
                     </label>
-                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                      Title
-                      <input
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Title")}<input
                         className={fieldClass}
                         name="title"
-                        placeholder="Assessment title"
+                        placeholder={t("Assessment title")}
                         required
                       />
                     </label>
-                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">
-                      Minutes
-                      <input
+                    <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Minutes")}<input
                         className={fieldClass}
                         min="1"
                         name="minutes"
-                        placeholder="Untimed"
+                        placeholder={t("Untimed")}
                         type="number"
                       />
                     </label>
-                    <button className={primaryButton} disabled={busy} type="submit">
-                      Create assessment
-                    </button>
+                    <button className={primaryButton} disabled={busy} type="submit">{t("Create assessment")}</button>
                   </form>
                 ) : null}
                 <div className="mt-7 grid gap-8">
@@ -1986,7 +1854,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     ))
                   ) : (
                     <p className="bg-[#f6f8fa] p-6 text-sm text-[#687486]">
-                      Assessments are optional. Add a Pre-Test, a Post-Test, both, or neither. Any test you add must contain valid questions before submission.
+                      {copy.optionalAssessments}
                     </p>
                   )}
                 </div>
@@ -1998,15 +1866,9 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
           {activeTab === "checklist" ? (
             <div className="border border-[#d1d7dc] bg-white p-8 sm:p-10 shadow-xs rounded-xs">
               <section id="submission-checklist">
-                <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">
-                  Final review
-                </p>
-                <h2 className="mt-2 text-2xl text-[#202a38]">
-                  Submission checklist
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#687486]">
-                  Every required item must be ready before this version can be sent to an Approver.
-                </p>
+                <p className="text-xs font-bold tracking-[0.12em] text-[#063777] uppercase">{t("Final review")}</p>
+                <h2 className="mt-2 text-2xl text-[#202a38]">{t("Submission checklist")}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#687486]">{t("Every required item must be ready before this version can be sent to an Approver.")}</p>
                 <ul className="mt-6 grid gap-3 sm:grid-cols-2">
                   {checks.map(([key, ready]) => (
                     <li
@@ -2014,10 +1876,10 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                       key={key}
                     >
                       <span className="font-medium text-inherit">
-                        {checklistLabels[key as keyof TeacherCourseDetailDto["checks"]]}
+                        {copy.checklist[key as keyof TeacherCourseDetailDto["checks"]]}
                       </span>
                       <small className="ml-auto text-xs opacity-70">
-                        {ready ? "Ready" : "Needs work"}
+                        {ready ? "Ready" : t("Needs work")}
                       </small>
                     </li>
                   ))}
@@ -2030,12 +1892,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                       onClick={() => void submitDraft()}
                       type="button"
                     >
-                      {busy ? "Submitting…" : "Submit for Review"}
+                      {busy ? t("Submitting…") : t("Submit for Review")}
                     </button>
                     <span className="text-sm text-[#687486]">
                       {data.readiness === 100
-                        ? "Ready to submit. Approval publishes the course automatically."
-                        : `${checks.filter(([, ready]) => !ready).length} required item(s) remaining.`}
+                        ? t("Ready to submit. Approval publishes the course automatically.")
+                        : t('{count} required item(s) remaining.', { count: checks.filter(([, ready]) => !ready).length })}
                     </span>
                   </div>
                 ) : null}

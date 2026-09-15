@@ -1,4 +1,7 @@
+'use client';
+
 import Link from "next/link";
+import { useUiTranslation } from '../../lib/ui-translations';
 import type { CSSProperties } from "react";
 import type { StudentCourse } from "./course-data";
 import CourseCoverImage from "../course-cover-image";
@@ -13,6 +16,7 @@ export default function CourseCard({
   course,
   variant = "catalog",
 }: CourseCardProps) {
+  const t = useUiTranslation();
   const isContinue = variant === "continue";
   const isLearning = variant === "learning";
 
@@ -21,13 +25,13 @@ export default function CourseCard({
       className={`${styles.card} ${isContinue ? styles.continueCard : ""}`}
     >
       <Link
-        className={`${styles.cover} ${isLearning ? styles.learningCover : ""}`}
+        className={`${styles.cover} ${isLearning ? "min-h-0!" : ""}`}
         href={`/student/courses/${course.id}`}
         style={{ "--course-accent": course.accent } as CSSProperties}
       >
         <CourseCoverImage
           assetId={course.coverAssetId}
-          alt={`${course.title} cover`}
+          alt={t('{title} cover', { title: course.title })}
           className="absolute inset-0 z-3 h-full w-full object-cover"
         />
       </Link>
@@ -52,9 +56,9 @@ export default function CourseCard({
         ) : null}
       </div>
       {course.progress === undefined ? (
-        <div className={styles.footer} aria-label="Course access">
+        <div className={styles.footer} aria-label={t("Course access")}>
           <span className="rounded-full bg-[#eaf1fb] px-3 py-1 text-xs font-medium text-[#073d78]">
-            {course.availability}
+            {t(course.availability)}
           </span>
           <span className="rounded-full bg-[#edf6f4] px-3 py-1 text-xs font-medium text-[#07566a]">
             {course.category}
@@ -63,7 +67,7 @@ export default function CourseCard({
       ) : (
         <div
           className={styles.progress}
-          aria-label={`${course.progress}% complete`}
+          aria-label={t('{count}% complete', { count: course.progress })}
         >
           <div className="h-1.5 overflow-hidden rounded-full bg-[#e7edf5]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={course.progress} aria-label={course.title}>
             <span
@@ -72,7 +76,7 @@ export default function CourseCard({
             />
           </div>
           <p className="mt-[7px] text-[0.82rem] text-[#454b61]">
-            {course.progress}% complete
+            {t('{count}% complete', { count: course.progress })}
           </p>
         </div>
       )}

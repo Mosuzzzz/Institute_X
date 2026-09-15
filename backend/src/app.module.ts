@@ -4,7 +4,6 @@ import { HealthModule } from './health/health.module';
 import { validateEnvironment } from './config/environment.validation';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
-import { TeacherPermissionsModule } from './teacher-permissions/teacher-permissions.module';
 import { CoursesModule } from './courses/courses.module';
 import { ContentModule } from './content/content.module';
 import { CourseVersionsModule } from './course-versions/course-versions.module';
@@ -16,6 +15,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { CategoriesModule } from './categories/categories.module';
 import { SessionAuthModule } from './auth/session-auth.module';
 import { AccountsModule } from './accounts/accounts.module';
+import { CourseReportsModule } from './course-reports/course-reports.module';
 
 @Module({
   imports: [
@@ -28,7 +28,7 @@ import { AccountsModule } from './accounts/accounts.module';
     AuthModule,
     SessionAuthModule,
     AccountsModule,
-    TeacherPermissionsModule,
+    CourseReportsModule,
     CoursesModule,
     ContentModule,
     CourseVersionsModule,

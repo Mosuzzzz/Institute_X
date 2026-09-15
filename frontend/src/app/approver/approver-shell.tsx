@@ -26,25 +26,23 @@ import { commonUi, workspaceUi } from "../ui-styles";
 import styles from "../workspace-sidebar.module.css";
 
 import useWorkspaceNavigation from '../use-workspace-navigation';
+import { useUiTranslation } from "../../lib/ui-translations";
+
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
-  { href: "/approver", label: "reviewOverview", icon: "grid" },
   { href: "/approver/courses", label: "allCourses", icon: "courses" },
-  {
-    href: "/approver/teacher-requests",
-    label: "teacherRequests",
-    icon: "users",
-  },
   { href: "/approver/course-reviews", label: "courseReviews", icon: "review" },
+  { href: "/approver/course-reports", label: "courseReports", icon: "flag" },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
-  const names: Record<string, string> = { grid: "grid", courses: "book", users: "people", review: "file-earmark-check" };
+  const names: Record<string, string> = { grid: "grid", courses: "book", review: "file-earmark-check", flag: "flag" };
   return <BootstrapIcon name={names[icon] ?? "circle"} />;
 }
 
 export default function ApproverShell({ children }: { children: ReactNode }) {
+  const t = useUiTranslation();
   const pathname = usePathname();
   const router = useRouter();
   const [language, setLanguage] = useAppLanguage();
@@ -98,33 +96,26 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
   const signOut = () => {
     void endSession().finally(() => router.replace("/"));
   };
-  const currentNavigation = navigation.find((item) =>
-    item.href === "/approver"
-      ? pathname === item.href
-      : pathname.startsWith(item.href),
-  );
+  const currentNavigation = navigation.find((item) => pathname.startsWith(item.href));
 
 
   return (
     <div className={`${workspaceUi.shell("approver")} ${styles.shell}`}>
-      <aside ref={sidebarRef} data-open={mobileNavOpen} role={mobileNavOpen ? "dialog" : undefined} aria-modal={mobileNavOpen || undefined} aria-label="Workspace navigation" className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
+      <aside ref={sidebarRef} data-open={mobileNavOpen} role={mobileNavOpen ? "dialog" : undefined} aria-modal={mobileNavOpen || undefined} aria-label={t("Workspace navigation")} className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
-          <Link className={workspaceUi.brandLink} href="/approver" aria-label="Institute X Approver home">
+          <Link className={workspaceUi.brandLink} href="/approver" aria-label={t("Institute X Approver home")}>
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
               <strong>{shell.approverWorkspace}</strong>
             </span>
           </Link>
-          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
+          <button className={styles.closeButton} type="button" aria-label={t("Close navigation")} onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
         </header>
-        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Approver navigation">
-          <p className={workspaceUi.navLabel}>Workspace · 02</p>
+        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label={t("Approver navigation")}>
+          <p className={workspaceUi.navLabel}>{t("Workspace · 02")}</p>
           {navigation.map((item) => {
-            const active =
-              item.href === "/approver"
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
+            const active = pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
@@ -148,7 +139,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
             aria-expanded={mobileNavOpen}
             className={workspaceUi.menuButton}
             type="button"
-            aria-label="Open navigation"
+            aria-label={t("Open navigation")}
             onClick={() => setMobileNavOpen(true)}
           >
             <span />
@@ -164,7 +155,6 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
             </strong>
           </div>
           <nav aria-label={text.approverAccount}>
-            <span className={workspaceUi.rolePill}>Approver</span>
             <LanguageSelector
               className="max-[700px]:w-[104px]"
               value={language}
@@ -174,7 +164,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
             <ProfileMenu
               profile={profile}
               roleLabel={text.approverAccount}
-              fallbackName="Approver"
+              fallbackName={t("Approver")}
               onSignOut={signOut}
               logoutLabel={text.logout}
               logoutHint={text.logoutHint}
@@ -188,7 +178,7 @@ export default function ApproverShell({ children }: { children: ReactNode }) {
         <button
           className={workspaceUi.scrim}
           type="button"
-          aria-label="Close navigation"
+          aria-label={t("Close navigation")}
           onClick={() => setMobileNavOpen(false)}
         />
       ) : null}

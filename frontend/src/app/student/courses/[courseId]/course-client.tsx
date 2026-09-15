@@ -11,10 +11,22 @@ import {
 } from '../../../../lib/backend-api';
 import { courseLanguageLabel } from '../../../../lib/course-language';
 import { useAppLanguage } from '../../../../lib/language';
+import { learningCopy } from '../../../../lib/learning-copy';
 import ApiState from '../../../api-state';
 import BootstrapIcon from '../../../bootstrap-icon';
+import { useUiTranslation } from "../../../../lib/ui-translations";
+
 
 type ContentItem = PublishedCourseContentDto['contentItems'][number];
+
+const reportReasons = [
+  'Inappropriate or harmful content',
+  'Incorrect or misleading information',
+  'Copyright or ownership concern',
+  'Spam or promotional content',
+  'Technical problem with the course',
+  'Other',
+] as const;
 
 function ContentTypeIcon({ type }: { type: string }) {
   const name = type === 'VIDEO' ? 'play-btn' : type === 'AUDIO' ? 'music-note-beamed' : 'file-earmark-text';
@@ -22,7 +34,9 @@ function ContentTypeIcon({ type }: { type: string }) {
 }
 
 export default function CourseClient({ courseId }: { courseId: string }) {
+  const t = useUiTranslation();
   const [language] = useAppLanguage();
+  const copy = learningCopy[language];
   const [course, setCourse] = useState<EligibleCourseDto | null>(null);
   const [entry, setEntry] = useState<CourseEntryDto | null>(null);
   const [content, setContent] = useState<PublishedCourseContentDto | null>(null);
@@ -35,6 +49,11 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   const [collapsedSections, setCollapsedSections] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reporting, setReporting] = useState(false);
+  const [reportMessage, setReportMessage] = useState('');
+  const [reportOpen, setReportOpen] = useState(false);
+  const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
+  const [reportDetails, setReportDetails] = useState('');
   const contentRequestId = useRef(0);
 
   useEffect(() => {
@@ -43,7 +62,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
       try {
         const catalog = await backendApi<EligibleCourseDto[]>('courses');
         const selected = catalog.find((item) => item.courseId === courseId);
-        if (!selected) throw new Error('This Course is not available for your Major or has not been published.');
+        if (!selected) throw new Error("This Course is not available for your Major or has not been published.");
         const entered = await backendApi<CourseEntryDto>(`courses/${courseId}/enter`, { method: 'POST' });
         const publishedContent = entered.contentUnlocked
           ? await backendApi<PublishedCourseContentDto>(`courses/${courseId}/content`)
@@ -56,7 +75,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             const signed = await backendApi<SignedViewUrlDto>(`media/${initialItem.media.assetId}/view-url`);
             initialMediaUrl = signed.url;
           } catch (mediaError) {
-            initialContentError = mediaError instanceof Error ? mediaError.message : 'Unable to open this content.';
+            initialContentError = mediaError instanceof Error ? mediaError.message : "Unable to open this content.";
           }
         }
         if (!cancelled) {
@@ -68,7 +87,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
           setContentError(initialContentError);
         }
       } catch (requestError) {
-        if (!cancelled) setError(requestError instanceof Error ? requestError.message : 'Unable to enter this Course.');
+        if (!cancelled) setError(requestError instanceof Error ? requestError.message : "Unable to enter this Course.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -99,7 +118,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
       }
     } catch (requestError) {
       if (requestId !== contentRequestId.current) return;
-      setContentError(requestError instanceof Error ? requestError.message : 'Unable to open this content.');
+      setContentError(requestError instanceof Error ? requestError.message : "Unable to open this content.");
     } finally {
       if (requestId === contentRequestId.current) setOpeningContent(false);
     }
@@ -148,7 +167,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
       const catalog = await backendApi<EligibleCourseDto[]>('courses');
       setCourse(current => catalog.find(item => item.courseId === courseId) ?? current);
     } catch (cause) {
-      setCompletionError(cause instanceof Error ? cause.message : 'Unable to save lesson completion.');
+      setCompletionError(cause instanceof Error ? cause.message : copy.saveError);
     } finally { setSavingCompletion(false); }
   }
 
@@ -166,6 +185,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
     );
   };
   const viewerIsLight = selectedItem?.contentType === 'TEXT' || selectedItem?.contentType === 'IMAGE';
+  const otherReasonNeedsDetails = selectedReportReasons.includes('Other') && !reportDetails.trim();
 
   return (
     <main data-ui="page" className="bg-white">
@@ -176,13 +196,37 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             href="/student/courses"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#073d78] hover:underline"
           >
-            <BootstrapIcon name="arrow-left" /> Back to Course catalog
-          </Link>
+            <BootstrapIcon name="arrow-left" />{t("Back to Course catalog")}</Link>
           <span className="text-xs text-[#687486]">
             {course.title} · {courseLanguageLabel(course.languageCode, language)}
           </span>
         </div>
       </div>
+      <section className="mx-auto flex max-w-[1720px] justify-end px-6 pt-4">
+        <button className="text-sm text-red-700 underline underline-offset-4" type="button" onClick={() => { setReportMessage(''); setReportOpen(true); }}><BootstrapIcon name="flag" /> {t('Report course')}</button>
+      </section>
+      {reportMessage ? <p className="mx-auto max-w-[1720px] px-6 py-2 text-right text-sm text-[#58677c]" role="status">{reportMessage}</p> : null}
+      {reportOpen ? <div className="fixed inset-0 z-100 grid place-items-center bg-slate-950/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !reporting) setReportOpen(false); }}>
+        <section className="w-full max-w-xl rounded-panel bg-white p-6 shadow-[0_24px_70px_rgb(15_23_42_/_28%)] sm:p-8" role="dialog" aria-modal="true" aria-labelledby="report-course-title">
+          <header className="flex items-start justify-between gap-6"><div><h2 id="report-course-title" className="text-2xl font-semibold text-[#20243a]">{t('Report this course')}</h2><p className="mt-2 text-sm leading-6 text-muted">{t('Select every reason that applies. Your report will be reviewed by an Approver.')}</p></div><button className="grid size-11 shrink-0 place-items-center rounded-control text-xl hover:bg-slate-100" type="button" disabled={reporting} aria-label={t('Close')} onClick={() => setReportOpen(false)}><BootstrapIcon name="x-lg" /></button></header>
+          <form className="mt-6" onSubmit={async (event) => {
+            event.preventDefault();
+            if (!selectedReportReasons.length || otherReasonNeedsDetails) return;
+            const reason = `${selectedReportReasons.map(item => t(item)).join(', ')}${reportDetails.trim() ? `\n\n${reportDetails.trim()}` : ''}`;
+            setReporting(true); setReportMessage('');
+            try { await backendApi(`course-reports/courses/${courseId}`, { method: 'POST', body: JSON.stringify({ reason }) }); setReportMessage(t('Course report submitted.')); setReportOpen(false); setSelectedReportReasons([]); setReportDetails(''); }
+            catch (cause) { setReportMessage(cause instanceof Error ? t(cause.message) : t('Unable to submit course report.')); }
+            finally { setReporting(false); }
+          }}>
+            <fieldset className="grid gap-2"><legend className="mb-3 font-medium">{t('Reason for reporting')}</legend>{reportReasons.map(reason => <label key={reason} className="flex min-h-12 items-center gap-3 rounded-control border border-line px-4 py-3 text-sm transition hover:border-[#9db3cc] hover:bg-slate-50"><input className="size-4" type="checkbox" checked={selectedReportReasons.includes(reason)} onChange={(event) => setSelectedReportReasons(current => event.target.checked ? [...current, reason] : current.filter(item => item !== reason))} /><span>{t(reason)}</span></label>)}</fieldset>
+            {selectedReportReasons.includes('Other') ? <label className="mt-5 grid gap-2 text-sm font-medium">{t('Additional details (required)')}<textarea className="min-h-28 resize-y border border-line bg-white px-4 py-3 font-normal" maxLength={1500} required aria-invalid={otherReasonNeedsDetails} aria-describedby={otherReasonNeedsDetails ? 'report-details-error' : undefined} value={reportDetails} onChange={event => setReportDetails(event.target.value)} placeholder={t('Add information that will help the Approver review this report.')} autoFocus /></label> : null}
+            {!selectedReportReasons.length ? <p className="mt-3 text-sm text-amber-700">{t('Select at least one reason.')}</p> : null}
+            {otherReasonNeedsDetails ? <p id="report-details-error" className="mt-3 text-sm text-amber-700">{t('Additional details are required when Other is selected.')}</p> : null}
+            {reportMessage ? <p className="mt-3 text-sm text-red-700" role="alert">{reportMessage}</p> : null}
+            <footer className="mt-6 flex flex-wrap justify-end gap-3"><button className="min-h-11 rounded-control border border-line px-5 py-2 text-sm font-medium" type="button" disabled={reporting} onClick={() => setReportOpen(false)}>{t('Cancel')}</button><button className="min-h-11 rounded-control bg-red-700 px-5 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={reporting || !selectedReportReasons.length || otherReasonNeedsDetails}>{reporting ? t('Submitting…') : t('Submit report')}</button></footer>
+          </form>
+        </section>
+      </div> : null}
 
       <div className="grid min-h-svh grid-cols-[minmax(0,1fr)_minmax(360px,520px)] max-[1180px]:grid-cols-[minmax(0,1fr)_390px] max-[900px]:block">
         <section className="min-w-0">
@@ -194,16 +238,12 @@ export default function CourseClient({ courseId }: { courseId: string }) {
           >
             {!entry.contentUnlocked ? (
               <div className="grid place-content-center justify-items-center gap-4 p-10 text-center">
-                <p className="text-xs font-bold tracking-[0.13em] text-[#7b39d8] uppercase">
-                  Course content locked
-                </p>
+                <p className="text-xs font-bold tracking-[0.13em] text-[#7b39d8] uppercase">{t("Course content locked")}</p>
                 <h1 className="text-[clamp(2rem,5vw,4rem)] font-bold tracking-[-0.04em]">
-                  Complete the Pre-Test to begin
+                  {copy.preGate}
                 </h1>
                 <p className="max-w-md text-sm leading-6 text-[#d7e3f0]">
-                  Institutional policy requires taking a short Pre-Test before accessing this course&apos;s learning content.
-                  You will have one attempt to complete it.
-                </p>
+                  {copy.preHint}{t("You will have one attempt to complete it.")}</p>
                 {entry.preTestId ? (
                   <Link
                     className="mt-3 rounded bg-[#7b39d8] px-6 py-3 font-semibold text-white transition hover:bg-[#682ac0]"
@@ -211,10 +251,10 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                       `/student/courses/${courseId}`
                     )}`}
                   >
-                    Start Pre-Test now <BootstrapIcon name="arrow-right" />
+                    {copy.startPre} <BootstrapIcon name="arrow-right" />
                   </Link>
                 ) : (
-                  <p className="text-xs text-[#8b343b]">Pre-Test is being prepared by the teacher.</p>
+                  <p className="text-xs text-[#8b343b]">{copy.prePreparing}</p>
                 )}
               </div>
             ) : selectedItem ? (
@@ -224,8 +264,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                     className={`text-xs font-bold tracking-[0.13em] uppercase ${
                       viewerIsLight ? 'text-[#6f2bd2]' : 'text-[#b79be5]'
                     }`}
-                  >
-                    Lesson {Math.max(1, selectedIndex + 1)} · {selectedItem.contentType}
+                  >{t("Lesson")}{Math.max(1, selectedIndex + 1)} · {t(selectedItem.contentType)}
                   </p>
                   <h1 className="mt-3 max-w-[920px] text-[clamp(2rem,4.5vw,4rem)] leading-[1.1] tracking-[-0.03em]">
                     {selectedItem.title ?? selectedItem.contentType}
@@ -233,20 +272,18 @@ export default function CourseClient({ courseId }: { courseId: string }) {
 
                   {contentError ? (
                     <div className="mt-7 rounded-control border border-[#e96b72] bg-[#fae9eb] px-5 py-4 text-[#8b343b]">
-                      <p>{contentError}</p>
+                      <p>{t(contentError)}</p>
                       <button
                         type="button"
                         onClick={() => void openContent(selectedItem, false)}
                         className="mt-2 text-xs font-bold underline"
-                      >
-                        Retry loading content
-                      </button>
+                      >{t("Retry loading content")}</button>
                     </div>
                   ) : openingContent ? (
-                    <p className="mt-7 text-[#85899a]">Opening content…</p>
+                    <p className="mt-7 text-[#85899a]">{t("Opening content…")}</p>
                   ) : selectedItem.contentType === 'TEXT' ? (
                     <div className="mt-10 max-h-[520px] overflow-y-auto whitespace-pre-wrap border-t border-line pt-6 text-[clamp(1rem,1.4vw,1.25rem)] leading-[2] text-[#4c4d5e]">
-                      {selectedItem.textBody || 'No text content in this lesson.'}
+                      {selectedItem.textBody || t("No text content in this lesson.")}
                     </div>
                   ) : mediaUrl && selectedItem.contentType === 'VIDEO' ? (
                     <video className="mt-7 max-h-[650px] w-full rounded bg-black shadow-2xl" controls src={mediaUrl} />
@@ -271,21 +308,18 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                         href={mediaUrl}
                         rel="noreferrer"
                         target="_blank"
-                      >
-                        Open document in a new tab <BootstrapIcon name="box-arrow-up-right" />
+                      >{t("Open document in a new tab")}<BootstrapIcon name="box-arrow-up-right" />
                       </a>
                     </div>
                   ) : (
-                    <div className="mt-7 rounded border border-dashed border-[#85899a]/40 p-8 text-center text-sm text-[#85899a]">
-                      No media preview is available for this lesson item.
-                    </div>
+                    <div className="mt-7 rounded border border-dashed border-[#85899a]/40 p-8 text-center text-sm text-[#85899a]">{t("No media preview is available for this lesson item.")}</div>
                   )}
                 </div>
               </div>
             ) : (
               <div className="grid place-content-center justify-items-center gap-3 p-10 text-center">
                 <p className="text-xs font-bold tracking-[0.13em] text-[#b79be5] uppercase">{course.title}</p>
-                <h1 className="text-[clamp(2rem,5vw,4.5rem)] tracking-[-0.03em]">Select a lesson to begin</h1>
+                <h1 className="text-[clamp(2rem,5vw,4.5rem)] tracking-[-0.03em]">{t("Select a lesson to begin")}</h1>
               </div>
             )}
 
@@ -299,18 +333,18 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 type="button"
                 disabled={!previousItem}
                 onClick={() => previousItem && void openContent(previousItem)}
-                aria-label="Previous lesson"
+                aria-label={t("Previous lesson")}
               >
                 <BootstrapIcon name="arrow-left" />
               </button>
-              {entry.contentUnlocked && selectedItem ? <button type="button" className="mr-auto rounded bg-[#073d78] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={savingCompletion || openingContent || (Boolean(selectedItem.media) && !mediaUrl) || selectedItem.completed} onClick={() => void markLessonComplete()}>{selectedItem.completed ? '✓ Lesson completed' : savingCompletion ? 'Saving…' : 'Mark lesson complete'}</button> : null}
-              {completionError ? <span role="alert" className="text-xs text-red-600">{completionError}</span> : null}
+              {entry.contentUnlocked && selectedItem ? <button type="button" className="mr-auto rounded bg-[#073d78] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={savingCompletion || openingContent || (Boolean(selectedItem.media) && !mediaUrl) || selectedItem.completed} onClick={() => void markLessonComplete()}>{selectedItem.completed ? `✓ ${copy.completed}` : savingCompletion ? copy.saving : copy.markComplete}</button> : null}
+              {completionError ? <span role="alert" className="text-xs text-red-600">{t(completionError)}</span> : null}
               <button
                 className="grid size-9 cursor-pointer place-items-center rounded border border-transparent bg-transparent text-lg hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-25"
                 type="button"
                 disabled={!nextItem}
                 onClick={() => nextItem && void openContent(nextItem)}
-                aria-label="Next lesson"
+                aria-label={t("Next lesson")}
               >
                 <BootstrapIcon name="arrow-right" />
               </button>
@@ -324,21 +358,21 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             <div className="mt-8 grid max-w-[760px] grid-cols-3 gap-8 border-y border-[#e0e1e7] py-6 max-[560px]:grid-cols-1">
               <div>
                 <strong className="block text-2xl text-[#6f2bd2]">{course.progress}%</strong>
-                <span className="text-sm text-[#77798c]">Course progress</span>
+                <span className="text-sm text-[#77798c]">{t("Course progress")}</span>
               </div>
               <div>
                 <strong className="block text-2xl text-[#292b3a]">{flatItems.length}</strong>
-                <span className="text-sm text-[#77798c]">Lessons</span>
+                <span className="text-sm text-[#77798c]">{t("Lessons")}</span>
               </div>
               <div>
                 <strong className="block text-base text-[#292b3a]">
                   {courseLanguageLabel(course.languageCode, language)}
                 </strong>
-                <span className="text-sm text-[#77798c]">Language</span>
+                <span className="text-sm text-[#77798c]">{t("Language")}</span>
               </div>
             </div>
             <p className="mt-8 max-w-[780px] text-base leading-[1.8] text-[#606274]">
-              {course.description ?? 'Continue through the published learning content and assessments.'}
+              {course.description ?? t("Continue through the published learning content and assessments.")}
             </p>
 
             {entry.contentUnlocked && entry.preTestId ? (
@@ -348,37 +382,35 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                   `/student/courses/${courseId}`,
                 )}`}
               >
-                View Pre-Test result <BootstrapIcon name="arrow-right" />
+                {copy.preResult} <BootstrapIcon name="arrow-right" />
               </Link>
             ) : null}
 
             {/* Post-Test action card if unlocked */}
             {entry.contentUnlocked && entry.postTestId && (
               <div className="mt-10 rounded-lg border border-[#d9dce7] bg-[#fcfaff] p-6">
-                <h3 className="text-lg font-semibold text-[#292b3a]">Ready for the Post-Test?</h3>
-                <p className="mt-1 text-sm text-[#606274]">
-                  Test your understanding of this course material. Passing score is 80%. You have unlimited attempts.
-                </p>
+                <h3 className="text-lg font-semibold text-[#292b3a]">{copy.postReady}</h3>
+                <p className="mt-1 text-sm text-[#606274]">{t("Test your understanding of this course material. Passing score is 80%. You have unlimited attempts.")}</p>
                 {allLessonsComplete ? <Link
                   className="mt-4 inline-flex rounded bg-[#6f2bd2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5b1fb6]"
                   href={`/student/assessments/post-test/${entry.postTestId}`}
                 >
-                  Take Post-Test <BootstrapIcon name="arrow-right" />
-                </Link> : <p className="mt-4 text-sm text-[#606274]">Complete every lesson to unlock the Post-Test.</p>}
+                  {copy.takePost} <BootstrapIcon name="arrow-right" />
+                </Link> : <p className="mt-4 text-sm text-[#606274]">{copy.unlockPost}</p>}
               </div>
             )}
-            {allLessonsComplete && !entry.postTestId ? <p role="status" className="mt-8 text-emerald-700">✓ Course completed — all lessons finished.</p> : null}
+            {allLessonsComplete && !entry.postTestId ? <p role="status" className="mt-8 text-emerald-700">✓ {copy.courseCompleted}</p> : null}
           </section>
         </section>
 
         {/* Right sidebar: Course content syllabus */}
         <aside
           className="h-svh overflow-y-auto border-l border-[#d9dce7] bg-white max-[900px]:h-auto max-[900px]:border-t max-[900px]:border-l-0"
-          aria-label="Course content"
+          aria-label={t("Course content")}
         >
           <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-[#d9dce7] bg-white px-6">
-            <h2 className="text-[1.05rem] font-semibold tracking-[-0.02em] text-[#292b3a]">Course content</h2>
-            <span className="text-xs text-[#77798c]">{flatItems.length} lessons</span>
+            <h2 className="text-[1.05rem] font-semibold tracking-[-0.02em] text-[#292b3a]">{t("Course content")}</h2>
+            <span className="text-xs text-[#77798c]">{flatItems.length}{t(" lessons")}</span>
           </header>
 
           {content ? (
@@ -397,8 +429,8 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                       <span>
                         <strong className="block text-[0.95rem] leading-[1.35] text-[#292b3a]">{group.title}</strong>
                         <small className="mt-1 block text-[#696b7b]">
-                          {group.items.length} lesson{group.items.length === 1 ? '' : 's'}
-                          {hasSelectedItem ? ' · Learning now' : ''}
+                          {group.items.length}{t(" lesson")}{group.items.length === 1 ? '' : 's'}
+                          {hasSelectedItem ? t(" · Learning now") : ''}
                         </small>
                       </span>
                       <BootstrapIcon name="chevron-up" className={`text-base transition-transform ${collapsed ? 'rotate-180' : ''}`} />
@@ -445,9 +477,9 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             </div>
           ) : (
             <section className="grid min-h-[280px] place-content-center justify-items-center gap-3 p-9 text-center text-[#4f5b6b]">
-              <strong className="text-[1.05rem] text-[#292b3a]">Complete the Pre-Test first</strong>
+              <strong className="text-[1.05rem] text-[#292b3a]">{copy.preGate}</strong>
               <p className="max-w-[360px] text-sm leading-[1.6]">
-                The Pre-Test unlocks this Course&apos;s learning content and syllabus.
+                {copy.preUnlocks}
               </p>
               {entry.preTestId ? (
                 <Link
@@ -456,7 +488,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                     `/student/courses/${courseId}`
                   )}`}
                 >
-                  Start Pre-Test <BootstrapIcon name="arrow-right" />
+                  {copy.startPre} <BootstrapIcon name="arrow-right" />
                 </Link>
               ) : null}
             </section>

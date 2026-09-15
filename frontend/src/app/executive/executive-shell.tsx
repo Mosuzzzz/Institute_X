@@ -26,6 +26,8 @@ import { commonUi, workspaceUi } from "../ui-styles";
 import styles from "../workspace-sidebar.module.css";
 
 import useWorkspaceNavigation from '../use-workspace-navigation';
+import { useUiTranslation } from "../../lib/ui-translations";
+
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
@@ -38,6 +40,7 @@ function NavIcon({ icon }: { icon: string }) {
 }
 
 export default function OwnerShell({ children }: { children: ReactNode }) {
+  const t = useUiTranslation();
   const pathname = usePathname();
   const router = useRouter();
   const [language, setLanguage] = useAppLanguage();
@@ -100,19 +103,19 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={`${workspaceUi.shell("owner")} ${styles.shell}`}>
-      <aside ref={sidebarRef} data-open={mobileNavOpen} role={mobileNavOpen ? "dialog" : undefined} aria-modal={mobileNavOpen || undefined} aria-label="Workspace navigation" className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
+      <aside ref={sidebarRef} data-open={mobileNavOpen} role={mobileNavOpen ? "dialog" : undefined} aria-modal={mobileNavOpen || undefined} aria-label={t("Workspace navigation")} className={`${workspaceUi.sidebar(mobileNavOpen)} ${styles.sidebar}`}>
         <header className={`${workspaceUi.brandHeader} ${styles.brand}`}>
-          <Link className={workspaceUi.brandLink} href="/executive" aria-label="Institute X Executive home">
+          <Link className={workspaceUi.brandLink} href="/executive" aria-label={t("Institute X Executive home")}>
             <Image src="/logoX.png" alt="" width={44} height={44} priority />
             <span>
               <small>Institute X</small>
               <strong>{shell.ownerWorkspace}</strong>
             </span>
           </Link>
-          <button className={styles.closeButton} type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
+          <button className={styles.closeButton} type="button" aria-label={t("Close navigation")} onClick={() => setMobileNavOpen(false)}><BootstrapIcon name="x-lg" /></button>
         </header>
-        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label="Executive navigation">
-          <p className={workspaceUi.navLabel}>Workspace · 03</p>
+        <nav className={`${workspaceUi.navigation} ${styles.navigation}`} aria-label={t("Executive navigation")}>
+          <p className={workspaceUi.navLabel}>{t("Workspace · 03")}</p>
           {navigation.map((item) => {
             const active =
               item.href === "/executive"
@@ -141,7 +144,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
             aria-expanded={mobileNavOpen}
             className={workspaceUi.menuButton}
             type="button"
-            aria-label="Open navigation"
+            aria-label={t("Open navigation")}
             onClick={() => setMobileNavOpen(true)}
           >
             <span />
@@ -157,7 +160,6 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
             </strong>
           </div>
           <nav aria-label={text.ownerAccount}>
-            <span className={workspaceUi.rolePill}>Executive</span>
             <LanguageSelector
               className="max-[700px]:w-[104px]"
               value={language}
@@ -167,7 +169,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
             <ProfileMenu
               profile={profile}
               roleLabel={text.ownerAccount}
-              fallbackName="Executive"
+              fallbackName={t("Executive")}
               onSignOut={signOut}
               logoutLabel={text.logout}
               logoutHint={text.logoutHint}
@@ -181,7 +183,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
         <button
           className={workspaceUi.scrim}
           type="button"
-          aria-label="Close navigation"
+          aria-label={t("Close navigation")}
           onClick={() => setMobileNavOpen(false)}
         />
       ) : null}

@@ -9,8 +9,11 @@ import { useBackendQuery } from "../../../lib/use-backend-query";
 import ApiState from "../../api-state";
 import CourseCoverImage from "../../course-cover-image";
 import { staffUi } from "../../ui-styles";
+import { useUiTranslation } from "../../../lib/ui-translations";
+
 
 export default function ApproverCoursesPage() {
+  const t = useUiTranslation();
   const [language] = useAppLanguage();
   const { data, error, loading } =
     useBackendQuery<ApproverCourseDto[]>("courses/approver/catalog");
@@ -48,19 +51,13 @@ export default function ApproverCoursesPage() {
     <main data-ui="page" className="mx-auto w-[min(calc(100%-48px),1500px)] py-[clamp(48px,6vw,84px)] max-[640px]:w-[min(calc(100%-28px),760px)]">
       <header className="flex items-end justify-between gap-8 border-b border-[#d8dde5] pb-8 max-[700px]:items-start max-[700px]:flex-col">
         <div>
-          <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">
-            Published catalog
-          </p>
-          <h1 className="mt-2 text-[clamp(2.2rem,4vw,4rem)] leading-none tracking-[-0.03em] text-[#202a38]">
-            All courses
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-[#687486]">
-            Browse every published Course across all Majors in read-only mode. Course moderation belongs to the Executive workspace.
-          </p>
+          <p className="text-xs font-bold tracking-[0.12em] text-[#0b6a73] uppercase">{t("Published catalog")}</p>
+          <h1 className="mt-2 text-[clamp(2.2rem,4vw,4rem)] leading-none tracking-[-0.03em] text-[#202a38]">{t("All courses")}</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-[#687486]">{t("Browse every published Course across all Majors in read-only mode. Course moderation belongs to the Executive workspace.")}</p>
         </div>
         <div className="border-l-4 border-[#8ccbd0] pl-4">
           <strong className="block text-3xl text-[#073d78]">{data.length}</strong>
-          <span className="text-xs tracking-[0.1em] text-[#58677c] uppercase">Published courses</span>
+          <span className="text-xs tracking-[0.1em] text-[#58677c] uppercase">{t("Published courses")}</span>
         </div>
       </header>
 
@@ -69,7 +66,7 @@ export default function ApproverCoursesPage() {
         <div className="flex flex-1 min-w-[280px] max-w-md items-center rounded border border-[#d8dde5] bg-white px-3 py-2">
           <input
             type="text"
-            placeholder="Search by course title or instructor..."
+            placeholder={t("Search by course title or instructor...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-transparent text-sm text-[#202a38] outline-none placeholder:text-[#94a3b8]"
@@ -79,23 +76,19 @@ export default function ApproverCoursesPage() {
               type="button"
               onClick={() => setSearch("")}
               className="text-xs font-semibold text-[#687486] hover:text-[#202a38]"
-            >
-              Clear
-            </button>
+            >{t("Clear")}</button>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="approver-cat-filter" className="text-xs font-semibold text-[#687486]">
-            Category:
-          </label>
+          <label htmlFor="approver-cat-filter" className="text-xs font-semibold text-[#687486]">{t("Category:")}</label>
           <select
             id="approver-cat-filter"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="rounded border border-[#d8dde5] bg-white px-3 py-2 text-xs font-medium text-[#202a38] outline-none"
           >
-            <option value="ALL">All Categories</option>
+            <option value="ALL">{t("All Categories")}</option>
             {allCategories.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {translateCategory(cat, language)}
@@ -106,7 +99,7 @@ export default function ApproverCoursesPage() {
       </div>
 
       {filtered.length ? (
-        <section className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label="All published courses">
+        <section className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label={t("All published courses")}>
           {filtered.map((course) => (
             <article
               className="group grid content-start cursor-pointer rounded transition hover:shadow-md"
@@ -126,7 +119,7 @@ export default function ApproverCoursesPage() {
                   }
                 />
                 <span className="absolute top-3 left-3 bg-[#073d78] px-3 py-1 text-[0.68rem] font-bold tracking-[0.08em] text-white uppercase">
-                  {course.eligibilityMode}
+                  {t(course.eligibilityMode)}
                 </span>
               </div>
               <div className="rounded-b border border-t-0 border-[#d8dde5] bg-white p-4">
@@ -142,11 +135,11 @@ export default function ApproverCoursesPage() {
                 </div>
                 <h2 className="mt-3 text-lg leading-tight font-semibold text-[#202a38] group-hover:text-[#073d78]">{course.title}</h2>
                 <p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-[#687486]">
-                  {course.description || "No Course description."}
+                  {course.description || t("No Course description.")}
                 </p>
                 <div className="mt-4 border-t border-[#d8dde5] pt-3 text-xs text-[#687486] flex items-center justify-between">
                   <strong className="text-sm text-[#202a38]">{course.teacher.fullName}</strong>
-                  <span>{course.enrollments} learner(s)</span>
+                  <span>{course.enrollments}{t(" learner(s)")}</span>
                 </div>
               </div>
             </article>
@@ -154,7 +147,7 @@ export default function ApproverCoursesPage() {
         </section>
       ) : (
         <p className="mt-10 text-sm text-[#687486]">
-          {data.length ? "No courses matched your search/filter criteria." : "No published courses are available."}
+          {data.length ? t("No courses matched your search/filter criteria.") : t("No published courses are available.")}
         </p>
       )}
 
@@ -171,7 +164,7 @@ export default function ApproverCoursesPage() {
             <div className="flex items-start justify-between border-b border-[#d8dde5] pb-4">
               <div>
                 <span className="rounded bg-[#073d78] px-2.5 py-0.5 text-xs font-bold text-white">
-                  {activeCourse.eligibilityMode}
+                  {t(activeCourse.eligibilityMode)}
                 </span>
                 <h2 className="mt-2 text-xl font-bold text-[#202a38]">{activeCourse.title}</h2>
               </div>
@@ -179,18 +172,16 @@ export default function ApproverCoursesPage() {
                 type="button"
                 className="text-lg font-bold text-[#687486] hover:text-[#202a38]"
                 onClick={() => setActiveCourse(null)}
-              >
-                Close
-              </button>
+              >{t("Close")}</button>
             </div>
 
             <div className="mt-4 space-y-3 text-sm text-[#435166]">
               <div>
-                <strong className="block text-xs font-semibold text-[#687486] uppercase">Instructor</strong>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">{t("Instructor")}</strong>
                 <p>{activeCourse.teacher.fullName} ({activeCourse.teacher.universityEmail})</p>
               </div>
               <div>
-                <strong className="block text-xs font-semibold text-[#687486] uppercase">Categories</strong>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">{t("Categories")}</strong>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {activeCourse.categories.map((c) => (
                     <span key={c.id} className="rounded bg-[#d9f2f2] px-2 py-0.5 text-xs text-[#07545b]">
@@ -200,12 +191,12 @@ export default function ApproverCoursesPage() {
                 </div>
               </div>
               <div>
-                <strong className="block text-xs font-semibold text-[#687486] uppercase">Language & Stats</strong>
-                <p>{courseLanguageLabel(activeCourse.languageCode, language)} · {activeCourse.enrollments} Enrolled Students</p>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">{t("Language & Stats")}</strong>
+                <p>{courseLanguageLabel(activeCourse.languageCode, language)} · {activeCourse.enrollments}{t(" Enrolled Students")}</p>
               </div>
               <div>
-                <strong className="block text-xs font-semibold text-[#687486] uppercase">Description</strong>
-                <p className="mt-1 leading-6">{activeCourse.description || "No description provided."}</p>
+                <strong className="block text-xs font-semibold text-[#687486] uppercase">{t("Description")}</strong>
+                <p className="mt-1 leading-6">{activeCourse.description || t("No description provided.")}</p>
               </div>
             </div>
 
@@ -214,9 +205,7 @@ export default function ApproverCoursesPage() {
                 type="button"
                 className="rounded bg-[#073d78] px-4 py-2 text-sm font-semibold text-white hover:bg-[#052e5b]"
                 onClick={() => setActiveCourse(null)}
-              >
-                Close
-              </button>
+              >{t("Close")}</button>
             </div>
           </div>
         </div>

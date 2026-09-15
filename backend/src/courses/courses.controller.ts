@@ -2,7 +2,6 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } fro
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
-  ApiForbiddenResponse,
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -51,7 +50,6 @@ export class CoursesController {
   @Post()
   @Roles(UserRole.TEACHER)
   @ApiCreatedResponse({ description: 'Course and Version 1 Draft created' })
-  @ApiForbiddenResponse({ description: 'Approved Teacher permission is required' })
   create(
     @CurrentUser() user: CurrentUserValue,
     @Body() input: CreateCourseDto,

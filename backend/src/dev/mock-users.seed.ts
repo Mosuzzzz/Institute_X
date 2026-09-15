@@ -1,4 +1,4 @@
-import { AccountStatus, TeacherPermissionStatus, UserRole } from '@prisma/client';
+import { AccountStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 
 export type MockUserDefinition = {
@@ -84,38 +84,6 @@ export async function seedMockUsers(
       skipDuplicates: true,
     });
     seeded.push({ id: user.id, email: definition.email, roles: definition.roles });
-  }
-
-  const teacher = seeded.find((user) => user.roles.includes(UserRole.TEACHER));
-  const approver = seeded.find((user) => user.roles.includes(UserRole.APPROVER));
-  if (!teacher || !approver) throw new Error('Teacher and Approver mock users are required');
-
-  const latestPermission = await prisma.teacherPermissionRequest.findFirst({
-    where: { teacherId: teacher.id },
-    orderBy: { requestedAt: 'desc' },
-    select: { id: true, status: true },
-  });
-  if (!latestPermission) {
-    await prisma.teacherPermissionRequest.create({
-      data: {
-        teacherId: teacher.id,
-        status: TeacherPermissionStatus.APPROVED,
-        requestMessage: 'Development mock Teacher access',
-        reviewedById: approver.id,
-        reviewComment: 'Automatically approved by the development seed',
-        reviewedAt: new Date(),
-      },
-    });
-  } else if (latestPermission.status !== TeacherPermissionStatus.APPROVED) {
-    await prisma.teacherPermissionRequest.update({
-      where: { id: latestPermission.id },
-      data: {
-        status: TeacherPermissionStatus.APPROVED,
-        reviewedById: approver.id,
-        reviewComment: 'Automatically approved by the development seed',
-        reviewedAt: new Date(),
-      },
-    });
   }
 
   return seeded;

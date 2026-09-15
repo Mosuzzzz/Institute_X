@@ -1,4 +1,7 @@
+'use client';
+
 import type { TeacherCourseStatus } from './teacher-data';
+import { useUiTranslation } from '../../lib/ui-translations';
 
 const statusConfig: Record<
   TeacherCourseStatus,
@@ -49,6 +52,7 @@ const statusConfig: Record<
 };
 
 export default function StatusBadge({ status }: { status: TeacherCourseStatus }) {
+  const t = useUiTranslation();
   const config = statusConfig[status] ?? {
     bg: 'bg-slate-100',
     text: 'text-slate-700',
@@ -62,7 +66,7 @@ export default function StatusBadge({ status }: { status: TeacherCourseStatus })
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-xs ring-1 ring-inset ${config.bg} ${config.text} ${config.ring}`}
     >
       <span className={`size-1.5 rounded-full ${config.dot}`} />
-      {config.label ?? status}
+      {t(config.label ?? status)}
     </span>
   );
 }

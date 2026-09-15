@@ -19,6 +19,7 @@
     "test:redis:integration": "RUN_REDIS_INTEGRATION=true jest --runInBand --runTestsByPath test/redis-auth-session-cache.integration.spec.ts",
     "typecheck": "tsc --noEmit",
     "seed:mock-users": "node --env-file=.env -r ts-node/register scripts/seed-mock-users.ts",
+    "seed:mock-courses": "node --env-file=.env -r ts-node/register scripts/seed-mock-courses.ts",
     "bootstrap:executive": "ts-node scripts/create-executive.ts",
     "bootstrap:registrar": "ts-node scripts/create-registrar.ts"
   },
