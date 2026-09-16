@@ -195,7 +195,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
             </table>
           </div> : null}
           <button
-            className="mt-6 rounded bg-[#073d78] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#052e5b]"
+            className="mt-6 rounded bg-[#073d78] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#063777]"
             type="button"
             onClick={() => {
               setError(null);

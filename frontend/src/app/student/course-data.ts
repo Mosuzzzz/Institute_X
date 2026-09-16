@@ -75,7 +75,7 @@ export const courses: StudentCourse[] = [
     category: "Personal Development",
     language: "English",
     availability: "LIMITED",
-    accent: "#c96dd8",
+    accent: "#073d78",
     mark: "AI",
   },
   {

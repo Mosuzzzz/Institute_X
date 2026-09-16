@@ -54,6 +54,7 @@ All course content revisions are strictly versioned. A course never mutates live
 ### Key Business Rules for Course Versions:
 1. **Auto-Publication upon Approval (SRS FR-AP-07 & FR-AP-08):**
    - When an Approver approves a submitted version, the backend automatically transitions it to `PUBLISHED` and sets `publishedAt = now()`.
+   - An Approver may transition any `PUBLISHED` version to `UNPUBLISHED` when moderation is required.
    - **No manual "Publish" button is required from the Teacher.**
 2. **Editing Published Courses (SRS FR-CM-07 & FR-CM-08):**
    - Published versions are immutable.

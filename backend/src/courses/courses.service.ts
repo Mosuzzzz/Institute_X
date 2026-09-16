@@ -128,6 +128,28 @@ interface PublishedCourseSummary {
   teacher: { id: string; fullName: string; universityEmail: string };
 }
 
+interface ApproverPublishedContent {
+  versionId: string;
+  title: string;
+  description: string | null;
+  languageCode: string;
+  contentItems: Array<{
+    id: string;
+    contentType: string;
+    title: string | null;
+    textBody: string | null;
+    position: number;
+    completed: false;
+    section: { id: string; title: string; position: number } | null;
+    media: {
+      assetId: string;
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+    } | null;
+  }>;
+}
+
 @Injectable()
 export class CoursesService {
   constructor(
@@ -742,6 +764,91 @@ export class CoursesService {
     return this.listPublishedCourses();
   }
 
+  async getPublishedForApprover(
+    actor: CourseActor,
+    courseId: string,
+  ): Promise<PublishedCourseSummary> {
+    if (actor.role !== UserRole.APPROVER) {
+      throw new ForbiddenException('APPROVER role is required');
+    }
+    const [course] = await this.listPublishedCourses(courseId);
+    if (!course) throw new NotFoundException('Published Course was not found');
+    return course;
+  }
+
+  async getPublishedContentForApprover(
+    actor: CourseActor,
+    courseId: string,
+  ): Promise<ApproverPublishedContent> {
+    if (actor.role !== UserRole.APPROVER) {
+      throw new ForbiddenException('APPROVER role is required');
+    }
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        archivedAt: true,
+        versions: {
+          where: { status: CourseVersionStatus.PUBLISHED },
+          take: 1,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            languageCode: true,
+            contentItems: {
+              orderBy: { position: 'asc' },
+              select: {
+                id: true,
+                contentType: true,
+                title: true,
+                textBody: true,
+                position: true,
+                section: { select: { id: true, title: true, position: true } },
+                mediaAsset: {
+                  select: {
+                    id: true,
+                    fileName: true,
+                    mimeType: true,
+                    sizeBytes: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const version = course?.versions[0];
+    if (!course || course.archivedAt || !version) {
+      throw new NotFoundException('Published Course was not found');
+    }
+    return {
+      versionId: version.id,
+      title: version.title,
+      description: version.description,
+      languageCode: version.languageCode,
+      contentItems: version.contentItems.map((item) => ({
+        id: item.id,
+        contentType: item.contentType,
+        title: item.title,
+        textBody: item.textBody,
+        position: item.position,
+        completed: false,
+        section: item.section,
+        media:
+          item.mediaAsset?.status === AssetStatus.READY
+            ? {
+                assetId: item.mediaAsset.id,
+                fileName: item.mediaAsset.fileName,
+                mimeType: item.mediaAsset.mimeType,
+                sizeBytes: Number(item.mediaAsset.sizeBytes),
+              }
+            : null,
+      })),
+    };
+  }
+
   async listPublishedForOwner(actor: CourseActor): Promise<PublishedCourseSummary[]> {
     if (actor.role !== UserRole.EXECUTIVE) {
       throw new ForbiddenException('EXECUTIVE role is required');
@@ -749,9 +856,10 @@ export class CoursesService {
     return this.listPublishedCourses();
   }
 
-  private async listPublishedCourses(): Promise<PublishedCourseSummary[]> {
+  private async listPublishedCourses(courseId?: string): Promise<PublishedCourseSummary[]> {
     const courses = await this.prisma.course.findMany({
       where: {
+        ...(courseId ? { id: courseId } : {}),
         archivedAt: null,
         versions: { some: { status: CourseVersionStatus.PUBLISHED } },
       },

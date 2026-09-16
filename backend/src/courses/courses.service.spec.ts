@@ -862,6 +862,106 @@ describe('CoursesService', () => {
     });
   });
 
+  describe('getPublishedForApprover', () => {
+    it('returns only the requested published Course', async () => {
+      db.course.findMany.mockResolvedValue([
+        {
+          id: 'course-id',
+          eligibilityMode: 'OPEN',
+          teacher: {
+            id: 'teacher-id',
+            fullName: 'Test Teacher',
+            universityEmail: 'teacher@x.ac.th',
+          },
+          categories: [],
+          versions: [
+            {
+              id: 'version-id',
+              title: 'Reported Course',
+              description: 'Description',
+              languageCode: 'en',
+              publishedAt: new Date('2026-08-27T00:00:00Z'),
+              coverAsset: null,
+            },
+          ],
+          _count: { enrollments: 3 },
+        },
+      ]);
+
+      await expect(
+        service.getPublishedForApprover({ id: 'approver-id', role: UserRole.APPROVER }, 'course-id'),
+      ).resolves.toEqual(expect.objectContaining({ courseId: 'course-id', title: 'Reported Course' }));
+      expect(db.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'course-id',
+            archivedAt: null,
+            versions: { some: { status: CourseVersionStatus.PUBLISHED } },
+          },
+        }),
+      );
+    });
+
+    it('returns not found when the Course is no longer published', async () => {
+      db.course.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.getPublishedForApprover({ id: 'approver-id', role: UserRole.APPROVER }, 'course-id'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('getPublishedContentForApprover', () => {
+    it('returns published lessons without Student enrollment state', async () => {
+      db.course.findUnique.mockResolvedValue({
+        archivedAt: null,
+        versions: [
+          {
+            id: 'version-id',
+            title: 'Reported Course',
+            description: 'Description',
+            languageCode: 'th',
+            contentItems: [
+              {
+                id: 'content-id',
+                contentType: 'VIDEO',
+                title: 'Lesson one',
+                textBody: null,
+                position: 1,
+                section: { id: 'section-id', title: 'Section one', position: 1 },
+                mediaAsset: {
+                  id: 'asset-id',
+                  fileName: 'lesson.mp4',
+                  mimeType: 'video/mp4',
+                  sizeBytes: 1024n,
+                  status: 'READY',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      await expect(
+        service.getPublishedContentForApprover(
+          { id: 'approver-id', role: UserRole.APPROVER },
+          'course-id',
+        ),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          versionId: 'version-id',
+          contentItems: [
+            expect.objectContaining({
+              id: 'content-id',
+              completed: false,
+              media: expect.objectContaining({ assetId: 'asset-id', sizeBytes: 1024 }),
+            }),
+          ],
+        }),
+      );
+    });
+  });
+
   describe('listPublishedForOwner', () => {
     it('returns the moderation catalog to an Owner', async () => {
       db.course.findMany.mockResolvedValue([]);

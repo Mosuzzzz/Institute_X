@@ -42,6 +42,8 @@ export default function StudentShell({ children }: { children: ReactNode }) {
   );
   const profile: AuthProfile | null = isAuthenticated ? readStoredProfile() : null;
   const applicationRole = resolveApplicationRole(profile);
+  const isApproverCoursePreview =
+    applicationRole === 'APPROVER' && /^\/student\/courses\/[^/]+$/.test(pathname);
   const categoriesQuery = useBackendQuery<CategoryDto[]>(
     isAuthenticated && applicationRole === 'STUDENT' ? 'categories' : null,
   );
@@ -62,7 +64,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
       router.replace('/');
     } else if (
       applicationRole === 'TEACHER' ||
-      applicationRole === 'APPROVER' ||
+      (applicationRole === 'APPROVER' && !isApproverCoursePreview) ||
       applicationRole === 'REGISTRAR' ||
       applicationRole === 'EXECUTIVE'
     ) {
@@ -76,13 +78,13 @@ export default function StudentShell({ children }: { children: ReactNode }) {
             : '/executive',
       );
     }
-  }, [applicationRole, isAuthenticated, router, sessionReady]);
+  }, [applicationRole, isApproverCoursePreview, isAuthenticated, router, sessionReady]);
 
   if (
     !sessionReady ||
     isAuthenticated !== true ||
     applicationRole === 'TEACHER' ||
-    applicationRole === 'APPROVER' ||
+    (applicationRole === 'APPROVER' && !isApproverCoursePreview) ||
     applicationRole === 'REGISTRAR' ||
     applicationRole === 'EXECUTIVE'
   ) {
@@ -94,6 +96,10 @@ export default function StudentShell({ children }: { children: ReactNode }) {
         </section>
       </main>
     );
+  }
+
+  if (isApproverCoursePreview) {
+    return <div className="min-h-svh bg-white text-[#20243a]">{children}</div>;
   }
 
   const signOut = () => {

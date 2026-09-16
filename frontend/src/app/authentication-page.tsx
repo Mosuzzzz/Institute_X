@@ -74,7 +74,7 @@ export default function AuthenticationPage() {
     } finally { setSubmitting(false); }
   }
 
-  if (homePath !== null) return <main className={commonUi.callbackShell}><section className={commonUi.callbackPanel}><span className={commonUi.spinner} /><h1>{t("กำลังตรวจสอบเซสชัน")}</h1></section></main>;
+  if (homePath !== null) return <main className={commonUi.callbackShell}><section className={commonUi.callbackPanel}><span className={commonUi.spinner} /><h1>{t("Checking your session")}</h1></section></main>;
 
   return (
     <main className={authUi.shell}>

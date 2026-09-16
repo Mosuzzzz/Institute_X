@@ -667,6 +667,28 @@ describe('MediaService', () => {
     ).resolves.toEqual(expect.objectContaining({ url: 'https://storage.example/review-preview' }));
   });
 
+  it('allows an Approver to preview READY media from a published Version report', async () => {
+    db.mediaAsset.findUnique.mockResolvedValue({
+      id: 'asset-id',
+      storageKey: 'private/key',
+      status: AssetStatus.READY,
+      contentItem: {
+        version: {
+          status: CourseVersionStatus.PUBLISHED,
+          course: { archivedAt: null },
+        },
+      },
+    });
+    storage.createViewUrl.mockResolvedValue({
+      url: 'https://storage.example/published-preview',
+      expiresAt: new Date('2026-08-27T01:00:00Z'),
+    });
+
+    await expect(
+      service.createReviewViewUrl({ id: 'approver-id', role: UserRole.APPROVER }, 'asset-id'),
+    ).resolves.toEqual(expect.objectContaining({ url: 'https://storage.example/published-preview' }));
+  });
+
   it('deletes an owned Draft media object and its Content Item', async () => {
     db.mediaAsset.findUnique.mockResolvedValue({
       id: 'asset-id',

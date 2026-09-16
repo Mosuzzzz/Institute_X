@@ -30,9 +30,9 @@ const roleTheme: Record<WorkspaceRole, string> = {
   teacher:
     '[--workspace-accent:#063777] [--workspace-accent-soft:#eff6ff] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
   approver:
-    '[--workspace-accent:#0f766e] [--workspace-accent-soft:#f0fdfa] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
+    '[--workspace-accent:#063777] [--workspace-accent-soft:#eff6ff] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
   owner:
-    '[--workspace-accent:#92400e] [--workspace-accent-soft:#fffbeb] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
+    '[--workspace-accent:#063777] [--workspace-accent-soft:#eff6ff] [--workspace-rail:#ffffff] [--workspace-card-border:#e2e8f0]',
 };
 
 export const workspaceUi = {

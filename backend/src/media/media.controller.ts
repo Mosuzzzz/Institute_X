@@ -46,7 +46,7 @@ export class MediaController {
 
   @Get(':assetId/review-url')
   @Roles(UserRole.APPROVER)
-  @ApiOkResponse({ description: 'Short-lived private media preview URL for submitted review' })
+  @ApiOkResponse({ description: 'Short-lived private media preview URL for Course review' })
   reviewUrl(
     @CurrentUser() user: CurrentUserValue,
     @Param('assetId', new ParseUUIDPipe({ version: '4' })) assetId: string,

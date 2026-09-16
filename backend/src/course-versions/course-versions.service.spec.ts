@@ -498,6 +498,22 @@ describe('CourseVersionsService', () => {
       });
     });
 
+    it('allows an Approver to unpublish any published Version', async () => {
+      db.courseVersion.findUnique.mockResolvedValue({
+        id: 'version-id',
+        status: CourseVersionStatus.PUBLISHED,
+        course: { teacherId: 'teacher-id' },
+      });
+      db.courseVersion.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.unpublish({ id: 'approver-id', role: UserRole.APPROVER }, 'version-id');
+
+      expect(db.courseVersion.updateMany).toHaveBeenCalledWith({
+        where: { id: 'version-id', status: CourseVersionStatus.PUBLISHED },
+        data: { status: CourseVersionStatus.UNPUBLISHED },
+      });
+    });
+
     it('denies unpublishing to a read-only Executive', async () => {
       db.courseVersion.findUnique.mockResolvedValue({
         id: 'version-id',

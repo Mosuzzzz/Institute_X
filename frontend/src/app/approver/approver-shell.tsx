@@ -31,13 +31,12 @@ import { useUiTranslation } from "../../lib/ui-translations";
 
 const subscribeToSession = () => () => undefined;
 const navigation = [
-  { href: "/approver/courses", label: "allCourses", icon: "courses" },
   { href: "/approver/course-reviews", label: "courseReviews", icon: "review" },
   { href: "/approver/course-reports", label: "courseReports", icon: "flag" },
 ] as const;
 
 function NavIcon({ icon }: { icon: string }) {
-  const names: Record<string, string> = { grid: "grid", courses: "book", review: "file-earmark-check", flag: "flag" };
+  const names: Record<string, string> = { review: "file-earmark-check", flag: "flag" };
   return <BootstrapIcon name={names[icon] ?? "circle"} />;
 }
 

@@ -185,7 +185,6 @@ export default function StudentCatalogClient({
         <section className={dashboardStyles.metrics} aria-label={t("Learning summary")}>
           <article><span>{t("In progress")}</span><strong>{enrolled.filter((course) => (course.progress ?? 0) < 100).length}</strong><p>{t("Courses currently being learned")}</p></article>
           <article><span>{t("Completed")}</span><strong>{enrolled.filter((course) => course.progress === 100).length}</strong><p>{t("Courses completed successfully")}</p></article>
-          <article><span>{t("Available courses")}</span><strong>{allCourses.length}</strong><p>{t("Courses eligible for your profile")}</p></article>
         </section>
         <header className="mt-12 mb-8"><p className={eyebrow}>{text.enrolled}</p><h2 className="text-[clamp(1.6rem,2.4vw,2.25rem)] tracking-[-0.025em] text-[#20243a]">{text.myLearning}</h2></header>
         {enrolled.length ? (

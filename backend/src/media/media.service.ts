@@ -752,10 +752,11 @@ export class MediaService {
     if (
       !asset ||
       asset.status !== AssetStatus.READY ||
-      asset.contentItem.version.status !== CourseVersionStatus.SUBMITTED ||
+      (asset.contentItem.version.status !== CourseVersionStatus.SUBMITTED &&
+        asset.contentItem.version.status !== CourseVersionStatus.PUBLISHED) ||
       Boolean(asset.contentItem.version.course.archivedAt)
     ) {
-      throw new NotFoundException('Submitted media asset was not found');
+      throw new NotFoundException('Reviewable media asset was not found');
     }
     return this.storage.createViewUrl(asset.storageKey);
   }

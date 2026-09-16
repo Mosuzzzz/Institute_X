@@ -37,6 +37,26 @@ export class CoursesController {
     return this.courses.listPublishedForApprover(user);
   }
 
+  @Get('approver/:courseId')
+  @Roles(UserRole.APPROVER)
+  @ApiOkResponse({ description: 'Published Course detail for an Approver report review' })
+  approverCourse(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+  ): ReturnType<CoursesService['getPublishedForApprover']> {
+    return this.courses.getPublishedForApprover(user, courseId);
+  }
+
+  @Get('approver/:courseId/content')
+  @Roles(UserRole.APPROVER)
+  @ApiOkResponse({ description: 'Published Course content for an Approver report review' })
+  approverCourseContent(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('courseId', new ParseUUIDPipe({ version: '4' })) courseId: string,
+  ): ReturnType<CoursesService['getPublishedContentForApprover']> {
+    return this.courses.getPublishedContentForApprover(user, courseId);
+  }
+
   @Get(':courseId')
   @Roles(UserRole.TEACHER)
   @ApiOkResponse({ description: 'Owned Course detail with latest Version readiness' })

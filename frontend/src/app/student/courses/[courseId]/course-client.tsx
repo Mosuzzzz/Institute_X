@@ -1,14 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  type ApproverCourseDto,
   backendApi,
   type CourseEntryDto,
   type EligibleCourseDto,
   type PublishedCourseContentDto,
   type SignedViewUrlDto,
 } from '../../../../lib/backend-api';
+import { readStoredProfile, resolveApplicationRole } from '../../../../lib/auth-session';
 import { courseLanguageLabel } from '../../../../lib/course-language';
 import { useAppLanguage } from '../../../../lib/language';
 import { learningCopy } from '../../../../lib/learning-copy';
@@ -18,6 +21,7 @@ import { useUiTranslation } from "../../../../lib/ui-translations";
 
 
 type ContentItem = PublishedCourseContentDto['contentItems'][number];
+const subscribeToSession = () => () => undefined;
 
 const reportReasons = [
   'Inappropriate or harmful content',
@@ -34,7 +38,31 @@ function ContentTypeIcon({ type }: { type: string }) {
 }
 
 export default function CourseClient({ courseId }: { courseId: string }) {
+  const sessionReady = useSyncExternalStore(subscribeToSession, () => true, () => false);
+  const applicationRole = sessionReady
+    ? resolveApplicationRole(readStoredProfile())
+    : null;
+
+  if (!sessionReady) {
+    return (
+      <main data-ui="page" className="mx-auto w-[min(calc(100%-48px),1720px)] pt-[clamp(54px,6vw,96px)] pb-[70px]">
+        <ApiState loading error={null} />
+      </main>
+    );
+  }
+
+  return <CourseExperience courseId={courseId} reviewMode={applicationRole === 'APPROVER'} />;
+}
+
+function CourseExperience({
+  courseId,
+  reviewMode,
+}: {
+  courseId: string;
+  reviewMode: boolean;
+}) {
   const t = useUiTranslation();
+  const router = useRouter();
   const [language] = useAppLanguage();
   const copy = learningCopy[language];
   const [course, setCourse] = useState<EligibleCourseDto | null>(null);
@@ -54,25 +82,59 @@ export default function CourseClient({ courseId }: { courseId: string }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
   const [reportDetails, setReportDetails] = useState('');
+  const [unpublishing, setUnpublishing] = useState(false);
+  const [moderationError, setModerationError] = useState<string | null>(null);
   const contentRequestId = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const catalog = await backendApi<EligibleCourseDto[]>('courses');
-        const selected = catalog.find((item) => item.courseId === courseId);
-        if (!selected) throw new Error("This Course is not available for your Major or has not been published.");
-        const entered = await backendApi<CourseEntryDto>(`courses/${courseId}/enter`, { method: 'POST' });
-        const publishedContent = entered.contentUnlocked
-          ? await backendApi<PublishedCourseContentDto>(`courses/${courseId}/content`)
-          : null;
+        let selected: EligibleCourseDto | undefined;
+        let entered: CourseEntryDto;
+        let publishedContent: PublishedCourseContentDto | null;
+        if (reviewMode) {
+          const reviewCourse = await backendApi<ApproverCourseDto>(`courses/approver/${courseId}`);
+          selected = {
+            courseId: reviewCourse.courseId,
+            eligibilityMode: reviewCourse.eligibilityMode,
+            versionId: reviewCourse.versionId,
+            title: reviewCourse.title,
+            description: reviewCourse.description,
+            languageCode: reviewCourse.languageCode,
+            publishedAt: reviewCourse.publishedAt,
+            coverAssetId: reviewCourse.coverAssetId,
+            enrollments: reviewCourse.enrollments,
+            enrolled: false,
+            progress: 0,
+            categories: reviewCourse.categories,
+          };
+          entered = {
+            versionId: reviewCourse.versionId,
+            preTestId: null,
+            postTestId: null,
+            contentUnlocked: true,
+          };
+          publishedContent = await backendApi<PublishedCourseContentDto>(
+            `courses/approver/${courseId}/content`,
+          );
+        } else {
+          const catalog = await backendApi<EligibleCourseDto[]>('courses');
+          selected = catalog.find((item) => item.courseId === courseId);
+          if (!selected) throw new Error("This Course is not available for your Major or has not been published.");
+          entered = await backendApi<CourseEntryDto>(`courses/${courseId}/enter`, { method: 'POST' });
+          publishedContent = entered.contentUnlocked
+            ? await backendApi<PublishedCourseContentDto>(`courses/${courseId}/content`)
+            : null;
+        }
         const initialItem = publishedContent?.contentItems[0] ?? null;
         let initialMediaUrl: string | null = null;
         let initialContentError: string | null = null;
         if (initialItem?.media) {
           try {
-            const signed = await backendApi<SignedViewUrlDto>(`media/${initialItem.media.assetId}/view-url`);
+            const signed = await backendApi<SignedViewUrlDto>(
+              `media/${initialItem.media.assetId}/${reviewMode ? 'review-url' : 'view-url'}`,
+            );
             initialMediaUrl = signed.url;
           } catch (mediaError) {
             initialContentError = mediaError instanceof Error ? mediaError.message : "Unable to open this content.";
@@ -96,7 +158,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [courseId]);
+  }, [courseId, reviewMode]);
 
   const openContent = useCallback(async (item: ContentItem, scroll = true) => {
     const requestId = ++contentRequestId.current;
@@ -106,7 +168,9 @@ export default function CourseClient({ courseId }: { courseId: string }) {
     setOpeningContent(Boolean(item.media));
     try {
       if (item.media) {
-        const signed = await backendApi<SignedViewUrlDto>(`media/${item.media.assetId}/view-url`);
+        const signed = await backendApi<SignedViewUrlDto>(
+          `media/${item.media.assetId}/${reviewMode ? 'review-url' : 'view-url'}`,
+        );
         if (requestId !== contentRequestId.current) return;
         setMediaUrl(signed.url);
       }
@@ -122,7 +186,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
     } finally {
       if (requestId === contentRequestId.current) setOpeningContent(false);
     }
-  }, []);
+  }, [reviewMode]);
 
   const contentGroups = useMemo(() => {
     if (!content) return [];
@@ -171,6 +235,28 @@ export default function CourseClient({ courseId }: { courseId: string }) {
     } finally { setSavingCompletion(false); }
   }
 
+  async function unpublishCourse() {
+    if (!reviewMode || !course || unpublishing) return;
+    if (!window.confirm(t('Unpublish this Course? Students will no longer find or open it.'))) {
+      return;
+    }
+
+    setUnpublishing(true);
+    setModerationError(null);
+    try {
+      await backendApi<void>(`course-versions/${course.versionId}/unpublish`, {
+        method: 'POST',
+      });
+      router.replace('/approver/course-reports');
+    } catch (cause) {
+      setModerationError(
+        cause instanceof Error ? cause.message : t('Unable to unpublish this Course.'),
+      );
+    } finally {
+      setUnpublishing(false);
+    }
+  }
+
   if (!course || !entry) {
     return (
       <main data-ui="page" className="mx-auto w-[min(calc(100%-48px),1720px)] pt-[clamp(54px,6vw,96px)] pb-[70px] max-[820px]:w-[min(calc(100%-36px),760px)]">
@@ -193,20 +279,39 @@ export default function CourseClient({ courseId }: { courseId: string }) {
       <div className="border-b border-[#e2e6ec] bg-[#f8fafc] px-6 py-3">
         <div className="mx-auto flex max-w-[1720px] flex-wrap items-center justify-between gap-3">
           <Link
-            href="/student/courses"
+            href={reviewMode ? '/approver/course-reports' : '/student/courses'}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#073d78] hover:underline"
           >
-            <BootstrapIcon name="arrow-left" />{t("Back to Course catalog")}</Link>
-          <span className="text-xs text-[#687486]">
-            {course.title} · {courseLanguageLabel(course.languageCode, language)}
-          </span>
+            {!reviewMode ? <BootstrapIcon name="arrow-left" /> : null}
+            {reviewMode ? t('Back to reports') : t("Back to Course catalog")}
+          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <span className="text-xs text-[#687486]">
+              {course.title} · {courseLanguageLabel(course.languageCode, language)}
+            </span>
+            {reviewMode ? (
+              <button
+                className="rounded-control bg-[#8f1d14] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#7a342d] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={unpublishing}
+                onClick={() => void unpublishCourse()}
+                type="button"
+              >
+                {unpublishing ? t('Working…') : t('Unpublish Course')}
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
-      <section className="mx-auto flex max-w-[1720px] justify-end px-6 pt-4">
+      {reviewMode && moderationError ? (
+        <p className="mx-auto max-w-[1720px] px-6 py-3 text-sm text-[#8d3039]" role="alert">
+          {moderationError}
+        </p>
+      ) : null}
+      {!reviewMode ? <section className="mx-auto flex max-w-[1720px] justify-end px-6 pt-4">
         <button className="text-sm text-red-700 underline underline-offset-4" type="button" onClick={() => { setReportMessage(''); setReportOpen(true); }}><BootstrapIcon name="flag" /> {t('Report course')}</button>
-      </section>
-      {reportMessage ? <p className="mx-auto max-w-[1720px] px-6 py-2 text-right text-sm text-[#58677c]" role="status">{reportMessage}</p> : null}
-      {reportOpen ? <div className="fixed inset-0 z-100 grid place-items-center bg-slate-950/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !reporting) setReportOpen(false); }}>
+      </section> : null}
+      {!reviewMode && reportMessage ? <p className="mx-auto max-w-[1720px] px-6 py-2 text-right text-sm text-[#58677c]" role="status">{reportMessage}</p> : null}
+      {!reviewMode && reportOpen ? <div className="fixed inset-0 z-100 grid place-items-center bg-slate-950/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !reporting) setReportOpen(false); }}>
         <section className="w-full max-w-xl rounded-panel bg-white p-6 shadow-[0_24px_70px_rgb(15_23_42_/_28%)] sm:p-8" role="dialog" aria-modal="true" aria-labelledby="report-course-title">
           <header className="flex items-start justify-between gap-6"><div><h2 id="report-course-title" className="text-2xl font-semibold text-[#20243a]">{t('Report this course')}</h2><p className="mt-2 text-sm leading-6 text-muted">{t('Select every reason that applies. Your report will be reviewed by an Approver.')}</p></div><button className="grid size-11 shrink-0 place-items-center rounded-control text-xl hover:bg-slate-100" type="button" disabled={reporting} aria-label={t('Close')} onClick={() => setReportOpen(false)}><BootstrapIcon name="x-lg" /></button></header>
           <form className="mt-6" onSubmit={async (event) => {
@@ -238,7 +343,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
           >
             {!entry.contentUnlocked ? (
               <div className="grid place-content-center justify-items-center gap-4 p-10 text-center">
-                <p className="text-xs font-bold tracking-[0.13em] text-[#7b39d8] uppercase">{t("Course content locked")}</p>
+                <p className="text-xs font-bold tracking-[0.13em] text-[#073d78] uppercase">{t("Course content locked")}</p>
                 <h1 className="text-[clamp(2rem,5vw,4rem)] font-bold tracking-[-0.04em]">
                   {copy.preGate}
                 </h1>
@@ -246,7 +351,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                   {copy.preHint}{t("You will have one attempt to complete it.")}</p>
                 {entry.preTestId ? (
                   <Link
-                    className="mt-3 rounded bg-[#7b39d8] px-6 py-3 font-semibold text-white transition hover:bg-[#682ac0]"
+                    className="mt-3 rounded bg-[#073d78] px-6 py-3 font-semibold text-white transition hover:bg-[#063777]"
                     href={`/student/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
                       `/student/courses/${courseId}`
                     )}`}
@@ -262,7 +367,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                 <div className="mx-auto w-full max-w-[1050px]">
                   <p
                     className={`text-xs font-bold tracking-[0.13em] uppercase ${
-                      viewerIsLight ? 'text-[#6f2bd2]' : 'text-[#b79be5]'
+                      viewerIsLight ? 'text-[#073d78]' : 'text-[#aebdce]'
                     }`}
                   >{t("Lesson")}{Math.max(1, selectedIndex + 1)} · {t(selectedItem.contentType)}
                   </p>
@@ -304,7 +409,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                         title={selectedItem.title ?? 'Course document'}
                       />
                       <a
-                        className="mt-3 inline-flex font-bold text-[#b79be5] hover:underline"
+                        className="mt-3 inline-flex font-bold text-[#aebdce] hover:underline"
                         href={mediaUrl}
                         rel="noreferrer"
                         target="_blank"
@@ -318,7 +423,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
               </div>
             ) : (
               <div className="grid place-content-center justify-items-center gap-3 p-10 text-center">
-                <p className="text-xs font-bold tracking-[0.13em] text-[#b79be5] uppercase">{course.title}</p>
+                <p className="text-xs font-bold tracking-[0.13em] text-[#aebdce] uppercase">{course.title}</p>
                 <h1 className="text-[clamp(2rem,5vw,4.5rem)] tracking-[-0.03em]">{t("Select a lesson to begin")}</h1>
               </div>
             )}
@@ -337,7 +442,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
               >
                 <BootstrapIcon name="arrow-left" />
               </button>
-              {entry.contentUnlocked && selectedItem ? <button type="button" className="mr-auto rounded bg-[#073d78] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={savingCompletion || openingContent || (Boolean(selectedItem.media) && !mediaUrl) || selectedItem.completed} onClick={() => void markLessonComplete()}>{selectedItem.completed ? `✓ ${copy.completed}` : savingCompletion ? copy.saving : copy.markComplete}</button> : null}
+              {!reviewMode && entry.contentUnlocked && selectedItem ? <button type="button" className="mr-auto rounded bg-[#073d78] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={savingCompletion || openingContent || (Boolean(selectedItem.media) && !mediaUrl) || selectedItem.completed} onClick={() => void markLessonComplete()}>{selectedItem.completed ? `✓ ${copy.completed}` : savingCompletion ? copy.saving : copy.markComplete}</button> : null}
               {completionError ? <span role="alert" className="text-xs text-red-600">{t(completionError)}</span> : null}
               <button
                 className="grid size-9 cursor-pointer place-items-center rounded border border-transparent bg-transparent text-lg hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-25"
@@ -357,8 +462,8 @@ export default function CourseClient({ courseId }: { courseId: string }) {
             </h2>
             <div className="mt-8 grid max-w-[760px] grid-cols-3 gap-8 border-y border-[#e0e1e7] py-6 max-[560px]:grid-cols-1">
               <div>
-                <strong className="block text-2xl text-[#6f2bd2]">{course.progress}%</strong>
-                <span className="text-sm text-[#77798c]">{t("Course progress")}</span>
+                <strong className="block text-2xl text-[#073d78]">{reviewMode ? t('Read only') : `${course.progress}%`}</strong>
+                <span className="text-sm text-[#77798c]">{reviewMode ? t('Approver review') : t("Course progress")}</span>
               </div>
               <div>
                 <strong className="block text-2xl text-[#292b3a]">{flatItems.length}</strong>
@@ -388,11 +493,11 @@ export default function CourseClient({ courseId }: { courseId: string }) {
 
             {/* Post-Test action card if unlocked */}
             {entry.contentUnlocked && entry.postTestId && (
-              <div className="mt-10 rounded-lg border border-[#d9dce7] bg-[#fcfaff] p-6">
+              <div className="mt-10 rounded-lg border border-[#d9dce7] bg-[#f0f4fc] p-6">
                 <h3 className="text-lg font-semibold text-[#292b3a]">{copy.postReady}</h3>
                 <p className="mt-1 text-sm text-[#606274]">{t("Test your understanding of this course material. Passing score is 80%. You have unlimited attempts.")}</p>
                 {allLessonsComplete ? <Link
-                  className="mt-4 inline-flex rounded bg-[#6f2bd2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5b1fb6]"
+                  className="mt-4 inline-flex rounded bg-[#073d78] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#063777]"
                   href={`/student/assessments/post-test/${entry.postTestId}`}
                 >
                   {copy.takePost} <BootstrapIcon name="arrow-right" />
@@ -444,14 +549,14 @@ export default function CourseClient({ courseId }: { courseId: string }) {
                             <li className="border-b border-[#e5e5ea]" key={item.id}>
                               <button
                                 aria-current={active ? 'step' : undefined}
-                                className="grid w-full cursor-pointer grid-cols-[22px_minmax(0,1fr)] gap-x-3 gap-y-1 border-0 bg-white px-6 py-[16px] text-left text-[#4d4f60] hover:bg-[#f7f5fa] aria-[current=step]:bg-[#e8e5ee]"
+                                className="grid w-full cursor-pointer grid-cols-[22px_minmax(0,1fr)] gap-x-3 gap-y-1 border-0 bg-white px-6 py-[16px] text-left text-[#4d4f60] hover:bg-[#edf3f8] aria-[current=step]:bg-[#d7e3f0]"
                                 onClick={() => void openContent(item)}
                                 type="button"
                               >
                                 <span
                                   className={`mt-0.5 grid size-[19px] place-items-center rounded-full border text-[0.62rem] font-bold ${
                                     active
-                                      ? 'border-[#6f2bd2] bg-[#6f2bd2] text-white'
+                                      ? 'border-[#073d78] bg-[#073d78] text-white'
                                       : 'border-[#77798c] text-[#77798c]'
                                   }`}
                                 >
@@ -483,7 +588,7 @@ export default function CourseClient({ courseId }: { courseId: string }) {
               </p>
               {entry.preTestId ? (
                 <Link
-                  className="rounded bg-[#6f2bd2] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#5b1fb6]"
+                  className="rounded bg-[#073d78] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#063777]"
                   href={`/student/assessments/pre-test/${entry.preTestId}?returnTo=${encodeURIComponent(
                     `/student/courses/${courseId}`
                   )}`}

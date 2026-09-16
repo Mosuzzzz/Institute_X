@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { backendApi } from '../../../lib/backend-api';
 import { useAppLanguage } from '../../../lib/language';
 import { useBackendQuery } from '../../../lib/use-backend-query';
@@ -14,8 +15,53 @@ export default function CourseReportsPage() {
   const [language] = useAppLanguage();
   const reports = useBackendQuery<Report[]>('course-reports');
   if (!reports.data) return <main data-ui="page" className={staffUi.page}><ApiState loading={reports.loading} error={reports.error} /></main>;
-  return <main data-ui="page" className={staffUi.page}>
-    <h1>{t('Course reports')}</h1><p className="mt-2 text-sm text-muted">{t('Reports submitted by users for Approver review.')}</p>
-    <div className="mt-8 grid gap-4">{reports.data.map(report => <article key={report.id} className="rounded-panel border border-line bg-white p-5"><div className="flex flex-wrap justify-between gap-3"><div><h2 className="font-semibold">{report.course.versions[0]?.title ?? t('Untitled course')}</h2><p className="text-sm text-muted">{report.reporter.fullName} · {report.reporter.universityEmail}</p></div><time className="text-sm text-muted">{new Date(report.createdAt).toLocaleString(language)}</time></div><p className="mt-4 whitespace-pre-wrap">{report.reason}</p>{report.reviewedAt ? <p className="mt-4 text-sm text-emerald-700">{t('Reviewed')}</p> : <button className="mt-4 rounded-control bg-action px-4 py-2 text-sm font-semibold text-white" onClick={async () => { await backendApi(`course-reports/${report.id}/review`, { method: 'PATCH' }); await reports.refresh(); }}>{t('Mark as reviewed')}</button>}</article>)}{!reports.data.length ? <p className="py-12 text-center text-muted">{t('No course reports.')}</p> : null}</div>
-  </main>;
+  return (
+    <main data-ui="page" className={staffUi.page}>
+      <h1>{t('Course reports')}</h1>
+      <p className="mt-2 text-sm text-muted">{t('Reports submitted by users for Approver review.')}</p>
+      <div className="mt-8 grid gap-4">
+        {reports.data.map((report) => (
+          <article key={report.id} className="rounded-panel border border-line bg-white p-5">
+            <div className="flex flex-wrap justify-between gap-3">
+              <div className="min-w-0">
+                <Link
+                  className="font-semibold text-[#073d78] underline-offset-4 hover:underline"
+                  href={`/student/courses/${encodeURIComponent(report.course.id)}`}
+                >
+                  {report.course.versions[0]?.title ?? t('Untitled course')}
+                </Link>
+                <p className="mt-1 break-words text-sm text-muted">
+                  {report.reporter.fullName} · {report.reporter.universityEmail}
+                </p>
+              </div>
+              <time className="text-sm text-muted">{new Date(report.createdAt).toLocaleString(language)}</time>
+            </div>
+            <p className="mt-4 whitespace-pre-wrap">{report.reason}</p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link
+                className="rounded-control border border-[#aebdce] bg-white px-4 py-2 text-sm font-semibold text-[#073d78] transition hover:bg-[#edf3f8]"
+                href={`/student/courses/${encodeURIComponent(report.course.id)}`}
+              >
+                {t('View reported course')}
+              </Link>
+              {report.reviewedAt ? (
+                <p className="text-sm text-emerald-700">{t('Reviewed')}</p>
+              ) : (
+                <button
+                  className="rounded-control bg-action px-4 py-2 text-sm font-semibold text-white"
+                  onClick={async () => {
+                    await backendApi(`course-reports/${report.id}/review`, { method: 'PATCH' });
+                    await reports.refresh();
+                  }}
+                >
+                  {t('Mark as reviewed')}
+                </button>
+              )}
+            </div>
+          </article>
+        ))}
+        {!reports.data.length ? <p className="py-12 text-center text-muted">{t('No course reports.')}</p> : null}
+      </div>
+    </main>
+  );
 }

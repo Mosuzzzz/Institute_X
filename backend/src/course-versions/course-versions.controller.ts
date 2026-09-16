@@ -70,7 +70,7 @@ export class CourseVersionsController {
 
   @Post(':versionId/unpublish')
   @HttpCode(204)
-  @Roles(UserRole.TEACHER)
+  @Roles(UserRole.APPROVER, UserRole.TEACHER)
   @ApiNoContentResponse({ description: 'Published Version removed from active catalogs' })
   unpublish(
     @CurrentUser() user: CurrentUserValue,

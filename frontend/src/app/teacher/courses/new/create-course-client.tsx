@@ -90,7 +90,7 @@ export default function CreateCourseClient() {
           </div>
           <div>
             <h2 className="text-xs font-bold text-[#1c1d1f] tracking-wide mb-3">{t("Continue editing")}</h2>
-            <button className="mt-3 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#052e5b] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
+            <button className="mt-3 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#063777] px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
               {saving ? t("Creating…") : t("Create Draft & Continue")}
             </button>
             <Link className="mt-3 flex min-h-10 items-center justify-center text-sm font-medium text-[#073d78] no-underline hover:underline" href="/teacher/courses">{t("Cancel")}</Link>
@@ -159,7 +159,7 @@ export default function CreateCourseClient() {
             )}
             {error ? <p className="mt-6 border-l-4 border-[#b42318] bg-[#fff3f2] p-4 text-sm text-[#8f1d14]" role="alert">{t(error)}</p> : null}
             <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-[#e2e4eb] pt-6">
-              <button className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#052e5b] px-7 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
+              <button className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#063777] px-7 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
                 {saving ? t("Creating…") : t("Create Draft & Continue")}
               </button>
               <span className="text-sm text-[#687486]">{t("You will add the cover, curriculum and assessments on the next page.")}</span>

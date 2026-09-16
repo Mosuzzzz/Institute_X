@@ -41,7 +41,7 @@ Product success means students can access learning they are eligible for, teache
 - Submission requires at least one content item and at least one question in each assessment. Each question must have at least two options and exactly one correct answer. Uploaded media must be READY.
 - OPEN courses are available to all active students. LIMITED courses restrict access by assigned majors under the current business rules. Do not introduce education-level or year-level restrictions from older documents without confirmation.
 - Published versions cannot be edited directly. Editing creates a new DRAFT. The existing published version remains available during editing and review; approval of the new version changes the previous version to SUPERSEDED.
-- Version states are DRAFT, SUBMITTED, PUBLISHED, REJECTED, UNPUBLISHED, and SUPERSEDED. Rejected versions can be reopened for editing. Teachers can discard drafts or unpublish their own courses according to their permissions.
+- Version states are DRAFT, SUBMITTED, PUBLISHED, REJECTED, UNPUBLISHED, and SUPERSEDED. Rejected versions can be reopened for editing. Teachers can discard drafts or unpublish their own courses; Approvers can unpublish any published course when moderation is required.
 
 ### Learning and Assessment
 

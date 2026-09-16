@@ -32,7 +32,7 @@ import { useUiTranslation } from "../../../../lib/ui-translations";
 const fieldClass =
   "min-h-11 w-full border border-[#cfd5df] bg-white px-3 py-2.5 text-sm text-[#202a38] outline-none transition focus:border-[#073d78] focus:ring-2 focus:ring-[#073d78]/15";
 const primaryButton =
-  "inline-flex min-h-11 cursor-pointer items-center justify-center bg-[#073d78] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#052e5b] disabled:cursor-not-allowed disabled:bg-[#aeb5c0]";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center bg-[#073d78] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#063777] disabled:cursor-not-allowed disabled:bg-[#aeb5c0]";
 const secondaryButton =
   "inline-flex min-h-11 cursor-pointer items-center justify-center border border-[#073d78] bg-white px-5 py-2.5 text-sm font-semibold text-[#073d78] transition hover:bg-[#edf3f8] disabled:cursor-not-allowed disabled:border-[#c8ccd3] disabled:text-[#949aa4]";
 const panelClass =
@@ -1316,19 +1316,21 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                               </div>
 
                               {/* Sub-action button (Description) */}
-                              <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setOpenDescriptionId(isDescOpen ? null : lecture.id)}
-                                  className={`font-medium text-xs px-3 py-1 rounded transition cursor-pointer ${
-                                    isDescOpen
-                                      ? "bg-[#063777] text-white"
-                                      : "border border-[#063777] text-[#063777] hover:bg-[#063777]/5"
-                                  }`}
-                                >
-                                  {lecture.textBody && lecture.textBody.trim() ? t("Edit Description") : t("+ Description")}
-                                </button>
-                              </div>
+                              {isDraft ? (
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenDescriptionId(isDescOpen ? null : lecture.id)}
+                                    className={`font-medium text-xs px-3 py-1 rounded transition cursor-pointer ${
+                                      isDescOpen
+                                        ? "bg-[#063777] text-white"
+                                        : "border border-[#063777] text-[#063777] hover:bg-[#063777]/5"
+                                    }`}
+                                  >
+                                    {lecture.textBody && lecture.textBody.trim() ? t("Edit Description") : t("+ Description")}
+                                  </button>
+                                </div>
+                              ) : null}
 
                               {/* Expandable Content Type Panel */}
                               {isContentOpen && isDraft ? (
@@ -1516,7 +1518,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                               ) : null}
 
                               {/* Expandable Description Form */}
-                              {isDescOpen ? (
+                              {isDescOpen && isDraft ? (
                                 <form
                                   onSubmit={(e) => void saveLectureDescription(e, lecture.id, lecture.title)}
                                   className="mt-3 border-t border-[#d1d7dc] pt-3"
@@ -1872,7 +1874,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 <ul className="mt-6 grid gap-3 sm:grid-cols-2">
                   {checks.map(([key, ready]) => (
                     <li
-                      className={`flex items-center gap-3 border p-4 text-sm ${ready ? "border-[#d8d0ef] bg-[#faf8ff] text-[#292b3a]" : "border-[#ead8d5] bg-[#fff8f7] text-[#7a342d]"}`}
+                      className={`flex items-center gap-3 border p-4 text-sm ${ready ? "border-[#c6d8e9] bg-[#f0f4fc] text-[#292b3a]" : "border-[#ead8d5] bg-[#fff8f7] text-[#7a342d]"}`}
                       key={key}
                     >
                       <span className="font-medium text-inherit">
