@@ -50,13 +50,23 @@ Apply the prepared migrations with `cd backend` then `npx prisma migrate deploy`
 
 Bootstrap is a privileged operator recovery/provisioning action, not a public endpoint. API role changes are audited with a Registrar actor; the bootstrap script itself is not currently captured in that audit table.
 
-Assigning TEACHER does not approve teaching permission. The teacher must request permission and an Approver must approve before course creation.
+Assigning `TEACHER` by a Registrar grants Teacher workspace and course-authoring access immediately. The legacy Teacher-permission request routes are not part of the current authorization flow. Approvers review submitted Course Versions, not Teacher role assignments.
 
-## Acceptance checks still needed
+## Local acceptance status
 
-- Live OTP delivery, wrong/expired/used-code rejection and resend limits.
-- Browser login, refresh, role switching, logout and cross-origin rejection.
-- PostgreSQL concurrency for OTP request limits, single-use claims and role audits.
-- Executive learning analytics against real database rows (unit-tested SQL mapping is not live SQL validation).
+The Playwright suite in `frontend/tests/e2e` has verified against the local frontend, backend and Mailpit:
 
-No server, Docker stack or deployment was started as part of these changes.
+- Mailpit OTP delivery and successful browser login.
+- Rejection of invalid institutional domains and incorrect or reused OTPs.
+- Five-request-per-15-minute mailbox limit.
+- HttpOnly, SameSite=Lax session cookies; refresh persistence and logout.
+- CSRF rejection and unauthenticated workspace redirects.
+- Role switching for the five supported roles.
+- Immediate Teacher authoring access after Registrar assignment.
+
+Still requiring dedicated coverage:
+
+- Natural five-minute OTP expiry without altering the application clock or database.
+- PostgreSQL concurrency races for OTP claims, request limits and role-audit writes.
+- Executive analytics reconciliation against a controlled live dataset.
+- Production email delivery. Local Mailpit delivery is not evidence that a real provider or mailbox works.
