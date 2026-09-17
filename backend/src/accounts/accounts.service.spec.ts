@@ -110,4 +110,22 @@ describe('AccountsService', () => {
     expect(prisma.authSession.deleteMany).toHaveBeenCalledWith({ where: { userId: 'target' } });
     expect(cache.invalidateUser).toHaveBeenCalledWith('target');
   });
+
+  it('assigns a major and invalidates cached sessions', async () => {
+    prisma.user.update.mockResolvedValue({
+      id: 'target',
+      fullName: 'Student',
+      major: { id: 'major-id', code: 'VOC-ICT', name: 'Information Technology' },
+    });
+
+    await service.update('target', { majorId: 'major-id' });
+
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'target' },
+        data: { major: { connect: { id: 'major-id' } } },
+      }),
+    );
+    expect(cache.invalidateUser).toHaveBeenCalledWith('target');
+  });
 });

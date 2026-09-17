@@ -181,6 +181,8 @@ const rows: readonly (readonly [string, string, string, string])[] = [
   ['EXECUTIVE', 'ผู้บริหาร', '管理者', '管理者'],
   ['ACTIVE', 'ใช้งานอยู่', '启用', '有効'],
   ['INACTIVE', 'ระงับใช้งาน', '停用', '無効'],
+  ['Activate account', 'เปิดใช้งานบัญชี', '启用账户', 'アカウントを有効化'],
+  ['Suspend account', 'ระงับบัญชี', '停用账户', 'アカウントを停止'],
   ['DRAFT', 'ฉบับร่าง', '草稿', '下書き'],
   ['SUBMITTED', 'ส่งตรวจแล้ว', '已提交', '提出済み'],
   ['APPROVED', 'อนุมัติแล้ว', '已批准', '承認済み'],
