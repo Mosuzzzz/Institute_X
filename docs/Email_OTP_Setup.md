@@ -63,10 +63,10 @@ The Playwright suite in `frontend/tests/e2e` has verified against the local fron
 - CSRF rejection and unauthenticated workspace redirects.
 - Role switching for the five supported roles.
 - Immediate Teacher authoring access after Registrar assignment.
+- Natural five-minute OTP expiry without altering the application clock or database.
+- Pre-Test/Post-Test attempt rules, the 80% threshold, course version lifecycle, real MinIO upload and Executive analytics reconciliation against controlled data.
 
 Still requiring dedicated coverage:
 
-- Natural five-minute OTP expiry without altering the application clock or database.
 - PostgreSQL concurrency races for OTP claims, request limits and role-audit writes.
-- Executive analytics reconciliation against a controlled live dataset.
 - Production email delivery. Local Mailpit delivery is not evidence that a real provider or mailbox works.

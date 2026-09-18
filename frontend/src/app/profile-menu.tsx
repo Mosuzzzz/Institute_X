@@ -39,6 +39,13 @@ export default function ProfileMenu({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('');
+  const dashboardAction = (role: NonNullable<AuthProfile['roles']>[number]) => t({
+    STUDENT: 'Start learning',
+    TEACHER: 'Manage courses',
+    APPROVER: 'Review courses',
+    REGISTRAR: 'Manage users and roles',
+    EXECUTIVE: 'View system overview',
+  }[role]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -112,7 +119,7 @@ export default function ProfileMenu({
                 <button role="menuitem" key={role} className="rounded px-3 py-2 text-left text-sm hover:bg-[#eef4fb]" type="button" onClick={() => {
                   const target = setActiveRole(role) ?? getRoleHomePath(role);
                   if (target) window.location.assign(target);
-                }}>{t("Dashboard: ")}{t(role)}</button>
+                }}>{dashboardAction(role)}</button>
               ))}
             </div>
           ) : null}

@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:core": "playwright test --grep @core",
+    "test:e2e:firefox": "docker compose -f ../docker-compose.playwright.yml run --rm firefox-e2e",
+    "test:e2e:firefox:core": "docker compose -f ../docker-compose.playwright.yml run --rm firefox-e2e npx playwright test --project=firefox --grep @core",
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {

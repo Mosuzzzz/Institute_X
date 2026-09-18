@@ -99,7 +99,10 @@ npm run test:e2e:core
 npx playwright test --project=chromium
 npx playwright test --project=webkit --grep @core
 npx playwright test tests/e2e/auth.spec.ts --project=chromium
+npx playwright test tests/e2e/business-rules.spec.ts --project=chromium
 npx playwright test tests/e2e/remaining-workflows.spec.ts --project=chromium
+npm run test:e2e:firefox
+npm run test:e2e:firefox:core
 ```
 
 เปิด HTML report:
@@ -120,6 +123,7 @@ npm run test:e2e:report
 ## โครงสร้างชุดทดสอบ
 
 - `auth.spec.ts` — domain validation, OTP, cookie/session, logout, CSRF, rate limit และ unauthenticated redirects
+- `business-rules.spec.ts` — OTP expiry 5 นาทีจริง, assessment attempts/80%, lifecycle/versioning/unpublish, MinIO upload และ controlled Executive analytics
 - `role-access.spec.ts` — สิทธิ์เข้า workspace, workspace switcher และ backend authorization
 - `responsive-localization.spec.ts` — viewport ตัวแทนและการคงค่าภาษาไทย อังกฤษ จีน และญี่ปุ่น
 - `remaining-workflows.spec.ts` — role assignment, Teacher authoring, refresh persistence, catalog entry และ invalid-resource state
@@ -136,4 +140,14 @@ npm run test:e2e:report
 - ใช้เฉพาะ Mailpit ในเครื่อง ห้ามส่งอีเมลจริงหรือใช้ข้อมูล production
 - บัญชีทดสอบใหม่ใช้ prefix `qa-e2e-`; ลบเฉพาะข้อมูล prefix นี้หลังทดสอบ
 
-Firefox บางเครื่องบน macOS อาจเปิดไม่สำเร็จด้วย `Could not find profile folder` ซึ่งเป็นปัญหา browser runtime ไม่ใช่ผลล้มเหลวของ application test ให้บันทึกเป็น `BLOCKED` และยังคงรัน Chromium/WebKit ต่อ
+### Firefox บน macOS 27
+
+Playwright Firefox ไม่สามารถเริ่มบน macOS 27 ได้จากปัญหา Firefox sandbox โดยอาจแสดงข้อความที่ทำให้เข้าใจผิดว่า `Could not find profile folder` การเปลี่ยน `TMPDIR` หรือสร้าง profile directory เองไม่สามารถแก้ปัญหานี้ได้
+
+โปรเจกต์จึงรัน Firefox ใน Playwright Linux container โดยตัวช่วย `scripts/playwright_container.py` จะ forward `localhost:3001` และ `localhost:8025` กลับมายังบริการบน host ทำให้ URL และ CSRF origin ยังตรงกับการรันปกติ:
+
+```sh
+npm run test:e2e:firefox:core
+```
+
+Frontend, Backend และ Mailpit ต้องทำงานอยู่บน host ก่อนสั่งคำสั่งนี้ ภาพทดสอบยังคงเป็น Firefox ของ Playwright เวอร์ชันเดียวกับ dependency ของโปรเจกต์ ไม่ใช่ Chromium ที่เปลี่ยนชื่อ project
