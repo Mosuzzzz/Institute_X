@@ -111,7 +111,6 @@ export default function ProfileMenu({
             <div className="grid h-[50px] w-[50px] place-items-center rounded-full bg-[#172034] text-[0.86rem] font-extrabold text-white" aria-hidden="true">{initials}</div>
             <div className="grid min-w-0 gap-1"><strong className="truncate whitespace-nowrap text-[0.9rem] text-[#20243a]">{displayName}</strong><span className="truncate whitespace-nowrap text-[0.72rem] text-[#58677c]">{email}</span></div>
           </header>
-          <div className="mr-[18px] mb-[17px] ml-[81px] flex items-center gap-[7px] text-[0.7rem] tracking-[0.05em] text-[#536073] uppercase"><span className="h-[7px] w-[7px] rounded-full bg-[#2a8864] shadow-[0_0_0_3px_#e5f4ed]" />{t(roleLabel)}</div>
           <div className="h-px bg-[#e2e4ea]" aria-hidden="true" />
           {(profile?.roles?.length ?? 0) > 1 ? (
             <div className="grid gap-1 border-b border-[#e2e4ea] p-3" role="group" aria-label={t("Switch dashboard")}>

@@ -74,7 +74,7 @@ export default function AuthenticationPage() {
     } finally { setSubmitting(false); }
   }
 
-  if (homePath !== null) return <main className={commonUi.callbackShell}><section className={commonUi.callbackPanel}><span className={commonUi.spinner} /><h1>{t("Checking your session")}</h1></section></main>;
+  if (homePath !== null) return <main className={commonUi.callbackShell}><nav className="absolute top-4 right-4 sm:top-6 sm:right-8"><LanguageSelector value={language} label={t("Select language")} onChange={setLanguage} /></nav><section className={commonUi.callbackPanel}><span className={commonUi.spinner} /><h1>{t("Checking your session")}</h1></section></main>;
 
   return (
     <main className={authUi.shell}>
@@ -96,7 +96,7 @@ export default function AuthenticationPage() {
         <div className={authUi.rule} />
         <form noValidate aria-busy={submitting} className={`${authUi.access} grid gap-4`} onSubmit={challengeId ? verifyOtp : requestOtp}>
           <h2>{t("เข้าสู่ระบบ")}</h2>
-          {!challengeId ? <label className="grid gap-1 text-sm">{t("อีเมลสถาบัน (@x.ac.th)")}<input className="rounded-md border border-[#ccd1df] px-4 py-3" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} name="email" type="email" autoComplete="email" placeholder="name@x.ac.th" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
+          {!challengeId ? <label className="grid gap-1 text-sm"><input className="rounded-md border border-[#ccd1df] px-4 py-3" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} name="email" type="email" autoComplete="email" placeholder="Email Address" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
             <p className="text-sm text-muted">{t("ส่งรหัส 6 หลักไปที่ ")}<strong>{email}</strong>{t(" แล้ว รหัสหมดอายุภายใน 5 นาที")}</p>
             <label className="grid gap-1 text-sm">{t("รหัส OTP")}<input className="rounded-md border border-[#ccd1df] px-4 py-3 text-center text-xl tracking-[0.35em]" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} name="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus /></label>
           </>}

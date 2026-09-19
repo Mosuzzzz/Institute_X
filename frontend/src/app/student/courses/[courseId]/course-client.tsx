@@ -270,7 +270,7 @@ function CourseExperience({
       current.includes(key) ? current.filter((sectionKey) => sectionKey !== key) : [...current, key]
     );
   };
-  const viewerIsLight = selectedItem?.contentType === 'TEXT' || selectedItem?.contentType === 'IMAGE';
+  const viewerIsLight = true;
   const otherReasonNeedsDetails = selectedReportReasons.includes('Other') && !reportDetails.trim();
 
   return (
@@ -347,7 +347,7 @@ function CourseExperience({
                 <h1 className="text-[clamp(2rem,5vw,4rem)] font-bold tracking-[-0.04em]">
                   {copy.preGate}
                 </h1>
-                <p className="max-w-md text-sm leading-6 text-[#d7e3f0]">
+                <p className="max-w-md text-sm leading-6 text-[#58677c]">
                   {copy.preHint}{t("You will have one attempt to complete it.")}</p>
                 {entry.preTestId ? (
                   <Link
@@ -409,7 +409,7 @@ function CourseExperience({
                         title={selectedItem.title ?? 'Course document'}
                       />
                       <a
-                        className="mt-3 inline-flex font-bold text-[#aebdce] hover:underline"
+                        className="mt-3 inline-flex items-center gap-1.5 font-bold text-[#073d78] hover:underline"
                         href={mediaUrl}
                         rel="noreferrer"
                         target="_blank"
@@ -423,7 +423,7 @@ function CourseExperience({
               </div>
             ) : (
               <div className="grid place-content-center justify-items-center gap-3 p-10 text-center">
-                <p className="text-xs font-bold tracking-[0.13em] text-[#aebdce] uppercase">{course.title}</p>
+                <p className="text-xs font-bold tracking-[0.13em] text-[#58677c] uppercase">{course.title}</p>
                 <h1 className="text-[clamp(2rem,5vw,4.5rem)] tracking-[-0.03em]">{t("Select a lesson to begin")}</h1>
               </div>
             )}

@@ -1276,7 +1276,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                 {/* Right side Content button */}
                                 <div className="flex items-center gap-2 ml-auto">
                                   {lecture.mediaAsset ? (
-                                    <span className="text-xs font-semibold text-[#0b6a73] bg-[#edfafa] px-2.5 py-1 rounded flex items-center gap-1.5 border border-[#c3f0f0]">
+                                    <span className="text-xs font-semibold text-[#0b6a73] bg-white px-2.5 py-1 rounded flex items-center gap-1.5 border border-[#c3f0f0]">
                                       {lecture.contentType === "VIDEO"
                                         ? t("Video")
                                         : lecture.contentType === "AUDIO"
@@ -1292,8 +1292,12 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                       </span>
                                     </span>
                                   ) : lecture.contentType === "TEXT" && lecture.textBody && lecture.textBody.trim() ? (
-                                    <span className="text-xs font-semibold text-[#435166] bg-[#f1f3f5] px-2.5 py-1 rounded border border-[#d1d7dc] flex items-center gap-1">
-                                      <BootstrapIcon name="file-earmark-text" />{t("Article")}</span>
+                                    <span className="text-xs font-semibold text-[#0b6a73] bg-white px-2.5 py-1 rounded flex items-center gap-1.5 border border-[#c3f0f0]">
+                                      <BootstrapIcon name="file-earmark-text" />{t("Article")}
+                                      <span className="text-[0.65rem] uppercase font-bold text-[#0b6a73] bg-white px-1 rounded border border-[#b2e5e7]">
+                                        {t("READY")}
+                                      </span>
+                                    </span>
                                   ) : null}
 
                                   {isDraft ? (
