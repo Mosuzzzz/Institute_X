@@ -1,0 +1,11 @@
+node_modules
+.next
+playwright-report
+test-results
+blob-report
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.git
+.DS_Store

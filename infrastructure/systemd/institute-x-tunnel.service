@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare Tunnel for Institute X
+After=network-online.target nginx.service institute-x.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mosu
+ExecStart=/home/mosu/.local/bin/cloudflared tunnel --config /home/mosu/user/Project/Institute_X/infrastructure/cloudflared/config.yml run
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+tunnel: b1060368-cd75-4f07-a4f9-a4ae9991df2b
+credentials-file: /home/mosu/.cloudflared/b1060368-cd75-4f07-a4f9-a4ae9991df2b.json
+
+ingress:
+  - hostname: x.mosuzzzz.online
+    service: http://127.0.0.1:80
+  - hostname: media.mosuzzzz.online
+    service: http://127.0.0.1:80
+  - hostname: mailpit.mosuzzzz.online
+    service: http://127.0.0.1:80
+  - service: http_status:404

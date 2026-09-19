@@ -1,0 +1,49 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Commit SHA to deploy; blank deploys current master
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: institute-x-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'master')
+    runs-on: [self-hosted, linux, x64, institute-x]
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - name: Select verified commit
+        id: revision
+        shell: bash
+        env:
+          DISPATCH_SHA: ${{ inputs.commit_sha }}
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEFAULT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          sha=${DISPATCH_SHA:-${VERIFIED_SHA:-$DEFAULT_SHA}}
+          [[ $sha =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid commit SHA" >&2; exit 1; }
+          echo "sha=$sha" >>"$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.revision.outputs.sha }}
+          fetch-depth: 0
+      - name: Deploy with backup, health check and rollback
+        run: sudo -n /usr/local/sbin/institute-x-deploy '${{ steps.revision.outputs.sha }}' "$GITHUB_WORKSPACE"

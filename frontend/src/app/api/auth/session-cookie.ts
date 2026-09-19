@@ -16,7 +16,13 @@ export function sessionCookie(token: string, maxAgeSeconds: number): string {
 
 export function hasValidMutationOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
+  const requestUrl = new URL(request.url);
+  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',').at(-1)?.trim();
+  const host = request.headers.get('host')?.trim();
+  const publicOrigin = forwardedProto && host
+    ? `${forwardedProto}://${host}`
+    : requestUrl.origin;
   return request.headers.get('x-csrf-request') === '1'
     && request.headers.get('sec-fetch-site') !== 'cross-site'
-    && (!origin || origin === new URL(request.url).origin);
+    && (!origin || origin === publicOrigin);
 }

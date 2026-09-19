@@ -78,7 +78,7 @@ services:
       - local
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -98,7 +98,7 @@ services:
       - internal
 
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     restart: "no"
     depends_on:
       minio:
@@ -115,6 +115,15 @@ services:
         mc anonymous set none "local/$${S3_BUCKET}"
     networks:
       - internal
+
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - internal
+      - local
 
   migrate:
     build:
@@ -143,8 +152,11 @@ services:
         condition: service_completed_successfully
       minio-init:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_started
     environment:
-      NODE_ENV: production
+      # Demo deployment: Mailpit is intentionally unavailable in production mode.
+      NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-institute_x}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-institute_x}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
@@ -153,8 +165,9 @@ services:
       AUTH_SESSION_CACHE_TTL_SECONDS: ${AUTH_SESSION_CACHE_TTL_SECONDS:-60}
       AUTH_CACHE_SIGNING_KEY: ${AUTH_CACHE_SIGNING_KEY:?Set AUTH_CACHE_SIGNING_KEY}
       OTP_HASH_SECRET: ${OTP_HASH_SECRET:?Set OTP_HASH_SECRET}
-      OTP_EMAIL_PROVIDER: resend
-      RESEND_API_KEY: ${RESEND_API_KEY:?Set RESEND_API_KEY}
+      OTP_EMAIL_PROVIDER: mailpit
+      MAILPIT_HOST: mailpit
+      MAILPIT_SMTP_PORT: 1025
       OTP_FROM_EMAIL: ${OTP_FROM_EMAIL:?Set OTP_FROM_EMAIL}
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
@@ -176,21 +189,23 @@ services:
       - edge
       - internal
 
-  nginx:
-    image: nginx:1.27-alpine
+  frontend:
+    build:
+      context: ./frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      BACKEND_BASE_URL: http://backend:3000
     ports:
-      - "${HTTP_PORT:-8080}:80"
-    volumes:
-      - ./infrastructure/nginx.conf:/etc/nginx/nginx.conf:ro
+      - "127.0.0.1:${FRONTEND_PORT:-3001}:3001"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
     networks:
       - edge
       - internal
