@@ -889,8 +889,13 @@ describe('CoursesService', () => {
       ]);
 
       await expect(
-        service.getPublishedForApprover({ id: 'approver-id', role: UserRole.APPROVER }, 'course-id'),
-      ).resolves.toEqual(expect.objectContaining({ courseId: 'course-id', title: 'Reported Course' }));
+        service.getPublishedForApprover(
+          { id: 'approver-id', role: UserRole.APPROVER },
+          'course-id',
+        ),
+      ).resolves.toEqual(
+        expect.objectContaining({ courseId: 'course-id', title: 'Reported Course' }),
+      );
       expect(db.course.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
@@ -906,7 +911,10 @@ describe('CoursesService', () => {
       db.course.findMany.mockResolvedValue([]);
 
       await expect(
-        service.getPublishedForApprover({ id: 'approver-id', role: UserRole.APPROVER }, 'course-id'),
+        service.getPublishedForApprover(
+          { id: 'approver-id', role: UserRole.APPROVER },
+          'course-id',
+        ),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });

@@ -4,7 +4,9 @@ import { MOCK_USERS, assertMockSeedingAllowed, seedMockUsers } from './mock-user
 describe('mock user seed', () => {
   it('defines one @x.ac.th account for every application role', () => {
     expect(MOCK_USERS).toHaveLength(Object.values(UserRole).length);
-    expect(MOCK_USERS.flatMap((user) => user.roles)).toEqual(expect.arrayContaining(Object.values(UserRole)));
+    expect(MOCK_USERS.flatMap((user) => user.roles)).toEqual(
+      expect.arrayContaining(Object.values(UserRole)),
+    );
     for (const user of MOCK_USERS) {
       expect(user.email).toMatch(/@x\.ac\.th$/);
       expect(user.roles).toContain(UserRole.STUDENT);
@@ -28,7 +30,11 @@ describe('mock user seed', () => {
 
     expect(result).toHaveLength(MOCK_USERS.length);
     expect(prisma.user.upsert).toHaveBeenCalledTimes(MOCK_USERS.length);
-    expect(prisma.user.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ emailVerifiedAt: expect.any(Date) }) }));
+    expect(prisma.user.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ emailVerifiedAt: expect.any(Date) }),
+      }),
+    );
   });
 
   it('refuses to seed mock credentials in production', () => {

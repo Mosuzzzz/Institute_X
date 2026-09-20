@@ -69,7 +69,9 @@ describe('database schema contract', () => {
     expect(user?.fields.map((field) => field.name)).toEqual(
       expect.arrayContaining(['emailVerifiedAt', 'roles', 'authSessions']),
     );
-    expect(user?.fields.map((field) => field.name)).not.toEqual(expect.arrayContaining(['username', 'passwordHash']));
+    expect(user?.fields.map((field) => field.name)).not.toEqual(
+      expect.arrayContaining(['username', 'passwordHash']),
+    );
     expect(user?.fields.map((field) => field.name)).not.toContain('role');
   });
 
@@ -143,9 +145,16 @@ describe('database schema contract', () => {
   it('stores hashed, expiring, single-use OTP challenges and role-change audits', () => {
     const otp = Prisma.dmmf.datamodel.models.find((model) => model.name === 'EmailOtp');
     const audit = Prisma.dmmf.datamodel.models.find((model) => model.name === 'RoleChangeAudit');
-    const migration = readFileSync(resolve(__dirname, '../prisma/migrations/202609120001_email_otp_auth/migration.sql'), 'utf8');
-    expect(otp?.fields.map((field) => field.name)).toEqual(expect.arrayContaining(['email', 'otpHash', 'expiresAt', 'usedAt', 'attempts']));
-    expect(audit?.fields.map((field) => field.name)).toEqual(expect.arrayContaining(['actorId', 'targetUserId', 'oldRoles', 'newRoles']));
+    const migration = readFileSync(
+      resolve(__dirname, '../prisma/migrations/202609120001_email_otp_auth/migration.sql'),
+      'utf8',
+    );
+    expect(otp?.fields.map((field) => field.name)).toEqual(
+      expect.arrayContaining(['email', 'otpHash', 'expiresAt', 'usedAt', 'attempts']),
+    );
+    expect(audit?.fields.map((field) => field.name)).toEqual(
+      expect.arrayContaining(['actorId', 'targetUserId', 'oldRoles', 'newRoles']),
+    );
     expect(migration).toContain('DROP COLUMN "password_hash"');
     expect(migration).toContain('DROP COLUMN "username"');
     expect(migration).toContain('CREATE TABLE "public"."email_otps"');

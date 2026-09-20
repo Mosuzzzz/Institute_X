@@ -160,7 +160,9 @@ describe('CourseVersionsService', () => {
 
   it('submits a course with neither assessment configured', async () => {
     db.courseVersion.findUnique.mockResolvedValue({ ...validDraft, quizzes: [] });
-    await expect(service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id')).resolves.toBeUndefined();
+    await expect(
+      service.submit({ id: 'teacher-id', role: UserRole.TEACHER }, 'version-id'),
+    ).resolves.toBeUndefined();
     expect(db.courseVersionReview.create).toHaveBeenCalled();
   });
 

@@ -686,7 +686,9 @@ describe('MediaService', () => {
 
     await expect(
       service.createReviewViewUrl({ id: 'approver-id', role: UserRole.APPROVER }, 'asset-id'),
-    ).resolves.toEqual(expect.objectContaining({ url: 'https://storage.example/published-preview' }));
+    ).resolves.toEqual(
+      expect.objectContaining({ url: 'https://storage.example/published-preview' }),
+    );
   });
 
   it('deletes an owned Draft media object and its Content Item', async () => {

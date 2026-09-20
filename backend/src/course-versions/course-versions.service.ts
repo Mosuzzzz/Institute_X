@@ -550,5 +550,4 @@ export class CourseVersionsService {
       throw new ForbiddenException(`${role} role is required`);
     }
   }
-
 }

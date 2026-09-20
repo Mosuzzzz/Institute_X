@@ -65,12 +65,19 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
       then: Joi.required(),
       otherwise: Joi.optional(),
     }),
-  OTP_HASH_SECRET: Joi.string().min(32).invalid('replace-with-at-least-32-random-characters').when('NODE_ENV', {
-    is: 'test',
-    then: Joi.optional().default('test-only-otp-secret-at-least-32-characters'),
-    otherwise: Joi.required(),
+  OTP_HASH_SECRET: Joi.string()
+    .min(32)
+    .invalid('replace-with-at-least-32-random-characters')
+    .when('NODE_ENV', {
+      is: 'test',
+      then: Joi.optional().default('test-only-otp-secret-at-least-32-characters'),
+      otherwise: Joi.required(),
+    }),
+  RESEND_API_KEY: Joi.string().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
   }),
-  RESEND_API_KEY: Joi.string().when('NODE_ENV', { is: 'production', then: Joi.required(), otherwise: Joi.optional() }),
   OTP_EMAIL_PROVIDER: Joi.string().when('NODE_ENV', {
     is: 'production',
     then: Joi.valid('resend').default('resend'),
@@ -78,7 +85,9 @@ const environmentSchema = Joi.object<Record<string, unknown>>({
   }),
   MAILPIT_HOST: Joi.string().hostname().default('127.0.0.1'),
   MAILPIT_SMTP_PORT: Joi.number().port().default(1025),
-  OTP_FROM_EMAIL: Joi.string().max(320).when('NODE_ENV', { is: 'production', then: Joi.required(), otherwise: Joi.optional() }),
+  OTP_FROM_EMAIL: Joi.string()
+    .max(320)
+    .when('NODE_ENV', { is: 'production', then: Joi.required(), otherwise: Joi.optional() }),
   S3_ENDPOINT: Joi.string().uri().optional(),
   S3_PUBLIC_ENDPOINT: Joi.string()
     .uri({ scheme: ['http', 'https'] })

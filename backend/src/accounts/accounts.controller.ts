@@ -33,7 +33,9 @@ export class AccountsController {
   }
 
   @Get('role-audits')
-  audits(): ReturnType<AccountsService['listRoleAudits']> { return this.accounts.listRoleAudits(); }
+  audits(): ReturnType<AccountsService['listRoleAudits']> {
+    return this.accounts.listRoleAudits();
+  }
 
   @Post(':userId/roles')
   addRole(
@@ -69,5 +71,4 @@ export class AccountsController {
   ): ReturnType<AccountsService['updateStatus']> {
     return this.accounts.updateStatus(actor.id, userId, input.status);
   }
-
 }
