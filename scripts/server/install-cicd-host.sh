@@ -39,6 +39,11 @@ install -d -m 0750 -o root -g deploy /srv/institute-x
 install -d -m 0750 -o root -g deploy /srv/institute-x/releases /srv/institute-x/backups
 install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-deploy.sh" /usr/local/sbin/institute-x-deploy
 
+RUNNER_INDEX=/home/deploy/actions-runner/_work/Institute_X/Institute_X/.git/index
+if [[ -e ${RUNNER_INDEX} ]]; then
+  chown deploy:deploy "${RUNNER_INDEX}"
+fi
+
 cat >/etc/sudoers.d/institute-x-deploy <<'EOF'
 # Arguments are validated again by institute-x-deploy itself. Keeping arguments
 # out of this sudoers command is also compatible with sudo builds that reject
