@@ -29,6 +29,10 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
     depends_on:
       redis-tls-init:
         condition: service_completed_successfully
@@ -60,6 +64,10 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-institute_x}
       POSTGRES_USER: ${POSTGRES_USER:-institute_x}
@@ -80,6 +88,10 @@ services:
   minio:
     image: quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     restart: unless-stopped
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-institute_x}
@@ -119,6 +131,10 @@ services:
   mailpit:
     image: axllent/mailpit:v1.27.4
     restart: unless-stopped
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
     ports:
       - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
     networks:
@@ -126,6 +142,7 @@ services:
       - local
 
   migrate:
+    image: institute-x-migrate:${IMAGE_TAG:-local}
     build:
       context: ./backend
       target: migration
@@ -136,15 +153,20 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-institute_x}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-institute_x}
+      DATABASE_URL: postgresql://${DATABASE_MIGRATE_USER:-institute_x}:${DATABASE_MIGRATE_PASSWORD:-${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}}@postgres:5432/${POSTGRES_DB:-institute_x}
     networks:
       - internal
 
   backend:
+    image: institute-x-backend:${IMAGE_TAG:-local}
     build:
       context: ./backend
       target: production
     restart: unless-stopped
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
     depends_on:
       postgres:
         condition: service_healthy
@@ -158,7 +180,7 @@ services:
       # Demo deployment: Mailpit is intentionally unavailable in production mode.
       NODE_ENV: development
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-institute_x}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-institute_x}
+      DATABASE_URL: postgresql://${DATABASE_APP_USER:-institute_x}:${DATABASE_APP_PASSWORD:-${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}}@postgres:5432/${POSTGRES_DB:-institute_x}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
       REDIS_URL: rediss://:${REDIS_PASSWORD:?Set REDIS_PASSWORD}@redis:6379
       NODE_EXTRA_CA_CERTS: /etc/redis/tls/ca.crt
@@ -173,8 +195,8 @@ services:
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_BUCKET: ${S3_BUCKET:-institute-x-private}
-      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-institute_x}
-      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-${MINIO_ROOT_USER:-institute_x}}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}}
       S3_FORCE_PATH_STYLE: "true"
       S3_SIGNED_URL_TTL_SECONDS: ${S3_SIGNED_URL_TTL_SECONDS:-300}
     volumes:
@@ -190,9 +212,14 @@ services:
       - internal
 
   frontend:
+    image: institute-x-frontend:${IMAGE_TAG:-local}
     build:
       context: ./frontend
     restart: unless-stopped
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
     depends_on:
       backend:
         condition: service_healthy

@@ -38,6 +38,19 @@ docker compose version
 install -d -m 0750 -o root -g deploy /srv/institute-x
 install -d -m 0750 -o root -g deploy /srv/institute-x/releases /srv/institute-x/backups
 install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-deploy.sh" /usr/local/sbin/institute-x-deploy
+install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-start.sh" /usr/local/sbin/institute-x-start
+install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x.service" /etc/systemd/system/institute-x.service
+install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-backup.sh" /usr/local/sbin/institute-x-backup
+install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-verify-restore.sh" /usr/local/sbin/institute-x-verify-restore
+install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/harden-production-data.sh" /usr/local/sbin/institute-x-harden-data
+install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x-backup.service" /etc/systemd/system/institute-x-backup.service
+install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x-backup.timer" /etc/systemd/system/institute-x-backup.timer
+install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/nginx/institute-x.conf" /etc/nginx/sites-available/institute-x.conf
+ln -sfn /etc/nginx/sites-available/institute-x.conf /etc/nginx/sites-enabled/institute-x.conf
+nginx -t
+systemctl daemon-reload
+systemctl enable --now institute-x-backup.timer
+systemctl reload nginx
 
 RUNNER_INDEX=/home/deploy/actions-runner/_work/Institute_X/Institute_X/.git/index
 if [[ -e ${RUNNER_INDEX} ]]; then

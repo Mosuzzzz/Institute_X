@@ -7,9 +7,9 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/home/mosu/user/Project/Institute_X
-ExecStart=/usr/bin/docker compose --env-file /etc/institute-x/production.env up -d
-ExecStop=/usr/bin/docker compose --env-file /etc/institute-x/production.env down
+WorkingDirectory=/srv/institute-x
+ExecStart=/usr/local/sbin/institute-x-start
+ExecStop=/usr/bin/docker compose -p institute_x --env-file /etc/institute-x/production.env -f /srv/institute-x/current/docker-compose.yml down
 TimeoutStartSec=0
 
 [Install]

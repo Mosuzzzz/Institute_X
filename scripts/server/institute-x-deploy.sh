@@ -36,6 +36,7 @@ BACKUPS=${APP_ROOT}/backups
 ENV_FILE=/etc/institute-x/production.env
 COMPOSE_PROJECT_NAME=institute_x
 LOCK_FILE=/run/lock/institute-x-deploy.lock
+export IMAGE_TAG=${SHA}
 
 exec 9>"${LOCK_FILE}"
 flock -n 9 || { echo "Another Institute X deployment is running." >&2; exit 1; }
@@ -58,8 +59,23 @@ fi
 
 COMPOSE=(docker compose -p "${COMPOSE_PROJECT_NAME}" --env-file "${ENV_FILE}" -f "${RELEASE}/docker-compose.yml")
 PREVIOUS=
+PREVIOUS_SHA=
 if [[ -L ${CURRENT} ]]; then
   PREVIOUS=$(readlink -f "${CURRENT}")
+  PREVIOUS_SHA=$(basename "${PREVIOUS}")
+fi
+
+# Preserve the currently running images under the previous release SHA while
+# transitioning from the old unversioned deployment scheme.
+if [[ -n ${PREVIOUS_SHA} ]]; then
+  for service in backend frontend; do
+    target="institute-x-${service}:${PREVIOUS_SHA}"
+    if ! docker image inspect "${target}" >/dev/null 2>&1; then
+      container="institute_x-${service}-1"
+      current_image=$(docker inspect --format '{{.Image}}' "${container}" 2>/dev/null || true)
+      [[ -z ${current_image} ]] || docker tag "${current_image}" "${target}"
+    fi
+  done
 fi
 
 set -a
@@ -79,25 +95,27 @@ else
   echo "No running production database; skipping pre-deploy dump for initial deployment."
 fi
 
+rollback() {
+  local status=$?
+  trap - ERR
+  if [[ -n ${PREVIOUS} && -d ${PREVIOUS} && ${PREVIOUS_SHA} =~ ^[0-9a-f]{40}$ ]]; then
+    echo "Deployment failed; restoring ${PREVIOUS}." >&2
+    ln -sfn "${PREVIOUS}" "${APP_ROOT}/current.rollback"
+    mv -Tf "${APP_ROOT}/current.rollback" "${CURRENT}"
+    IMAGE_TAG=${PREVIOUS_SHA} docker compose -p "${COMPOSE_PROJECT_NAME}" \
+      --env-file "${ENV_FILE}" -f "${PREVIOUS}/docker-compose.yml" \
+      up -d --remove-orphans || true
+  fi
+  exit "${status}"
+}
+trap rollback ERR
+
 "${COMPOSE[@]}" build backend frontend migrate
 "${COMPOSE[@]}" up -d postgres redis minio mailpit
 "${COMPOSE[@]}" run --rm migrate
 
 ln -sfn "${RELEASE}" "${APP_ROOT}/current.next"
 mv -Tf "${APP_ROOT}/current.next" "${CURRENT}"
-
-rollback() {
-  local status=$?
-  if [[ -n ${PREVIOUS} && -d ${PREVIOUS} ]]; then
-    echo "Deployment failed; restoring ${PREVIOUS}." >&2
-    ln -sfn "${PREVIOUS}" "${APP_ROOT}/current.rollback"
-    mv -Tf "${APP_ROOT}/current.rollback" "${CURRENT}"
-    docker compose -p "${COMPOSE_PROJECT_NAME}" --env-file "${ENV_FILE}" \
-      -f "${PREVIOUS}/docker-compose.yml" up -d --remove-orphans || true
-  fi
-  exit "${status}"
-}
-trap rollback ERR
 
 "${COMPOSE[@]}" up -d --remove-orphans
 
@@ -113,6 +131,9 @@ done
 
 backend_health=$(docker inspect --format '{{.State.Health.Status}}' institute_x-backend-1)
 [[ ${backend_health} == healthy ]] || { echo "Backend is ${backend_health}." >&2; false; }
+docker exec institute_x-backend-1 node -e \
+  "fetch('http://127.0.0.1:3000/api/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 trap - ERR
+find "${BACKUPS}" -maxdepth 1 -type f -name 'postgres-*.sql.gz' -mtime +14 -delete
 echo "Successfully deployed ${SHA}. Database backup: ${backup}"

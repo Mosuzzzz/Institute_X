@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Institute X backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target
