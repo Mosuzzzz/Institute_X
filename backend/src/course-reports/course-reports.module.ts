@@ -33,7 +33,11 @@ export class CreateCourseReportDto {
 export class CourseReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(user: CurrentUserValue, courseId: string, reason: string) {
+  async create(
+    user: CurrentUserValue,
+    courseId: string,
+    reason: string,
+  ): Promise<{ submitted: boolean }> {
     const course = await this.prisma.course.findFirst({
       where: {
         id: courseId,
@@ -55,7 +59,7 @@ export class CourseReportsService {
     return { submitted: true };
   }
 
-  list() {
+  list(): ReturnType<PrismaService['courseReport']['findMany']> {
     return this.prisma.courseReport.findMany({
       orderBy: [{ reviewedAt: 'asc' }, { createdAt: 'desc' }],
       take: 200,
@@ -72,7 +76,7 @@ export class CourseReportsService {
     });
   }
 
-  async review(user: CurrentUserValue, id: string) {
+  async review(user: CurrentUserValue, id: string): Promise<{ reviewed: boolean }> {
     const result = await this.prisma.courseReport.updateMany({
       where: { id, reviewedAt: null },
       data: { reviewedAt: new Date(), reviewedById: user.id },
@@ -100,19 +104,22 @@ export class CourseReportsController {
     @CurrentUser() user: CurrentUserValue,
     @Param('courseId', ParseUUIDPipe) id: string,
     @Body() body: CreateCourseReportDto,
-  ) {
+  ): ReturnType<CourseReportsService['create']> {
     return this.reports.create(user, id, body.reason);
   }
 
   @Get()
   @Roles(UserRole.APPROVER)
-  list() {
+  list(): ReturnType<CourseReportsService['list']> {
     return this.reports.list();
   }
 
   @Patch(':reportId/review')
   @Roles(UserRole.APPROVER)
-  review(@CurrentUser() user: CurrentUserValue, @Param('reportId', ParseUUIDPipe) id: string) {
+  review(
+    @CurrentUser() user: CurrentUserValue,
+    @Param('reportId', ParseUUIDPipe) id: string,
+  ): ReturnType<CourseReportsService['review']> {
     return this.reports.review(user, id);
   }
 }
