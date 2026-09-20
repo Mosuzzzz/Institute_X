@@ -8,9 +8,16 @@ RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-14}
 BACKUP_HELPER_IMAGE=alpine/openssl@sha256:80b347d7b4d58e28aae515cf808ba3ce1c4a2a69a323b2cb2cb2d6d278729684
 
 current_step=initialization
+notify_heartbeat() {
+  local suffix=${1:-}
+  [[ -n ${BETTERSTACK_BACKUP_HEARTBEAT_URL:-} ]] || return 0
+  curl --fail --silent --show-error --max-time 10 --retry 2 \
+    --output /dev/null "${BETTERSTACK_BACKUP_HEARTBEAT_URL}${suffix}" || true
+}
 report_failure() {
   local status=$?
   echo "Backup failed during ${current_step} (exit ${status})." >&2
+  notify_heartbeat /fail
   exit "${status}"
 }
 trap report_failure ERR
@@ -59,4 +66,5 @@ if [[ -n ${RESTIC_REPOSITORY:-} ]]; then
 fi
 
 trap - ERR
+notify_heartbeat
 echo "Backup completed: ${destination}"
