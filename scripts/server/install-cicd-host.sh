@@ -14,6 +14,7 @@ command -v git >/dev/null
 command -v flock >/dev/null
 command -v gzip >/dev/null
 command -v curl >/dev/null
+command -v runuser >/dev/null
 
 if ! docker compose version >/dev/null 2>&1; then
   PROJECT_OWNER=$(stat -c '%U' "${PROJECT_DIR}")

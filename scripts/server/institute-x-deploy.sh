@@ -19,6 +19,16 @@ SOURCE=$(realpath -e "${SOURCE}")
 }
 [[ $(stat -c '%U' "${SOURCE}") == deploy ]] || { echo "Deployment source must be owned by deploy." >&2; exit 1; }
 
+# A previous root-run deployment may have refreshed the Git index. Repair only
+# that metadata file, then keep every Git operation under the runner account so
+# Actions can clean and reuse its workspace safely.
+if [[ -e ${SOURCE}/.git/index ]]; then
+  chown deploy:deploy "${SOURCE}/.git/index"
+fi
+git_as_deploy() {
+  runuser -u deploy -- git -C "${SOURCE}" "$@"
+}
+
 APP_ROOT=/srv/institute-x
 RELEASES=${APP_ROOT}/releases
 CURRENT=${APP_ROOT}/current
@@ -33,9 +43,9 @@ flock -n 9 || { echo "Another Institute X deployment is running." >&2; exit 1; }
 [[ -r ${ENV_FILE} ]] || { echo "Missing ${ENV_FILE}" >&2; exit 1; }
 mkdir -p "${RELEASES}" "${BACKUPS}"
 
-SOURCE_SHA=$(git -c safe.directory="${SOURCE}" -C "${SOURCE}" rev-parse HEAD)
+SOURCE_SHA=$(git_as_deploy rev-parse HEAD)
 [[ ${SOURCE_SHA} == "${SHA}" ]] || { echo "Workspace SHA does not match requested SHA." >&2; exit 1; }
-[[ -z $(git -c safe.directory="${SOURCE}" -C "${SOURCE}" status --porcelain) ]] || {
+[[ -z $(git_as_deploy status --porcelain) ]] || {
   echo "Refusing to deploy a dirty GitHub Actions workspace." >&2
   exit 1
 }
@@ -43,7 +53,7 @@ SOURCE_SHA=$(git -c safe.directory="${SOURCE}" -C "${SOURCE}" rev-parse HEAD)
 RELEASE=${RELEASES}/${SHA}
 if [[ ! -d ${RELEASE} ]]; then
   mkdir "${RELEASE}"
-  git -c safe.directory="${SOURCE}" -C "${SOURCE}" archive "${SHA}" | tar -x -C "${RELEASE}"
+  git_as_deploy archive "${SHA}" | tar -x -C "${RELEASE}"
 fi
 
 COMPOSE=(docker compose -p "${COMPOSE_PROJECT_NAME}" --env-file "${ENV_FILE}" -f "${RELEASE}/docker-compose.yml")
