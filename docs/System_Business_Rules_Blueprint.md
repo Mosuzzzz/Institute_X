@@ -1,8 +1,10 @@
 # Institute X: Authoritative Business Rules & System Architecture Blueprint
 
-> **Status:** Current contract, revised 14 September 2026: Email OTP, multi-role accounts and optional assessments
+> **Status:** Current contract, revised 20 September 2026: Email OTP, Registrar-assigned multi-role accounts and optional assessments
 > **Date:** September 2026  
 > **Scope:** Full-stack specifications covering Database, Backend (NestJS + Prisma), and Frontend (Next.js App Router).
+>
+> **Authority:** This document describes the current implemented business rules. Retired Teacher Permission request APIs, database records and tests are legacy artifacts and do not define an active user workflow.
 
 ---
 
@@ -10,14 +12,14 @@
 
 The only supported roles are STUDENT, TEACHER, APPROVER, REGISTRAR and EXECUTIVE. Every verified account retains STUDENT; additional roles are assigned by a Registrar. Permissions are additive, but each workspace is isolated and the switcher lists only assigned roles. OWNER and ADMIN are not supported.
 
-STUDENT learns; TEACHER authors only after separate teaching approval; APPROVER reviews teaching requests and submitted courses; REGISTRAR manages existing verified users' roles; EXECUTIVE has read-only analytics.
+STUDENT learns; TEACHER authors courses immediately after a Registrar assigns the TEACHER role; APPROVER reviews submitted course versions and user reports; REGISTRAR manages existing verified users' roles and account status; EXECUTIVE has read-only analytics. There is no separate Teacher Permission request or approval step.
 
 | Role | Workspace | Responsibility |
 |---|---|---|
 | STUDENT | `/student` | Eligible catalog, Pre-Test gate, lessons and Post-Test history |
-| TEACHER | `/teacher` | Teaching permission request, own draft authoring and publication visibility |
-| APPROVER | `/approver` | Teaching requests and submitted course reviews with media previews |
-| REGISTRAR | `/registrar` | Existing verified user search, role assignment/removal and role audit history |
+| TEACHER | `/teacher` | Own draft authoring, submission, publication visibility and course analytics |
+| APPROVER | `/approver` | Submitted course review, media preview, publication moderation and user-report review |
+| REGISTRAR | `/registrar` | Existing verified user search, role assignment/removal, account status and role audit history |
 | EXECUTIVE | `/executive` | Read-only system, course, enrollment, completion, score and major analytics |
 ---
 
@@ -130,8 +132,9 @@ To eliminate "Object storage is not configured" and stuck `PENDING` assets:
    [Frontend] ──3. POST /media/.../complete───────────> [Backend] (Runs HEAD request to verify file & sets status READY)
    ```
 2. **Storage Health Verification:**
-   - Backend `/api/health` must report MinIO/S3 bucket accessibility.
-   - Frontend must disable upload inputs with a user-friendly error notice if storage service is offline.
+   - Backend `/api/health` is a liveness endpoint.
+   - Backend `/api/ready` checks both PostgreSQL and MinIO/S3 bucket accessibility and returns an unavailable response when a required dependency is offline.
+   - The frontend health proxy uses `/api/ready`. Upload failures must be shown to the Teacher with an actionable error and must not be reported as successful.
 3. **Safe Deletion & Cleanup:**
    - Deleting a Draft deletes associated object keys in MinIO to avoid orphaned files.
 
@@ -145,5 +148,6 @@ To eliminate "Object storage is not configured" and stuck `PENDING` assets:
 - The browser receives an opaque HttpOnly, SameSite=Lax session cookie (Secure in production). Tokens are not returned to browser JavaScript or stored in local/session storage. Mutation routes require a custom CSRF header and reject cross-origin requests.
 - Redis caches verified local sessions for 60 seconds by default (configurable 15–300 seconds, bounded by session expiry). Keys use token digests, values are integrity-signed, and cache failure falls back to PostgreSQL session validation, not to an identity provider.
 - Registrar role changes target existing email-verified accounts, disallow self-modification and modification of the mandatory STUDENT role, and record actor, target, old/new roles and timestamp atomically. Relevant cached sessions are invalidated.
-- REGISTRAR assignment of TEACHER grants course-authoring access immediately. APPROVER reviews submitted course versions, not Teacher role assignment; EXECUTIVE cannot mutate courses, categories or roles.
+- REGISTRAR assignment of TEACHER grants course-authoring access immediately. A separate Teacher Permission request is not required and is not part of the active frontend or backend module graph.
+- APPROVER reviews submitted course versions and user reports, not Teacher role assignment. EXECUTIVE cannot mutate courses, categories, accounts or roles.
 - Initial Registrar provisioning is an operator bootstrap of an already mailbox-verified account, not public user creation. See `Email_OTP_Setup.md` for the migration and operational prerequisites.
