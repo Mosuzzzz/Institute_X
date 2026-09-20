@@ -121,13 +121,13 @@ mv -Tf "${APP_ROOT}/current.next" "${CURRENT}"
 
 healthy=false
 for _ in $(seq 1 30); do
-  if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3001/ >/dev/null; then
+  if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3001/api/health >/dev/null; then
     healthy=true
     break
   fi
   sleep 2
 done
-[[ ${healthy} == true ]] || { echo "Frontend health check failed." >&2; false; }
+[[ ${healthy} == true ]] || { echo "Application readiness check failed." >&2; false; }
 
 backend_health=$(docker inspect --format '{{.State.Health.Status}}' institute_x-backend-1)
 [[ ${backend_health} == healthy ]] || { echo "Backend is ${backend_health}." >&2; false; }
