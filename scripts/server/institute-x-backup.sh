@@ -21,7 +21,12 @@ docker exec institute_x-postgres-1 pg_dump \
   --username "${POSTGRES_USER:-institute_x}" \
   --dbname "${POSTGRES_DB:-institute_x}" \
   --format custom --no-owner --no-privileges >"${destination}/postgres.dump"
-docker exec institute_x-postgres-1 pg_restore --list <"${destination}/postgres.dump" >/dev/null
+[[ -s ${destination}/postgres.dump ]] || {
+  echo "PostgreSQL backup is empty: ${destination}/postgres.dump" >&2
+  exit 1
+}
+# docker exec only forwards redirected stdin when interactive input is enabled.
+docker exec -i institute_x-postgres-1 pg_restore --list <"${destination}/postgres.dump" >/dev/null
 docker exec institute_x-minio-1 tar -C /data -cf - . | gzip -9 >"${destination}/minio.tar.gz"
 gzip -t "${destination}/minio.tar.gz"
 sha256sum "${destination}/postgres.dump" "${destination}/minio.tar.gz" >"${destination}/SHA256SUMS"
