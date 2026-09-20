@@ -94,6 +94,25 @@ describe('PostTestService', () => {
     expect(JSON.stringify(result)).not.toContain('isCorrect');
   });
 
+  it('allows a Student without a Major to start an OPEN Course Post-Test', async () => {
+    prisma.quiz.findUnique.mockResolvedValue({
+      ...postTest,
+      version: {
+        ...postTest.version,
+        course: {
+          ...postTest.version.course,
+          eligibilityMode: 'OPEN',
+          allowedMajors: [],
+        },
+      },
+    });
+    db.quizAttempt.create.mockResolvedValue({ id: 'attempt-id' });
+
+    await expect(
+      service.start({ ...student, majorId: null }, 'post-test-id'),
+    ).resolves.toMatchObject({ attemptId: 'attempt-id' });
+  });
+
   it('allows a Post-Test without a Pre-Test after completing all lessons', async () => {
     prisma.quiz.findUnique.mockResolvedValue({
       ...postTest,

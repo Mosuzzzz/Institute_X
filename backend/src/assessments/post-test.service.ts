@@ -285,8 +285,5 @@ export class PostTestService {
     if (student.accountStatus !== AccountStatus.ACTIVE) {
       throw new ForbiddenException('Institutional account is inactive');
     }
-    if (!student.majorId) {
-      throw new UnprocessableEntityException('Student Major is required');
-    }
   }
 }

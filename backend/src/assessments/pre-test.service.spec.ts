@@ -111,6 +111,26 @@ describe('PreTestService', () => {
     expect(JSON.stringify(result)).not.toContain('isCorrect');
   });
 
+  it('allows a Student without a Major to start an OPEN Course Pre-Test', async () => {
+    prisma.quiz.findUnique.mockResolvedValue({
+      ...quiz,
+      version: {
+        ...quiz.version,
+        course: {
+          ...quiz.version.course,
+          eligibilityMode: 'OPEN',
+          allowedMajors: [],
+        },
+      },
+    });
+    db.quizAttempt.findFirst.mockResolvedValue(null);
+    db.quizAttempt.create.mockResolvedValue({ id: 'attempt-id' });
+
+    await expect(service.start({ ...student, majorId: null }, 'quiz-id')).resolves.toMatchObject({
+      attemptId: 'attempt-id',
+    });
+  });
+
   it('denies starting a Pre-Test after the Course is archived', async () => {
     prisma.quiz.findUnique.mockResolvedValue({
       ...quiz,
