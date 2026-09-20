@@ -43,8 +43,11 @@ install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute
 install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-backup.sh" /usr/local/sbin/institute-x-backup
 install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-verify-restore.sh" /usr/local/sbin/institute-x-verify-restore
 install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/harden-production-data.sh" /usr/local/sbin/institute-x-harden-data
+install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-monitor.sh" /usr/local/sbin/institute-x-monitor
 install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x-backup.service" /etc/systemd/system/institute-x-backup.service
 install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x-backup.timer" /etc/systemd/system/institute-x-backup.timer
+install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x-monitor.service" /etc/systemd/system/institute-x-monitor.service
+install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x-monitor.timer" /etc/systemd/system/institute-x-monitor.timer
 install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/nginx/institute-x.conf" /etc/nginx/sites-available/institute-x.conf
 ln -sfn /etc/nginx/sites-available/institute-x.conf /etc/nginx/sites-enabled/institute-x.conf
 
@@ -71,6 +74,7 @@ fi
 nginx -t
 systemctl daemon-reload
 systemctl enable --now institute-x-backup.timer
+systemctl enable --now institute-x-monitor.timer
 systemctl reload nginx
 
 RUNNER_INDEX=/home/deploy/actions-runner/_work/Institute_X/Institute_X/.git/index
