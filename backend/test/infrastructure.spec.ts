@@ -14,7 +14,8 @@ describe('Docker infrastructure contract', () => {
       'minio-init:',
       'migrate:',
       'backend:',
-      'nginx:',
+      'frontend:',
+      'mailpit:',
     ]) {
       expect(compose).toContain(service);
     }
@@ -38,12 +39,18 @@ describe('Docker infrastructure contract', () => {
     expect(dockerfile).toContain('npm run start:prod');
   });
 
-  it('proxies API traffic and exposes only private internal services', () => {
-    const nginx = readFileSync(resolve(repositoryRoot, 'infrastructure/nginx.conf'), 'utf8');
+  it('uses host Nginx as the edge proxy and binds containers to loopback', () => {
+    const nginx = readFileSync(
+      resolve(repositoryRoot, 'infrastructure/nginx/institute-x.conf'),
+      'utf8',
+    );
     const compose = readFileSync(resolve(repositoryRoot, 'docker-compose.yml'), 'utf8');
 
-    expect(nginx).toContain('proxy_pass http://backend:3000');
+    expect(nginx).toContain('server_name x.mosuzzzz.online');
     expect(nginx).toContain('location /api/');
+    expect(nginx).toContain('proxy_pass http://127.0.0.1:3001');
+    expect(compose).not.toContain('\n  nginx:');
+    expect(compose).toContain('127.0.0.1:${FRONTEND_PORT:-3001}:3001');
     expect(compose).not.toMatch(/postgres:[\s\S]*?ports:\s*\n\s*-\s*["']?5432:5432/);
   });
 });
