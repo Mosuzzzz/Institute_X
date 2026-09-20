@@ -81,4 +81,5 @@ update_env S3_ACCESS_KEY_ID "${s3_user}"
 update_env S3_SECRET_ACCESS_KEY "${s3_password}"
 
 echo "Application database and object-storage credentials were hardened."
-echo "Run a deployment to activate the new credentials."
+/usr/local/sbin/institute-x-start
+echo "The running application now uses the reduced-privilege credentials."

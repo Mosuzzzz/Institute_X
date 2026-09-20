@@ -47,6 +47,27 @@ install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute
 install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/systemd/institute-x-backup.timer" /etc/systemd/system/institute-x-backup.timer
 install -m 0644 -o root -g root "${PROJECT_DIR}/infrastructure/nginx/institute-x.conf" /etc/nginx/sites-available/institute-x.conf
 ln -sfn /etc/nginx/sites-available/institute-x.conf /etc/nginx/sites-enabled/institute-x.conf
+
+# Give the currently running images an immutable release tag when upgrading an
+# installation that predates SHA-tagged images.
+if [[ -L /srv/institute-x/current ]]; then
+  CURRENT_RELEASE=$(readlink -f /srv/institute-x/current)
+  CURRENT_SHA=$(basename "${CURRENT_RELEASE}")
+  if [[ ${CURRENT_RELEASE} == /srv/institute-x/releases/* && ${CURRENT_SHA} =~ ^[0-9a-f]{40}$ ]]; then
+    for service in backend frontend; do
+      target="institute-x-${service}:${CURRENT_SHA}"
+      if ! docker image inspect "${target}" >/dev/null 2>&1; then
+        current_image=$(docker inspect --format '{{.Image}}' "institute_x-${service}-1" 2>/dev/null || true)
+        [[ -z ${current_image} ]] || docker tag "${current_image}" "${target}"
+      fi
+    done
+    if ! docker image inspect "institute-x-migrate:${CURRENT_SHA}" >/dev/null 2>&1; then
+      migrate_image=$(docker inspect --format '{{.Image}}' institute_x-migrate-1 2>/dev/null || true)
+      [[ -z ${migrate_image} ]] || docker tag "${migrate_image}" "institute-x-migrate:${CURRENT_SHA}"
+    fi
+  fi
+fi
+
 nginx -t
 systemctl daemon-reload
 systemctl enable --now institute-x-backup.timer
