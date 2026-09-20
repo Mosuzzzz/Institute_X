@@ -15,6 +15,25 @@ command -v flock >/dev/null
 command -v gzip >/dev/null
 command -v curl >/dev/null
 
+if ! docker compose version >/dev/null 2>&1; then
+  PROJECT_OWNER=$(stat -c '%U' "${PROJECT_DIR}")
+  PROJECT_HOME=$(getent passwd "${PROJECT_OWNER}" | cut -d: -f6)
+  COMPOSE_SOURCE=${PROJECT_HOME}/.docker/cli-plugins/docker-compose
+  COMPOSE_SHA256=33b208d7e76639db742fae84b966cc01dacae58ca3fc4dabbc907045aefdf0c4
+
+  [[ -x ${COMPOSE_SOURCE} ]] || {
+    echo "Docker Compose is unavailable to root and was not found at ${COMPOSE_SOURCE}." >&2
+    exit 1
+  }
+  echo "${COMPOSE_SHA256}  ${COMPOSE_SOURCE}" | sha256sum --check --status || {
+    echo "Refusing to install an unexpected Docker Compose binary." >&2
+    exit 1
+  }
+  install -D -m 0755 -o root -g root \
+    "${COMPOSE_SOURCE}" /usr/local/lib/docker/cli-plugins/docker-compose
+fi
+docker compose version
+
 install -d -m 0750 -o root -g deploy /srv/institute-x
 install -d -m 0750 -o root -g deploy /srv/institute-x/releases /srv/institute-x/backups
 install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-deploy.sh" /usr/local/sbin/institute-x-deploy
