@@ -1,4 +1,4 @@
-FROM node:24-alpine AS dependencies
+FROM node:25-alpine AS dependencies
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -9,7 +9,7 @@ FROM dependencies AS build
 COPY . .
 RUN npm run build
 
-FROM node:24-alpine AS production
+FROM node:25-alpine AS production
 
 ENV NODE_ENV=production
 WORKDIR /app
