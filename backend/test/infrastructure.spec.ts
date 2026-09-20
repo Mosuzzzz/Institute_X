@@ -47,7 +47,7 @@ describe('Docker infrastructure contract', () => {
     const compose = readFileSync(resolve(repositoryRoot, 'docker-compose.yml'), 'utf8');
 
     expect(nginx).toContain('server_name x.mosuzzzz.online');
-    expect(nginx).toContain('location /api/');
+    expect(nginx).toContain('location ^~ /api/');
     expect(nginx).toContain('proxy_pass http://127.0.0.1:3001');
     expect(compose).not.toContain('\n  nginx:');
     expect(compose).toContain('127.0.0.1:${FRONTEND_PORT:-3001}:3001');
