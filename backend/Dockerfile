@@ -1,4 +1,4 @@
-FROM node:24-alpine AS dependencies
+FROM node:25-alpine AS dependencies
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -17,7 +17,7 @@ FROM dependencies AS migration
 COPY prisma ./prisma
 CMD ["npx", "prisma", "migrate", "deploy"]
 
-FROM node:24-alpine AS production
+FROM node:25-alpine AS production
 
 ENV NODE_ENV=production
 WORKDIR /app
