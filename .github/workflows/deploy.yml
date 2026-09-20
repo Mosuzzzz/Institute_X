@@ -41,7 +41,7 @@ jobs:
           sha=${DISPATCH_SHA:-${VERIFIED_SHA:-$DEFAULT_SHA}}
           [[ $sha =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid commit SHA" >&2; exit 1; }
           echo "sha=$sha" >>"$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.revision.outputs.sha }}
           fetch-depth: 0
