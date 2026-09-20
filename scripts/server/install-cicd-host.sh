@@ -20,7 +20,10 @@ install -d -m 0750 -o root -g deploy /srv/institute-x/releases /srv/institute-x/
 install -m 0755 -o root -g root "${PROJECT_DIR}/scripts/server/institute-x-deploy.sh" /usr/local/sbin/institute-x-deploy
 
 cat >/etc/sudoers.d/institute-x-deploy <<'EOF'
-deploy ALL=(root) NOPASSWD: /usr/local/sbin/institute-x-deploy [0-9a-f]* /home/deploy/actions-runner/_work/Institute_X/Institute_X
+# Arguments are validated again by institute-x-deploy itself. Keeping arguments
+# out of this sudoers command is also compatible with sudo builds that reject
+# wildcard patterns in command arguments.
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/institute-x-deploy
 EOF
 chmod 0440 /etc/sudoers.d/institute-x-deploy
 visudo -cf /etc/sudoers.d/institute-x-deploy
