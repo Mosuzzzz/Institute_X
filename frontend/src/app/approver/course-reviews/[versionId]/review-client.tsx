@@ -15,8 +15,9 @@ import { translateMajor } from '../../../../lib/reference-translations';
 import ApiState from '../../../api-state';
 import QuestionImage from '../../../question-image';
 import { formatSubmitted, formatWaiting } from '../../approver-api';
-import { commonUi, staffUi } from '../../../ui-styles';
+import { staffUi } from '../../../ui-styles';
 import { useUiTranslation } from "../../../../lib/ui-translations";
+import PopupAlert from '../../../popup-alert';
 
 
 export default function CourseReviewClient({ versionId }: { versionId: string }) {
@@ -59,10 +60,13 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
   if (!review) {
     return (
       <main data-ui="page" className={staffUi.page}>
-        <section className={`${commonUi.empty} border-[#d99da2] bg-[#fae9eb] text-[#8b343b]`}>
-          <strong>{t("Version is no longer pending")}</strong>
-          <p>{t("It may already have been reviewed.")}</p>
-          <Link className="font-bold underline" href="/approver/course-reviews">{t("Return to queue")}</Link>
+        <PopupAlert message={`${t("Version is no longer pending")}. ${t("It may already have been reviewed.")}`} />
+        <section className="rounded-control border border-amber-200 bg-amber-50 p-5 text-amber-900">
+          <div className="min-w-0 space-y-2">
+            <strong className="block font-semibold">{t("Version is no longer pending")}</strong>
+            <p className="text-sm leading-relaxed">{t("It may already have been reviewed.")}</p>
+            <Link className="inline-flex min-h-11 items-center font-semibold underline" href="/approver/course-reviews">{t("Return to queue")}</Link>
+          </div>
         </section>
       </main>
     );
@@ -150,7 +154,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
       </header>
 
       {/* Tabs navigation */}
-      <div className="mb-6 flex gap-3 border-b border-[#d8dde5]">
+      <div className="mt-6 mb-6 flex flex-wrap gap-2 border-b border-[#d8dde5] sm:gap-3">
         <button
           type="button"
           onClick={() => setActiveTab('evidence')}
@@ -341,11 +345,7 @@ export default function CourseReviewClient({ versionId }: { versionId: string })
               placeholder={t("Required when rejecting this Version")}
             />
           </label>
-          {actionError ? (
-            <p className={staffUi.help} role="alert">
-              {t(actionError)}
-            </p>
-          ) : null}
+          <PopupAlert message={actionError ? t(actionError) : null} />
           <div>
             <button type="button" disabled={saving} onClick={() => void decide('REJECTED')}>{t("Reject Version")}</button>
             <button type="button" disabled={saving} onClick={() => void decide('APPROVED')}>

@@ -1,5 +1,6 @@
 'use client';
 
+import PopupAlert from "../../../popup-alert";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
@@ -157,7 +158,7 @@ export default function CreateCourseClient() {
             ) : (
               <p className="mt-5 text-sm text-[#667182]">{t("No major selection is needed for an OPEN course.")}</p>
             )}
-            {error ? <p className="mt-6 border-l-4 border-[#b42318] bg-[#fff3f2] p-4 text-sm text-[#8f1d14]" role="alert">{t(error)}</p> : null}
+            <PopupAlert message={error ? t(error) : null} />
             <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-[#e2e4eb] pt-6">
               <button className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded bg-[#073d78] hover:bg-[#063777] px-7 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:bg-[#aebdce] shadow-sm" type="submit" disabled={saving}>
                 {saving ? t("Creating…") : t("Create Draft & Continue")}

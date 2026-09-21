@@ -19,7 +19,7 @@ export default function CourseCoverImage({
     assetId ? `course-covers/${assetId}/view-url` : null,
   );
 
-  if (!data?.url) {
+  if (!assetId || !data?.url) {
     if (fallback) return <>{fallback}</>;
     // Keep the course editor visually complete before a teacher uploads a cover.
     return <img alt={alt} className={className} src="/no_cover.png" />;
