@@ -1,9 +1,10 @@
 "use client";
 
+import PopupAlert from "../../../popup-alert";
 import Link from "next/link";
 import BootstrapIcon from "../../../bootstrap-icon";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import {
   backendApi,
   type CategoryDto,
@@ -15,6 +16,8 @@ import { useBackendQuery } from "../../../../lib/use-backend-query";
 import ApiState from "../../../api-state";
 import CourseCoverImage from "../../../course-cover-image";
 import QuestionImage from "../../../question-image";
+import QuestionImagePicker from "../../../question-image-picker";
+import AutosaveForm from "../../../autosave-form";
 import StatusBadge from "../../status-badge";
 import { useAppLanguage } from "../../../../lib/language";
 import { learningCopy } from "../../../../lib/learning-copy";
@@ -75,24 +78,25 @@ function QuizEditor({
   const [correctOption, setCorrectOption] = useState("0");
 
   async function storeQuestionImage(questionId: string, file: File) {
+    const upload = await backendApi<InitializedUploadDto>(
+      `questions/${questionId}/image/uploads`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        }),
+      },
+    );
     try {
-      const upload = await backendApi<InitializedUploadDto>(
-        `questions/${questionId}/image/uploads`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            fileName: file.name,
-            mimeType: file.type,
-            sizeBytes: file.size,
-          }),
-        },
-      );
       await putSignedFile(upload.uploadUrl, file);
       await backendApi(`question-images/${upload.assetId}/complete`, {
         method: "POST",
       });
     } catch (error: unknown) {
-      await onChanged();
+      // Release the failed upload slot so selecting again or retrying can work.
+      await backendApi(`question-images/${upload.assetId}`, { method: "DELETE" });
       throw error;
     }
   }
@@ -141,54 +145,46 @@ function QuizEditor({
     );
   }
 
-  async function updateQuizDetails(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
+  async function updateQuizDetails(values: FormData) {
     const minutes = Number(values.get("minutes") ?? 0);
-    await run(async () => {
-      await backendApi(`quizzes/${quiz.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          title: String(values.get("title") ?? ""),
-          durationSeconds: minutes > 0 ? minutes * 60 : null,
-        }),
-      });
-      await onChanged();
-    }, `${quiz.quizType === "PRE_TEST" ? t("Pre-test") : t("Post-test")} updated.`);
+    await backendApi(`quizzes/${quiz.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        title: String(values.get("title") ?? ""),
+        durationSeconds: minutes > 0 ? minutes * 60 : null,
+      }),
+    });
+    await onChanged();
   }
 
   async function updateQuestion(
-    event: FormEvent<HTMLFormElement>,
+    values: FormData,
     question: QuizDto["questions"][number],
   ) {
-    event.preventDefault();
-    const values = new FormData(event.currentTarget);
     const correctIndex = Number(values.get("correctOption"));
     const optionCount = Math.max(4, question.options.length);
     const options = Array.from({ length: optionCount }, (_, index) => ({
       text: String(values.get(`option${index}`) ?? "").trim(),
       index,
     })).filter((option) => option.text);
-    await run(async () => {
-      if (options.length < 2) throw new Error(t("Add at least two answer choices."));
-      if (!options.some((option) => option.index === correctIndex)) {
-        throw new Error(t("The correct answer cannot be empty."));
-      }
-      await backendApi(`questions/${question.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          questionText: String(values.get("questionText") ?? ""),
-          points: Number(values.get("points") ?? 1),
-          position: question.position,
-          options: options.map((option, index) => ({
-            optionText: option.text,
-            isCorrect: option.index === correctIndex,
-            position: index + 1,
-          })),
-        }),
-      });
-      await onChanged();
-    }, t("Question updated."));
+    if (options.length < 2) throw new Error(t("Add at least two answer choices."));
+    if (!options.some((option) => option.index === correctIndex)) {
+      throw new Error(t("The correct answer cannot be empty."));
+    }
+    await backendApi(`questions/${question.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        questionText: String(values.get("questionText") ?? ""),
+        points: Number(values.get("points") ?? 1),
+        position: question.position,
+        options: options.map((option, index) => ({
+          optionText: option.text,
+          isCorrect: option.index === correctIndex,
+          position: index + 1,
+        })),
+      }),
+    });
+    await onChanged();
   }
 
   async function clearAllQuestions() {
@@ -242,9 +238,9 @@ function QuizEditor({
         </span>
       </div>
       {!disabled ? (
-        <form
-          className="mt-5 grid gap-3 rounded-control border border-line bg-[#f6f8fa] p-4 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end"
-          onSubmit={(event) => void updateQuizDetails(event)}
+        <AutosaveForm
+          className="mt-5 grid gap-3 rounded-control border border-line bg-[#f6f8fa] p-4 sm:grid-cols-[minmax(0,1fr)_150px] sm:items-end"
+          save={updateQuizDetails}
         >
           <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Test title")}<input className={fieldClass} defaultValue={quiz.title} name="title" required />
           </label>
@@ -257,8 +253,7 @@ function QuizEditor({
               type="number"
             />
           </label>
-          <button className={secondaryButton} type="submit">{t("Save test")}</button>
-        </form>
+        </AutosaveForm>
       ) : null}
       {!disabled ? (
         <div className="mt-3 flex flex-wrap justify-end gap-4">
@@ -288,9 +283,9 @@ function QuizEditor({
               </span>
               <div>
                 {!disabled ? (
-                  <form
+                  <AutosaveForm
                     className="grid gap-3"
-                    onSubmit={(event) => void updateQuestion(event, question)}
+                    save={(values) => updateQuestion(values, question)}
                   >
                     <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Question")}<input
                         className={fieldClass}
@@ -307,7 +302,7 @@ function QuizEditor({
                           return (
                             <label
                               className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2"
-                              key={option?.id ?? optionIndex}
+                              key={optionIndex}
                             >
                               <input
                                 defaultChecked={option?.isCorrect ?? false}
@@ -345,10 +340,9 @@ function QuizEditor({
                           onClick={() => void removeQuestion(question)}
                           type="button"
                         >{t("Remove question")}</button>
-                        <button className={secondaryButton} type="submit">{t("Save question")}</button>
                       </div>
                     </div>
-                  </form>
+                  </AutosaveForm>
                 ) : (
                   <p className="text-sm font-medium text-[#202a38]">
                     {question.questionText}
@@ -387,36 +381,16 @@ function QuizEditor({
                     ) : null}
                   </div>
                 ) : !disabled ? (
-                  <form
-                    className="mt-3 flex flex-wrap items-center gap-2"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const uploadForm = event.currentTarget;
-                      const file = (
-                        uploadForm.elements.namedItem(
-                          "existingQuestionImage",
-                        ) as HTMLInputElement
-                      ).files?.[0];
-                      if (!file) return;
-                      void run(async () => {
-                        await storeQuestionImage(question.id, file);
-                        uploadForm.reset();
-                        await onChanged();
-                      }, "Question image uploaded.");
-                    }}
-                  >
-                    <input
-                      accept="image/jpeg,image/png,image/webp"
-                      className="max-w-xs text-xs"
+                  <div className="mt-3">
+                    <QuestionImagePicker
                       name="existingQuestionImage"
-                      required
-                      type="file"
+                      className="max-w-xs text-xs"
+                      upload={async (file) => {
+                        await storeQuestionImage(question.id, file);
+                        await onChanged();
+                      }}
                     />
-                    <button
-                      className="cursor-pointer text-xs font-semibold text-[#073d78] hover:underline"
-                      type="submit"
-                    >{t("Add image")}</button>
-                  </form>
+                  </div>
                 ) : null}
                 <p className="mt-1 text-xs text-[#58677c]">
                   {question.options.length}{t(" choices · ")}{Number(question.points)}{" "}{t("point(s)")}</p>
@@ -437,14 +411,11 @@ function QuizEditor({
               required
             />
           </label>
-          <label className="grid gap-1.5 text-xs font-semibold text-[#435166]">{t("Question image (optional)")}<input
-              accept="image/jpeg,image/png,image/webp"
-              className={fieldClass}
-              name="questionImage"
-              type="file"
-            />
+          <div className="grid gap-1.5 text-xs font-semibold text-[#435166]">
+            <span>{t("Question image (optional)")}</span>
+            <QuestionImagePicker className={fieldClass} name="questionImage" />
             <span className="font-normal text-[#58677c]">{t("JPEG, PNG, or WebP · maximum 10 MB")}</span>
-          </label>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {[0, 1, 2, 3].map((index) => (
               <label
@@ -510,6 +481,13 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [addingLectureSectionId, setAddingLectureSectionId] = useState<string | null>(null);
   const [editingLectureId, setEditingLectureId] = useState<string | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (coverPreviewUrl) URL.revokeObjectURL(coverPreviewUrl);
+    };
+  }, [coverPreviewUrl]);
 
   async function run(task: () => Promise<void>, message: string) {
     setBusy(true);
@@ -543,6 +521,9 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
       </main>
     );
   const isDraft = version.status === "DRAFT";
+  const isUploadError = Boolean(
+    actionError && /file|media|mime|upload|image|video|audio|document|ไฟล์/i.test(actionError),
+  );
   const status = version.status === "SUPERSEDED" ? "PUBLISHED" : version.status;
   const checks = Object.entries(data.checks);
   const nextContentPosition =
@@ -758,6 +739,7 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         });
         form.reset();
         await refresh();
+        setCoverPreviewUrl(null);
       } catch (error: unknown) {
         await refresh();
         throw error;
@@ -1010,12 +992,11 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
         </div>
       </header>
 
-      {actionError || notice ? (
-        <div
-          className={`mx-auto mt-6 w-[min(calc(100%-48px),1420px)] border-l-4 p-4 text-sm ${actionError ? "border-[#b42318] bg-[#fff3f2] text-[#8f1d14]" : "border-[#0b6a73] bg-[#effafa] text-[#07545b]"}`}
-        >
-          {t(actionError ?? notice ?? '')}
-        </div>
+      <PopupAlert message={actionError ? t(actionError) : null} />
+      {notice ? (
+        <p className="mx-auto mt-6 w-[min(calc(100%-48px),1420px)] text-sm text-[#07545b]" role="status">
+          {t(notice)}
+        </p>
       ) : null}
 
       <div className="mx-auto grid w-[min(calc(100%-48px),1420px)] grid-cols-[280px_minmax(0,1fr)] gap-8 py-10 max-[900px]:w-full max-[900px]:grid-cols-1 max-[900px]:py-0">
@@ -1456,9 +1437,11 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                         placeholder={t("Content title (optional, defaults to file name)")}
                                       />
                                       <input
-                                        className={fieldClass}
+                                        aria-invalid={isUploadError}
+                                        className={`${fieldClass} ${isUploadError ? "border-red-500 bg-red-50/40 text-red-700" : ""}`}
                                         name="mediaFile"
                                         type="file"
+                                        onChange={() => setActionError(null)}
                                         accept={
                                           selectedContentType === "VIDEO"
                                             ? "video/*"
@@ -1470,6 +1453,9 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                                         }
                                         required
                                       />
+                                      {isUploadError ? (
+                                        <p className="text-xs font-medium text-red-700" role="alert">{t(actionError!)}</p>
+                                      ) : null}
                                       <div className="flex items-center gap-3 pt-1">
                                         <button
                                           type="submit"
@@ -1755,15 +1741,25 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                 </div>
                 <div className="mt-6 grid grid-cols-[minmax(240px,420px)_minmax(0,1fr)] gap-6 max-[700px]:grid-cols-1">
                   <div className="relative aspect-video overflow-hidden bg-[#27303b]">
-                    <CourseCoverImage
-                      assetId={
-                        version.coverAsset?.status === "READY"
-                          ? version.coverAsset.id
-                          : null
-                      }
-                      alt={t('{title} cover', { title: version.title })}
-                      className="h-full w-full object-cover"
-                    />
+                    {coverPreviewUrl && isDraft && !version.coverAsset ? (
+                      // Local file preview stays in the browser until upload.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={coverPreviewUrl}
+                        alt={t('{title} cover', { title: version.title })}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <CourseCoverImage
+                        assetId={
+                          version.coverAsset?.status === "READY"
+                            ? version.coverAsset.id
+                            : null
+                        }
+                        alt={t('{title} cover', { title: version.title })}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
                   </div>
                   {isDraft && !version.coverAsset ? (
                     <form
@@ -1772,12 +1768,22 @@ export default function CourseDetailClient({ courseId }: { courseId: string }) {
                     >
                       <label className="grid gap-2 text-sm font-semibold text-[#435166]">{t("Choose cover image")}<input
                           accept="image/jpeg,image/png,image/webp"
-                          className={fieldClass}
+                          aria-invalid={isUploadError}
+                          className={`${fieldClass} ${isUploadError ? "border-red-500 bg-red-50/40 text-red-700" : ""}`}
                           name="cover"
+                          disabled={busy}
+                          onChange={(event) => {
+                            setActionError(null);
+                            const file = event.currentTarget.files?.[0];
+                            setCoverPreviewUrl(file ? URL.createObjectURL(file) : null);
+                          }}
                           required
                           type="file"
                         />
                       </label>
+                      {isUploadError ? (
+                        <p className="text-xs font-medium text-red-700" role="alert">{t(actionError!)}</p>
+                      ) : null}
                       <button
                         className={primaryButton}
                         disabled={busy}

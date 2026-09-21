@@ -1,5 +1,6 @@
 'use client';
 
+import PopupAlert from "../../../../popup-alert";
 import Link from 'next/link';
 import BootstrapIcon from '../../../../bootstrap-icon';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -169,7 +170,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
             {history.length > 0 ? t("Attempt history") : t("Check your mastery")}
           </h1>
           <p className="mt-3 text-sm text-[#697586]">{t("Review your results here. A new timed attempt starts only after you select Start Post-Test.")}</p>
-          {error ? <p className="mt-3 text-sm text-[#8d3039]">{t(error)}</p> : null}
+          <PopupAlert message={error ? t(error) : null} />
           {history.length > 0 ? <div className="mt-6 overflow-x-auto">
             <table className="w-full min-w-[520px] border-collapse text-left text-sm">
               <thead>
@@ -309,7 +310,7 @@ export default function AssessmentClient({ quizType, quizId }: { quizType: strin
             ))}
           </fieldset>
         ))}
-        {error ? <p className="border-l-[3px] border-[#ad424b] bg-[#faeeee] px-4 py-[13px] text-[#8d3039]" role="alert">{t(error)}</p> : null}
+        <PopupAlert message={error ? t(error) : null} />
         <button className="max-[540px]:w-full max-[540px]:min-w-0 min-w-[200px] cursor-pointer justify-self-end border-0 bg-[#073d78] px-[22px] py-3.5 text-[0.82rem] font-bold text-white disabled:cursor-wait disabled:opacity-65" type="submit" disabled={submitting}>{submitting ? t("Submitting…") : t("Submit assessment")}</button>
       </form>
     </main>

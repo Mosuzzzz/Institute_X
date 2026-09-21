@@ -1,5 +1,6 @@
 'use client';
 
+import PopupAlert from "./popup-alert";
 import Image from 'next/image';
 import { FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
@@ -96,11 +97,11 @@ export default function AuthenticationPage() {
         <div className={authUi.rule} />
         <form noValidate aria-busy={submitting} className={`${authUi.access} grid gap-4`} onSubmit={challengeId ? verifyOtp : requestOtp}>
           <h2>{t("เข้าสู่ระบบ")}</h2>
-          {!challengeId ? <label className="grid gap-1 text-sm"><input className="rounded-md border border-[#ccd1df] px-4 py-3" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} name="email" type="email" autoComplete="email" placeholder="Email Address" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
+          {!challengeId ? <label className="grid gap-1 text-sm"><input className="rounded-md border border-[#ccd1df] px-4 py-3" aria-invalid={Boolean(error)} name="email" type="email" autoComplete="email" placeholder="Email Address" value={email} onChange={(event) => setEmail(event.target.value)} required /></label> : <>
             <p className="text-sm text-muted">{t("ส่งรหัส 6 หลักไปที่ ")}<strong>{email}</strong>{t(" แล้ว รหัสหมดอายุภายใน 5 นาที")}</p>
-            <label className="grid gap-1 text-sm">{t("รหัส OTP")}<input className="rounded-md border border-[#ccd1df] px-4 py-3 text-center text-xl tracking-[0.35em]" aria-invalid={Boolean(error)} aria-describedby={error ? "auth-error" : undefined} name="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus /></label>
+            <label className="grid gap-1 text-sm">{t("รหัส OTP")}<input className="rounded-md border border-[#ccd1df] px-4 py-3 text-center text-xl tracking-[0.35em]" aria-invalid={Boolean(error)} name="otp" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus /></label>
           </>}
-          {error ? <p id="auth-error" className="rounded-control border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{t(error)}</p> : null}
+          <PopupAlert message={error ? t(error) : null} />
           <button className={authUi.loginButton} type="submit" disabled={submitting}>{submitting ? t("กำลังดำเนินการ…") : challengeId ? t("ยืนยันและเข้าสู่ระบบ") : t("ส่งรหัส OTP")}</button>
           {expiresAt ? <span className="sr-only">{t("OTP expires at ")}{expiresAt}</span> : null}
         </form>

@@ -6,6 +6,14 @@ import { useAppLanguage, type Language } from './language';
 // Only application-owned copy is looked up here. User-authored names, course
 // descriptions, questions, answers, and API identifiers must not be translated.
 const rows: readonly (readonly [string, string, string, string])[] = [
+  ['Alert', 'แจ้งเตือน', '提示', 'お知らせ'],
+  ['OK', 'ตกลง', '确定', 'OK'],
+  ['Image will be saved when you add the question.', 'รูปภาพจะถูกบันทึกเมื่อเพิ่มคำถาม', '添加问题时将保存图片。', '問題を追加すると画像が保存されます。'],
+  ['Changes save automatically.', 'บันทึกการเปลี่ยนแปลงอัตโนมัติ', '更改会自动保存。', '変更は自動保存されます。'],
+  ['Complete the required fields to save.', 'กรอกข้อมูลที่จำเป็นให้ครบเพื่อบันทึก', '请填写必填项以保存。', '保存するには必須項目を入力してください。'],
+  ['Saved automatically.', 'บันทึกอัตโนมัติแล้ว', '已自动保存。', '自動保存しました。'],
+  ['Unsaved changes…', 'มีการเปลี่ยนแปลงที่ยังไม่บันทึก…', '有未保存的更改…', '未保存の変更があります…'],
+  ['Retry', 'ลองอีกครั้ง', '重试', '再試行'],
   ['VIDEO', 'วิดีโอ', '视频', '動画'],
   ['AUDIO', 'เสียง', '音频', '音声'],
   ['DOCUMENT', 'เอกสาร', '文档', '文書'],

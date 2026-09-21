@@ -1,5 +1,6 @@
 'use client';
 
+import PopupAlert from "../popup-alert";
 import { useMemo, useState } from 'react';
 import { backendApi, MajorDto } from '../../lib/backend-api';
 import { useBackendQuery } from '../../lib/use-backend-query';
@@ -89,7 +90,7 @@ export default function RegistrarPage() {
         </span>
       </label>
 
-      {message ? <p role="alert" className="rounded-control border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{t(message)}</p> : null}
+      <PopupAlert message={message ? t(message) : null} />
 
       <section className="overflow-hidden rounded-panel border border-[#d6dbe4] bg-white">
         <header className="flex items-center justify-between gap-4 border-b border-[#d6dbe4] px-5 py-4 sm:px-6">

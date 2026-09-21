@@ -29,7 +29,7 @@ Product success means students can access learning they are eligible for, teache
 - Only institutional email addresses ending in @x.ac.th are accepted. Authentication uses Email OTP, with no passwords, SSO, or public account-registration endpoint.
 - New accounts are created only after successful OTP verification and start with STUDENT. Registrars assign additional roles to verified accounts.
 - Registrars assign the TEACHER role. That assignment immediately grants access to Teacher course-authoring capabilities; no separate approval is required.
-- Teachers save drafts through explicit save actions. Unsaved text remains local to the current page.
+- Teachers save course details through explicit save actions. Existing assessment titles, durations, questions, choices, correct answers, and points save automatically after editing, with save status and retry feedback. Creating assessments and adding questions remain explicit actions.
 - Approver approval automatically publishes the course version. Rejection requires a review comment.
 - Opening an eligible course automatically enrolls the student. Students must submit the Pre-Test before accessing learning content and take the Post-Test after learning.
 

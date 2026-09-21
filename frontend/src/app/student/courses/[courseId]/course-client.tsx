@@ -1,5 +1,6 @@
 'use client';
 
+import PopupAlert from "../../../popup-alert";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -79,6 +80,7 @@ function CourseExperience({
   const [loading, setLoading] = useState(true);
   const [reporting, setReporting] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
+  const [reportError, setReportError] = useState('');
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedReportReasons, setSelectedReportReasons] = useState<string[]>([]);
   const [reportDetails, setReportDetails] = useState('');
@@ -302,15 +304,11 @@ function CourseExperience({
           </div>
         </div>
       </div>
-      {reviewMode && moderationError ? (
-        <p className="mx-auto max-w-[1720px] px-6 py-3 text-sm text-[#8d3039]" role="alert">
-          {moderationError}
-        </p>
-      ) : null}
+      <PopupAlert message={reviewMode && moderationError ? t(moderationError) : null} />
       {!reviewMode ? <section className="mx-auto flex max-w-[1720px] justify-end px-6 pt-4">
         <button className="text-sm text-red-700 underline underline-offset-4" type="button" onClick={() => { setReportMessage(''); setReportOpen(true); }}><BootstrapIcon name="flag" /> {t('Report course')}</button>
       </section> : null}
-      {!reviewMode && reportMessage ? <p className="mx-auto max-w-[1720px] px-6 py-2 text-right text-sm text-[#58677c]" role="status">{reportMessage}</p> : null}
+      {!reviewMode && !reportOpen && reportMessage ? <p className="mx-auto my-4 w-[min(calc(100%-48px),1720px)] text-sm text-[#07545b]" role="status">{reportMessage}</p> : null}
       {!reviewMode && reportOpen ? <div className="fixed inset-0 z-100 grid place-items-center bg-slate-950/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !reporting) setReportOpen(false); }}>
         <section className="w-full max-w-xl rounded-panel bg-white p-6 shadow-[0_24px_70px_rgb(15_23_42_/_28%)] sm:p-8" role="dialog" aria-modal="true" aria-labelledby="report-course-title">
           <header className="flex items-start justify-between gap-6"><div><h2 id="report-course-title" className="text-2xl font-semibold text-[#20243a]">{t('Report this course')}</h2><p className="mt-2 text-sm leading-6 text-muted">{t('Select every reason that applies. Your report will be reviewed by an Approver.')}</p></div><button className="grid size-11 shrink-0 place-items-center rounded-control text-xl hover:bg-slate-100" type="button" disabled={reporting} aria-label={t('Close')} onClick={() => setReportOpen(false)}><BootstrapIcon name="x-lg" /></button></header>
@@ -318,16 +316,16 @@ function CourseExperience({
             event.preventDefault();
             if (!selectedReportReasons.length || otherReasonNeedsDetails) return;
             const reason = `${selectedReportReasons.map(item => t(item)).join(', ')}${reportDetails.trim() ? `\n\n${reportDetails.trim()}` : ''}`;
-            setReporting(true); setReportMessage('');
+            setReporting(true); setReportMessage(''); setReportError('');
             try { await backendApi(`course-reports/courses/${courseId}`, { method: 'POST', body: JSON.stringify({ reason }) }); setReportMessage(t('Course report submitted.')); setReportOpen(false); setSelectedReportReasons([]); setReportDetails(''); }
-            catch (cause) { setReportMessage(cause instanceof Error ? t(cause.message) : t('Unable to submit course report.')); }
+            catch (cause) { setReportError(cause instanceof Error ? t(cause.message) : t('Unable to submit course report.')); }
             finally { setReporting(false); }
           }}>
             <fieldset className="grid gap-2"><legend className="mb-3 font-medium">{t('Reason for reporting')}</legend>{reportReasons.map(reason => <label key={reason} className="flex min-h-12 items-center gap-3 rounded-control border border-line px-4 py-3 text-sm transition hover:border-[#9db3cc] hover:bg-slate-50"><input className="size-4" type="checkbox" checked={selectedReportReasons.includes(reason)} onChange={(event) => setSelectedReportReasons(current => event.target.checked ? [...current, reason] : current.filter(item => item !== reason))} /><span>{t(reason)}</span></label>)}</fieldset>
-            {selectedReportReasons.includes('Other') ? <label className="mt-5 grid gap-2 text-sm font-medium">{t('Additional details (required)')}<textarea className="min-h-28 resize-y border border-line bg-white px-4 py-3 font-normal" maxLength={1500} required aria-invalid={otherReasonNeedsDetails} aria-describedby={otherReasonNeedsDetails ? 'report-details-error' : undefined} value={reportDetails} onChange={event => setReportDetails(event.target.value)} placeholder={t('Add information that will help the Approver review this report.')} autoFocus /></label> : null}
+            {selectedReportReasons.includes('Other') ? <label className="mt-5 grid gap-2 text-sm font-medium">{t('Additional details (required)')}<textarea className="min-h-28 resize-y border border-line bg-white px-4 py-3 font-normal" maxLength={1500} required aria-invalid={otherReasonNeedsDetails} value={reportDetails} onChange={event => setReportDetails(event.target.value)} placeholder={t('Add information that will help the Approver review this report.')} autoFocus /></label> : null}
             {!selectedReportReasons.length ? <p className="mt-3 text-sm text-amber-700">{t('Select at least one reason.')}</p> : null}
-            {otherReasonNeedsDetails ? <p id="report-details-error" className="mt-3 text-sm text-amber-700">{t('Additional details are required when Other is selected.')}</p> : null}
-            {reportMessage ? <p className="mt-3 text-sm text-red-700" role="alert">{reportMessage}</p> : null}
+            <PopupAlert message={otherReasonNeedsDetails ? t('Additional details are required when Other is selected.') : null} />
+            <PopupAlert message={reportError} />
             <footer className="mt-6 flex flex-wrap justify-end gap-3"><button className="min-h-11 rounded-control border border-line px-5 py-2 text-sm font-medium" type="button" disabled={reporting} onClick={() => setReportOpen(false)}>{t('Cancel')}</button><button className="min-h-11 rounded-control bg-red-700 px-5 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={reporting || !selectedReportReasons.length || otherReasonNeedsDetails}>{reporting ? t('Submitting…') : t('Submit report')}</button></footer>
           </form>
         </section>
@@ -375,9 +373,9 @@ function CourseExperience({
                     {selectedItem.title ?? selectedItem.contentType}
                   </h1>
 
+                  <PopupAlert message={contentError ? t(contentError) : null} />
                   {contentError ? (
-                    <div className="mt-7 rounded-control border border-[#e96b72] bg-[#fae9eb] px-5 py-4 text-[#8b343b]">
-                      <p>{t(contentError)}</p>
+                    <div className="mt-7">
                       <button
                         type="button"
                         onClick={() => void openContent(selectedItem, false)}
@@ -443,7 +441,7 @@ function CourseExperience({
                 <BootstrapIcon name="arrow-left" />
               </button>
               {!reviewMode && entry.contentUnlocked && selectedItem ? <button type="button" className="mr-auto rounded bg-[#073d78] px-4 py-2 text-sm text-white disabled:opacity-50" disabled={savingCompletion || openingContent || (Boolean(selectedItem.media) && !mediaUrl) || selectedItem.completed} onClick={() => void markLessonComplete()}>{selectedItem.completed ? `✓ ${copy.completed}` : savingCompletion ? copy.saving : copy.markComplete}</button> : null}
-              {completionError ? <span role="alert" className="text-xs text-red-600">{t(completionError)}</span> : null}
+              <PopupAlert message={completionError ? t(completionError) : null} />
               <button
                 className="grid size-9 cursor-pointer place-items-center rounded border border-transparent bg-transparent text-lg hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-25"
                 type="button"
